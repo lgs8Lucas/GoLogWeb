@@ -11,8 +11,10 @@ import {
   ArrowRightIcon,
   BarChart3
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const primaryColor = "var(--primary-color)";
   
   return (
@@ -31,7 +33,7 @@ const DashboardPage = () => {
               <h3>Usuários</h3>
               <p>Cadastre ou edite os usuários do sistema.</p>
             </div>
-            <button className="verify-btn">Verificar</button>
+            <button className="verify-btn" onClick={() => navigate('/perfis')}>Verificar</button>
           </div>
 
           {/* Card 2 */}
@@ -55,7 +57,7 @@ const DashboardPage = () => {
               <h3>Transporte</h3>
               <p>Gerencie seus transportes.</p>
             </div>
-            <button className="verify-btn">Verificar</button>
+            <button className="verify-btn" onClick={() => navigate('/transporte')}>Verificar</button>
           </div>
 
           {/* Card 4 */}

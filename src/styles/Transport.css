@@ -1,0 +1,254 @@
+.transport-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header */
+.transport-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.transport-header h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.create-transport-btn {
+  background-color: var(--secondary-color); /* Teal / Green */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: opacity var(--transition-speed), transform 0.1s;
+}
+
+.create-transport-btn:hover {
+  opacity: 0.9;
+}
+.create-transport-btn:active {
+  transform: scale(0.97);
+}
+
+/* List Structure */
+.transport-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.transport-list-header {
+  display: flex;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Column Widths */
+.col-id { flex: 1; min-width: 100px; }
+.col-origin { flex: 1.5; min-width: 120px; }
+.col-dest { flex: 1.5; min-width: 140px; }
+.col-eq { flex: 1.25; min-width: 110px; }
+.col-driver { flex: 1.25; min-width: 110px; }
+.col-status { flex: 1; min-width: 120px; display: flex; justify-content: flex-end; }
+.col-action { width: 40px; display: flex; justify-content: flex-end; }
+
+/* Font Modifiers */
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; color: #1a202c; }
+
+/* Rows */
+.transport-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.transport-card {
+  background-color: #f1f5f9;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: background-color var(--transition-speed);
+}
+
+.transport-card:nth-child(even):not(.expanded) {
+  background-color: #f8fafc;
+}
+
+.transport-card.expanded {
+  background-color: #f1f5f9; /* Keeps light grey when expanded */
+}
+
+.transport-card-main {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.transport-card-main:hover {
+  background-color: #e2e8f0;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Badges */
+.transport-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+}
+
+.badge-travel { background-color: #27ae60; } /* Green */
+.badge-delayed { background-color: #c92a2a; } /* Red */
+.badge-delivery { background-color: #f59f00; } /* Yellow/Orange */
+
+.warning-icon {
+  font-size: 0.65rem;
+}
+
+/* Expanded Details - Stepper */
+.transport-card-details {
+  padding: 1.5rem 2rem 2.5rem 2rem;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+.stepper-container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  width: 100%;
+}
+
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.step-icon-wrapper {
+  background-color: transparent;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.step-node.completed .step-icon-wrapper {
+  color: var(--primary-color);
+}
+
+.step-node.active .step-icon-wrapper {
+  color: var(--secondary-color);
+}
+
+.step-node.pending .step-icon-wrapper {
+  color: #94a3b8;
+}
+
+.active-truck-icon {
+  position: absolute;
+  top: -15px;
+  right: -10px;
+}
+
+.step-label {
+  font-size: 0.65rem;
+  text-align: center;
+  max-width: 60px;
+  color: var(--text-light);
+}
+
+.step-node.completed .step-label,
+.step-node.active .step-label {
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+/* Connectors */
+.step-connector {
+  position: absolute;
+  top: 20px; /* center of icon wrapper */
+  left: 50%;
+  width: 100%;
+  height: 4px;
+  z-index: -1;
+  border-radius: 2px;
+}
+
+.completed-connector {
+  background-color: var(--primary-color);
+}
+
+.pending-connector {
+  background-color: #cbd5e1;
+}
+
+/* Last node doesn't need connector to its right */
+.step-node:last-child .step-connector {
+  display: none;
+}
+
+/* Footer Summary */
+.transport-footer-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  background-color: white;
+  padding: 1.25rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+  margin-top: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.summary-item strong {
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
