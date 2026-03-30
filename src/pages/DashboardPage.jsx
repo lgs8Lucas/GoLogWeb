@@ -102,7 +102,7 @@ const DashboardPage = () => {
             
             <div className="monitoring-info">
               <p>Acompanhe suas entregas em tempo real</p>
-              <button className="text-btn">Ver mais</button>
+              <button className="text-btn" onClick={() => navigate('/monitoramento')}>Ver mais</button>
             </div>
           </div>
         </div>

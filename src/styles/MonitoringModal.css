@@ -1,0 +1,230 @@
+/* Overlay */
+.monitoring-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+/* Modal Content Box */
+.monitoring-modal-content {
+  background-color: var(--white);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.monitoring-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem;
+}
+
+.monitoring-modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-color);
+  margin: 0;
+}
+
+/* Body Split */
+.monitoring-modal-body {
+  padding: 0 2rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .monitoring-modal-body {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+/* Left Col - Map */
+.monitoring-modal-left {
+  flex: 1.3;
+  display: flex;
+  flex-direction: column;
+}
+
+.route-map-container {
+  width: 100%;
+  min-height: 350px;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background-color: #e2e8f0;
+}
+
+.route-map-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.8;
+}
+
+/* Route Elements */
+.route-path-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.route-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+}
+
+.route-pin-circle {
+  background-color: white;
+  border: 2px solid #c92a2a;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Zoom Controls */
+.map-zoom-controls {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.zoom-btn {
+  background: white;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  transition: background-color 0.2s;
+}
+
+.zoom-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.zoom-btn:first-child {
+  border-bottom: 1px solid var(--border-color);
+}
+
+
+/* Right Col - Details */
+.monitoring-modal-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.route-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+  color: var(--text-color);
+}
+
+.route-info-block p strong {
+  font-weight: 700;
+}
+
+.route-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.route-section h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 0.25rem;
+}
+
+.route-list-item {
+  padding: 0.75rem;
+  border-radius: 0; /* from print it looks square or barely rounded */
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.route-list-item strong {
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.route-list-item p {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  line-height: 1.3;
+}
+
+/* Occurrences */
+.route-occurrences {
+  display: flex;
+  flex-direction: column;
+  gap: 2px; /* tiny gap */
+}
+
+.occurrence-item {
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+}
+
+.occ-type {
+  font-weight: 700;
+}
+
+/* Colors from print (light pinkish bg for lists) */
+.bg-light-pink {
+  background-color: #faf5f6; /* Very subtle pinkish grey */
+}
+
+.bg-very-light-pink {
+  background-color: #fdfafb;
+}
+
+/* Adjust table border bottom if we want it to look like list */
+.occurrence-item, .route-list-item {
+  border-bottom: 1px solid #f1e2e5;
+}
