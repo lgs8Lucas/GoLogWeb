@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package } from 'lucide-react';
 import '../styles/Transport.css';
+import TransportModal from '../components/TransportModal';
 
 const INITIAL_DATA = [
   { id: "#100004", origin: "Atibaia - SP", currentDest: "Bauru - SP", eq1: "ERQ0B51", eq2: "MFU5H83", driver: "Felipe L.", status: "Em viagem" },
@@ -28,6 +29,7 @@ const INITIAL_DATA = [
 const TransportPage = () => {
   const [transports, setTransports] = useState(INITIAL_DATA);
   const [expandedRow, setExpandedRow] = useState("#100060"); // Default expanded from mockup
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const toggleRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -86,7 +88,7 @@ const TransportPage = () => {
       {/* Header */}
       <div className="transport-header">
         <h2>Transporte</h2>
-        <button className="create-transport-btn">
+        <button className="create-transport-btn" onClick={() => setIsModalOpen(true)}>
           <Plus size={18} /> Criar Transporte
         </button>
       </div>
@@ -161,6 +163,9 @@ const TransportPage = () => {
           <strong>3</strong>
         </div>
       </div>
+
+      {/* Modal */}
+      <TransportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
     </div>
   );

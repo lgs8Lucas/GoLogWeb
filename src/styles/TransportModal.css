@@ -1,0 +1,295 @@
+/* Overlay Background */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+/* Modal Box */
+.modal-content {
+  background-color: var(--white);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 1000px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem 1rem 2rem;
+}
+
+.modal-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.modal-close-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Body */
+.modal-body {
+  padding: 0 2rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Shared Forms */
+.form-group label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: #f8fafc;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+  transition: border-color var(--transition-speed);
+}
+
+.modal-input:focus {
+  border-color: var(--secondary-color);
+  background-color: var(--white);
+}
+
+/* Split Layout */
+.modal-split-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .modal-split-layout {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.modal-left-col {
+  flex: 1.25;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modal-right-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Carousel / Deliveries Cards */
+.deliveries-carousel {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.delivery-card {
+  min-width: 140px;
+  height: 180px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  flex-shrink: 0;
+}
+
+.add-delivery-card {
+  background-color: var(--white);
+  border: 2px dashed #cbd5e1;
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.add-delivery-card:hover {
+  background-color: #f8fafc;
+  border-color: var(--primary-color);
+}
+
+.add-delivery-card span {
+  margin-top: 0.5rem;
+}
+
+.outline-card {
+  border: 1px solid var(--border-color);
+  background-color: var(--white);
+}
+
+.delivery-card-icon {
+  margin-bottom: 0.5rem;
+}
+
+.delivery-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.delivery-card-info strong {
+  font-size: 0.85rem;
+  color: var(--text-color);
+}
+
+.delivery-card-info span {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+/* Linked Deliveries Sub-table */
+.linked-deliveries-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.linked-deliveries-section h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.linked-table-wrapper {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.linked-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.linked-table th {
+  color: var(--text-color);
+  font-weight: 600;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: #f1f5f9;
+}
+
+.linked-table td {
+  color: var(--text-light);
+  padding: 0.75rem 0.5rem;
+}
+
+/* Action Buttons */
+.modal-action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: auto; /* push to bottom */
+}
+
+.btn-optimize, .btn-confirm {
+  flex: 1;
+  padding: 0.85rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-optimize {
+  background-color: var(--secondary-color);
+  color: var(--white);
+  border: none;
+}
+
+.btn-confirm {
+  background-color: var(--secondary-color);
+  color: var(--white);
+  border: none;
+}
+
+.btn-optimize:hover, .btn-confirm:hover {
+  opacity: 0.9;
+}
+.btn-optimize:active, .btn-confirm:active {
+  transform: scale(0.98);
+}
+
+/* Right Col - Map Preview */
+.map-preview-container {
+  flex: 1; /* take remaining height */
+  min-height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background-color: #e2e8f0;
+}
+
+.modal-map-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.7;
+}
+
+/* Map specific styling matching user UI */
+.map-route-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.modal-pin {
+  background-color: #c92a2a; /* Red markers as in the print */
+  border: 2px solid white;
+}
