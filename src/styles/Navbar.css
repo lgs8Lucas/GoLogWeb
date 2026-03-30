@@ -1,0 +1,44 @@
+.main-navbar {
+  width: 100%;
+  background-color: var(--white);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); /* Sombra na parte de baixo */
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar-top-line {
+  height: 6px;
+  background-color: var(--primary-color); /* Fina linha azul escura em cima */
+  width: 100%;
+}
+
+.navbar-content {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+}
+
+.navbar-logo img {
+  height: 35px;
+  object-fit: contain;
+}
+
+.navbar-actions {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity var(--transition-speed);
+}
+.icon-btn:hover {
+  opacity: 0.7;
+}
