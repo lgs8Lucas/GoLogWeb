@@ -1,0 +1,18 @@
+/* Add any fleet specific tweaks here */
+
+.status-badge.manutencao {
+  background-color: #f59f00; /* Yellow / Orange for maintenance */
+}
+
+/* Adjust form actions for fleet if needed */
+.fleet-actions {
+  grid-column: 1 / -1; 
+}
+
+@media (min-width: 768px) {
+  /* In fleet form we have 8 inputs, so they fill up rows nicely. The buttons can sit on the right */
+  .fleet-actions {
+    grid-column: 3;
+    margin-top: 1.25rem;
+  }
+}

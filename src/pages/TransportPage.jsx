@@ -1,35 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package } from 'lucide-react';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
-
-const INITIAL_DATA = [
-  { id: "#100004", origin: "Atibaia - SP", currentDest: "Bauru - SP", eq1: "ERQ0B51", eq2: "MFU5H83", driver: "Felipe L.", status: "Em viagem" },
-  { id: "#100049", origin: "Araras - SP", currentDest: "S. J. dos Campos - SP", eq1: "AAA1234", eq2: "CCC1122", driver: "Lucas S.", status: "Atrasado" },
-  { id: "#100007", origin: "Araras - SP", currentDest: "Leme - SP", eq1: "GLP9I77", eq2: "MTU5H86", driver: "Jonathan A.", status: "Em entrega" },
-  { id: "#100016", origin: "Limeira - SP", currentDest: "Leme - SP", eq1: "CNI5713", eq2: "KKP7L89", driver: "José M.", status: "Em viagem" },
-  { id: "#100028", origin: "Limeira - SP", currentDest: "Fortaleza - CE", eq1: "CMI5U89", eq2: "KCI7E09", driver: "Matheus P.", status: "Em viagem" },
-  { id: "#100060", origin: "Fortaleza - CE", currentDest: "Leme - SP", eq1: "MTU5H86", eq2: "GUKP9I17", driver: "Pogbá S.", status: "Em entrega",
-    steps: [
-      { label: "Depósito", type: "pin", status: "completed" },
-      { label: "Fortaleza - CE", type: "package", status: "completed" },
-      { label: "Leme - SP", type: "package", status: "active" },
-      { label: "Araras - SP", type: "package", status: "pending" },
-      { label: "Limeira - SP", type: "package", status: "pending" },
-      { label: "Piracicaba - SP", type: "package", status: "pending" },
-      { label: "Campinas - SP", type: "package", status: "pending" },
-      { label: "São Paulo - SP", type: "package", status: "pending" },
-      { label: "Guarujá - SP", type: "package", status: "pending" },
-    ]
-  },
-  { id: "#100005", origin: "São Luis - MA", currentDest: "Araras - SP", eq1: "MCK4B45", eq2: "CHI5U99", driver: "Yuri A.", status: "Atrasado" },
-  { id: "#100022", origin: "Limeira - SP", currentDest: "Niquelândia - GO", eq1: "KFM8A75", eq2: "RUE7A66", driver: "Rodrigo G.", status: "Em viagem" }
-];
+import { mockApi } from '../services/api';
 
 const TransportPage = () => {
-  const [transports, setTransports] = useState(INITIAL_DATA);
+  const [transports, setTransports] = useState([]);
   const [expandedRow, setExpandedRow] = useState("#100060"); // Default expanded from mockup
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    mockApi.getTransports().then(data => {
+      setTransports(data);
+      setLoading(false);
+    });
+  }, []);
 
   const toggleRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -109,7 +95,9 @@ const TransportPage = () => {
 
         {/* Rows */}
         <div className="transport-rows">
-          {transports.map((item) => {
+          {loading ? (
+             <div style={{padding:'2rem', textAlign:'center'}}>Carregando transportes...</div>
+          ) : transports.map((item) => {
             const isExpanded = expandedRow === item.id;
             
             return (

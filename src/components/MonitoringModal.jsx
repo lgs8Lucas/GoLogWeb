@@ -21,7 +21,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
           <div className="monitoring-modal-left">
             <div className="route-map-container">
               <img 
-                src="https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                src="/@fs/home/fgsl/.gemini/antigravity/brain/d408a495-8f95-45cf-a16d-c77606a503b7/media__1774837734012.png" 
                 alt="Route Map" 
                 className="route-map-bg"
               />

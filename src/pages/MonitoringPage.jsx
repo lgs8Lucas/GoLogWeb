@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ChevronRight, Truck } from 'lucide-react';
 import '../styles/Monitoring.css';
 import MonitoringModal from '../components/MonitoringModal';
-
-const MOCK_VEHICLES = [
-  { id: '1', plate: 'EZP7A66', driver: 'Lucas Gonçalves', lat: '40%', lng: '30%', status: 'Em viagem' },
-  { id: '2', plate: 'HMT2570', driver: 'Jonathan Alves', lat: '45%', lng: '45%', status: 'Em viagem' },
-  { id: '3', plate: 'EPG4667', driver: 'João Neves', lat: '75%', lng: '60%', status: 'Em viagem' }
-];
+import { mockApi } from '../services/api';
 
 const MonitoringPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredVehicles = MOCK_VEHICLES.filter(v => 
+  useEffect(() => {
+    mockApi.getActiveVehicles().then(data => {
+      setVehicles(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const filteredVehicles = vehicles.filter(v => 
     v.plate.toLowerCase().includes(searchTerm.toLowerCase()) || 
     v.driver.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -27,13 +31,15 @@ const MonitoringPage = () => {
       <div className="monitoring-map-container">
         {/* Background Map Placeholder */}
         <img 
-          src="https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" 
+          src="/@fs/home/fgsl/.gemini/antigravity/brain/d408a495-8f95-45cf-a16d-c77606a503b7/media__1774837734012.png" 
           alt="Map" 
           className="monitoring-map-bg"
         />
 
         {/* Map Pins */}
-        {MOCK_VEHICLES.map((vehicle) => (
+        {loading ? (
+             <div style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)'}}>Carregando...</div>
+        ) : vehicles.map((vehicle) => (
           <div 
             key={vehicle.id}
             className="monitoring-pin"

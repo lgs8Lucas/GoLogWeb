@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Save, XOctagon, Edit, Trash2, UserCircle } from 'lucide-react';
 import '../styles/Profiles.css';
-
-const MOCK_DATA = [
-  { id: 1, nome: "João Silva", email: "joao.silva@empresa.com", perfil: "Motorista", status: "Ativo", cpf: "xxx.xxx.xxx-xx", cnh: "xxx.xxx", validade: "01/01/2025" },
-  { id: 2, nome: "Maria Fernandes", email: "maria.fernandes@logistica.net", perfil: "Apoio Logístico", status: "Inativo", cpf: "xxx.xxx.xxx-xx", cnh: "-", validade: "-" },
-  { id: 3, nome: "Carla Souza", email: "carla.souza@transporte.com.br", perfil: "Administrador", status: "Ativo", cpf: "xxx.xxx.xxx-xx", cnh: "-", validade: "-" },
-  { id: 4, nome: "Rodrigo Almeida", email: "rodrigo.almeida@supplychain.org", perfil: "Motorista", status: "Ativo", cpf: "xxx.xxx.xxx-xx", cnh: "xxx.xxx", validade: "01/01/2025" },
-  { id: 5, nome: "Paulo Santos", email: "paulo.santos@corpbrasil.com", perfil: "Motorista", status: "Inativo", cpf: "xxx.xxx.xxx-xx", cnh: "xxx.xxx", validade: "01/01/2025" },
-];
+import { mockApi } from '../services/api';
 
 const ProfilesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [profiles, setProfiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    mockApi.getProfiles().then(data => {
+      setProfiles(data);
+      setLoading(false);
+    });
+  }, []);
 
   return (
     <div className="profiles-page fade-in">
@@ -125,7 +127,9 @@ const ProfilesPage = () => {
             </tr>
           </thead>
           <tbody>
-            {MOCK_DATA.map((row) => (
+            {loading ? (
+              <tr><td colSpan="8" style={{textAlign:'center'}}>Carregando...</td></tr>
+            ) : profiles.map((row) => (
               <tr key={row.id}>
                 <td>{row.nome}</td>
                 <td>{row.email}</td>
