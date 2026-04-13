@@ -288,3 +288,45 @@ body {
 .fade-in {
   animation: fadeIn 0.4s ease forwards;
 }
+
+/* Global Back Button - Premium Vibrant Design */
+.back-button {
+  background-color: var(--white);
+  color: var(--primary-color);
+  border: 1px solid rgba(31, 48, 76, 0.1);
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 20px -5px rgba(31, 48, 76, 0.1);
+  margin-bottom: 2rem;
+  letter-spacing: 0.02em;
+}
+
+.back-button:hover {
+  background-color: var(--primary-color);
+  color: var(--white);
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 20px 25px -5px rgba(31, 48, 76, 0.2);
+  border-color: var(--primary-color);
+}
+
+.back-button svg {
+  transition: transform 0.3s ease;
+}
+
+.back-button:hover svg {
+  transform: translateX(-4px);
+}
+
+.back-button:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+
+

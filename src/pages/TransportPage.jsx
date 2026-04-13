@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
 import { mockApi } from '../services/api';
 
 const TransportPage = () => {
+  const navigate = useNavigate();
   const [transports, setTransports] = useState([]);
   const [expandedRow, setExpandedRow] = useState("#100060"); // Default expanded from mockup
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,6 +73,10 @@ const TransportPage = () => {
 
   return (
     <div className="transport-page fade-in">
+      <button className="back-button" onClick={() => navigate('/')}>
+        <ChevronLeft size={18} /> Voltar à Dashboard
+      </button>
+
       {/* Header */}
       <div className="transport-header">
         <h2>Transporte</h2>

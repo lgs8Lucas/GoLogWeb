@@ -40,3 +40,45 @@ a {
 .fade-in {
   animation: fadeIn 0.4s ease forwards;
 }
+
+/* Global Back Button - Premium Design */
+.back-button {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--white);
+  color: var(--primary-color);
+  border: 1px solid rgba(31, 48, 76, 0.15);
+  padding: 10px 24px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin-bottom: 2rem;
+  margin-top: 1rem;
+  width: fit-content;
+}
+
+.back-button:hover {
+  background-color: var(--primary-color);
+  color: var(--white);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(31, 48, 76, 0.2);
+  border-color: var(--primary-color);
+}
+
+.back-button svg {
+  transition: transform 0.3s ease;
+}
+
+.back-button:hover svg {
+  transform: translateX(-4px);
+}
+
+.back-button:active {
+  transform: translateY(-1px) scale(0.98);
+}
+

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Save, XOctagon, Edit, Trash2, Truck } from 'lucide-react';
+import { Search, Save, XOctagon, Edit, Trash2, Truck, ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/Profiles.css'; /* Reusing mainly Profiles css to keep consistency */
 import '../styles/Fleet.css'; /* Specific tweaks for Fleet */
 import { mockApi } from '../services/api';
 
 const FleetPage = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [fleet, setFleet] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +20,9 @@ const FleetPage = () => {
 
   return (
     <div className="profiles-page fade-in">
+      <button className="back-button" onClick={() => navigate('/')}>
+        <ChevronLeft size={18} /> Voltar à Dashboard
+      </button>
       
       {/* Header and Form Section */}
       <div className="profiles-form-section">

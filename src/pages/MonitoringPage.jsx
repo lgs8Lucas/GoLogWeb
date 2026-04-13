@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronRight, Truck } from 'lucide-react';
+import { Search, ChevronRight, Truck, ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/Monitoring.css';
 import MonitoringModal from '../components/MonitoringModal';
 import { mockApi } from '../services/api';
 
 const MonitoringPage = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -24,6 +26,10 @@ const MonitoringPage = () => {
 
   return (
     <div className="monitoring-page fade-in">
+      <button className="back-button" onClick={() => navigate('/')}>
+        <ChevronLeft size={18} /> Voltar à Dashboard
+      </button>
+
       <div className="monitoring-header">
         <h2>Monitoramento de veículos em transporte</h2>
       </div>

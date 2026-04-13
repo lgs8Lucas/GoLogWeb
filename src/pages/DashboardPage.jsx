@@ -13,10 +13,13 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockApi } from '../services/api';
+import { authService } from '../services/authService';
+import { Building2 } from 'lucide-react';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const primaryColor = "var(--primary-color)";
+  const userRole = authService.getUserRole();
   
   const [stats, setStats] = useState(null);
 
@@ -80,6 +83,20 @@ const DashboardPage = () => {
             </div>
             <button className="verify-btn">Verificar</button>
           </div>
+
+          {/* Admin Restricted Card: Empresas */}
+          {userRole === 'ADMIN' && (
+            <div className="action-card fade-in">
+              <div className="action-card-icon">
+                <Building2 size={24} color={primaryColor} />
+              </div>
+              <div className="action-card-content">
+                <h3>Empresas</h3>
+                <p>Gerencie companhias e unidades logísticas.</p>
+              </div>
+              <button className="verify-btn" onClick={() => navigate('/empresas')}>Verificar</button>
+            </div>
+          )}
         </div>
 
         {/* Monitoring Card */}
