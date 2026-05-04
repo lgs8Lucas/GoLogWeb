@@ -3,7 +3,7 @@ import { Search, ChevronRight, Truck, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Monitoring.css';
 import MonitoringModal from '../components/MonitoringModal';
-import { mockApi } from '../services/api';
+import MapComponent from '../components/MapComponent';
 
 const MonitoringPage = () => {
   const navigate = useNavigate();
@@ -13,10 +13,19 @@ const MonitoringPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    mockApi.getActiveVehicles().then(data => {
-      setVehicles(data);
-      setLoading(false);
-    });
+    // TODO: A API possui endpoints para inserir/atualizar telemetria (/telemetry e /telemetry/{id}),
+    // mas falta um endpoint (GET All) que traga o último status atualizado de todos os veículos ativos.
+    // Assim que a API tiver (ex: GET /telemetry/active), puxamos aqui.
+    
+    // DADOS TEMPORÁRIOS MOCKADOS APENAS PARA DEMONSTRAR O MAPA (OpenStreetMap)
+    const mockMapVehicles = [
+      { id: '1', plate: 'ABC-1234', driver: 'João Silva', lat: -23.55052, lng: -46.633308, status: 'active', speed: 60 },
+      { id: '2', plate: 'XYZ-9876', driver: 'Lucas Gonçalves', lat: -23.5615, lng: -46.6550, status: 'normal', speed: 45 },
+      { id: '3', plate: 'DEF-5678', driver: 'Jonathan Alves', lat: -23.5420, lng: -46.6200, status: 'delayed', speed: 0 }
+    ];
+
+    setVehicles(mockMapVehicles);
+    setLoading(false);
   }, []);
 
   const filteredVehicles = vehicles.filter(v => 
@@ -25,41 +34,33 @@ const MonitoringPage = () => {
   );
 
   return (
-    <div className="monitoring-page fade-in">
-      <button className="back-button" onClick={() => navigate('/')}>
-        <ChevronLeft size={18} /> Voltar à Dashboard
-      </button>
-
-      <div className="monitoring-header">
-        <h2>Monitoramento de veículos em transporte</h2>
+    <div className="monitoring-page fullscreen-map fade-in">
+      
+      {/* Real OpenStreetMap Integration as Background */}
+      <div className="monitoring-map-bg-wrapper">
+         <MapComponent 
+           markers={vehicles.map(v => ({
+             id: v.id,
+             lat: v.lat,
+             lng: v.lng,
+             label: v.driver,
+             status: v.status,
+             speed: v.speed
+           }))}
+         />
       </div>
 
-      <div className="monitoring-map-container">
-        {/* Background Map Placeholder */}
-        <img 
-          src="/@fs/home/fgsl/.gemini/antigravity/brain/d408a495-8f95-45cf-a16d-c77606a503b7/media__1774837734012.png" 
-          alt="Map" 
-          className="monitoring-map-bg"
-        />
+      {/* Floating Header (Top Left) */}
+      <div className="floating-header-panel">
+        <button className="back-button glass-btn" onClick={() => navigate('/')}>
+          <ChevronLeft size={18} /> Voltar à Dashboard
+        </button>
+        <div className="monitoring-header">
+          <h2>Monitoramento de veículos em transporte</h2>
+        </div>
+      </div>
 
-        {/* Map Pins */}
-        {loading ? (
-             <div style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)'}}>Carregando...</div>
-        ) : vehicles.map((vehicle) => (
-          <div 
-            key={vehicle.id}
-            className="monitoring-pin"
-            style={{ top: vehicle.lat, left: vehicle.lng }}
-            onClick={() => setSelectedVehicle(vehicle)}
-          >
-            <div className="pin-circle">
-              <Truck size={14} color="#c92a2a" />
-            </div>
-            <div className="pin-label">{vehicle.driver.split(' ')[0]}</div>
-          </div>
-        ))}
-
-        {/* Floating Panel (Right) */}
+      {/* Floating Panel (Right) */}
         <div className="floating-panel">
           <h3>Buscar Motorista / Caminhão</h3>
           
@@ -93,7 +94,6 @@ const MonitoringPage = () => {
             )}
           </div>
         </div>
-      </div>
 
       {/* Modal Details */}
       <MonitoringModal 

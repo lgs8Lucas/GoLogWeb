@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, ChevronLeft } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, ChevronLeft, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
-import { mockApi } from '../services/api';
+import PageHeader from '../components/PageHeader';
 
 const TransportPage = () => {
   const navigate = useNavigate();
@@ -13,10 +13,11 @@ const TransportPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    mockApi.getTransports().then(data => {
-      setTransports(data);
-      setLoading(false);
-    });
+    // TODO: A API possui TypeTransport (Categoria), mas falta o domínio completo de Transport/Viagem
+    // (Origem, Destino, Status, Passos da Viagem).
+    // Aguardando criação dos endpoints de GET /transport.
+    setTransports([]);
+    setLoading(false);
   }, []);
 
   const toggleRow = (id) => {
@@ -73,17 +74,17 @@ const TransportPage = () => {
 
   return (
     <div className="transport-page fade-in">
-      <button className="back-button" onClick={() => navigate('/')}>
-        <ChevronLeft size={18} /> Voltar à Dashboard
-      </button>
-
-      {/* Header */}
-      <div className="transport-header">
-        <h2>Transporte</h2>
-        <button className="create-transport-btn" onClick={() => setIsModalOpen(true)}>
-          <Plus size={18} /> Criar Transporte
+      <PageHeader 
+        title="Transporte"
+        description="Acompanhe e gerencie as viagens ativas e o status das entregas."
+        icon={Navigation}
+        onBack={true}
+      >
+        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={20} />
+          Criar Transporte
         </button>
-      </div>
+      </PageHeader>
 
       {/* Main List */}
       <div className="transport-list">
@@ -138,23 +139,23 @@ const TransportPage = () => {
       <div className="transport-footer-summary">
         <div className="summary-item">
           <span>Total de transportes:</span>
-          <strong>12</strong>
+          <strong>0</strong>
         </div>
         <div className="summary-item">
           <span>Total de entregas:</span>
-          <strong>36</strong>
+          <strong>0</strong>
         </div>
         <div className="summary-item">
           <span>Equipamentos em atividade:</span>
-          <strong>7</strong>
+          <strong>0</strong>
         </div>
         <div className="summary-item">
           <span>Equipamentos parados:</span>
-          <strong>5</strong>
+          <strong>0</strong>
         </div>
         <div className="summary-item">
           <span>Atrasos:</span>
-          <strong>3</strong>
+          <strong>0</strong>
         </div>
       </div>
 

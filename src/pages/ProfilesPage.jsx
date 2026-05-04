@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Save, XOctagon, UserCircle, ChevronLeft } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, Save, XOctagon, UserCircle, ChevronLeft, Plus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Profiles.css';
 import { userService } from '../services/userService';
 import { driverService } from '../services/driverService';
 import { companyService } from '../services/companyService';
 import DataTable from '../components/DataTable';
+import PageHeader from '../components/PageHeader';
 
 const ProfilesPage = () => {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ const ProfilesPage = () => {
   const [loading, setLoading] = useState(true);
   const [companies, setCompanies] = useState([]);
   const [feedback, setFeedback] = useState({ type: '', message: '' }); // 'error' ou 'success'
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Edit Mode Controllers
   const [editingId, setEditingId] = useState(null);
@@ -107,6 +110,7 @@ const ProfilesPage = () => {
 
       setFormData(initialFormState);
       setEditingId(null);
+      setIsModalOpen(false);
       setFeedback({ type: 'success', message: 'Operação concluída com sucesso.' });
       fetchProfiles();
     } catch (error) {
@@ -145,6 +149,7 @@ const ProfilesPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setFeedback({ type: '', message: '' });
     setEditingId(profile.id);
+    setIsModalOpen(true);
     setFormData({
       name: profile.name || '',
       email: profile.email || '',
@@ -178,44 +183,38 @@ const ProfilesPage = () => {
 
   return (
     <div className="profiles-page fade-in">
-      <button className="back-button" onClick={() => navigate('/')}>
-        <ChevronLeft size={18} /> Voltar à Dashboard
-      </button>
+      <PageHeader 
+        title="Perfis de Usuários"
+        description="Gerencie os operadores, motoristas e administradores do sistema."
+        icon={UserCircle}
+        onBack={true}
+      >
+        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={20} />
+          Novo Perfil
+        </button>
+      </PageHeader>
 
-      {/* Header and Form Section */}
-      <div className="profiles-form-section">
-        <div className="profiles-form">
-          <div className="form-header">
-            <UserCircle size={24} className="form-icon" />
-            <h3>{editingId ? 'Editar Perfil' : 'Novo Perfil'}</h3>
-          </div>
-
-          {feedback.message && (
-            <div className={`form-feedback ${feedback.type} fade-in`} style={{ gridColumn: '1 / -1', padding: '1rem', borderRadius: '4px', background: feedback.type === 'error' ? '#fee2e2' : '#dcfce3', color: feedback.type === 'error' ? '#991b1b' : '#166534', border: `1px solid ${feedback.type === 'error' ? '#f87171' : '#86efac'}`, marginBottom: '1rem', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
-              {feedback.message}
-            </div>
-          )}
-
-          <div className="profiles-layout">
-            {/* Left Column: Search & Total */}
-            <div className="profiles-search-col">
-              <label className="profiles-label">Consultar Perfil</label>
-              <span className="profiles-count">{profiles.length} perfis cadastrados</span>
-
-              <div className="search-input-wrapper">
-                <input
-                  type="text"
-                  placeholder="Pesquisar por Nome ou CPF..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="profiles-input"
-                />
-                <Search className="search-icon" size={18} />
-              </div>
+      {isModalOpen && createPortal(
+        <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
+          <div className="modal-content" style={{ maxWidth: '800px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <UserCircle size={24} color="var(--primary-color)" />
+                {editingId ? 'Editar Perfil' : 'Novo Perfil'}
+              </h2>
+              <button className="modal-close-btn" onClick={() => { setIsModalOpen(false); setFormData(initialFormState); setEditingId(null); }}>
+                <X size={24} />
+              </button>
             </div>
 
-            {/* Right Column: Form */}
-            <div className="profiles-form-col">
+            <div className="modal-body">
+              {feedback.message && (
+                <div className={`form-feedback ${feedback.type} fade-in`} style={{ gridColumn: '1 / -1', padding: '1rem', borderRadius: '4px', background: feedback.type === 'error' ? '#fee2e2' : '#dcfce3', color: feedback.type === 'error' ? '#991b1b' : '#166534', border: `1px solid ${feedback.type === 'error' ? '#f87171' : '#86efac'}`, marginBottom: '1rem', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
+                  {feedback.message}
+                </div>
+              )}
+
               <div className="form-grid">
 
                 <div className="form-field">
@@ -283,11 +282,11 @@ const ProfilesPage = () => {
                   </>
                 )}
 
-                <div className="form-actions" style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-                  <button className="btn-exclude" onClick={() => { setFormData(initialFormState); setEditingId(null); }}>
-                    <XOctagon size={16} /> Cancelar / Limpar
+                <div className="modal-action-buttons" style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                  <button className="btn-cancel" onClick={() => { setFormData(initialFormState); setEditingId(null); setIsModalOpen(false); }} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
+                    <XOctagon size={16} /> Cancelar
                   </button>
-                  <button className="btn-save" onClick={handleSave}>
+                  <button className="btn-primary" onClick={handleSave}>
                     <Save size={16} /> {editingId ? 'Atualizar Perfil' : 'Salvar Novo Perfil'}
                   </button>
                 </div>
@@ -295,8 +294,26 @@ const ProfilesPage = () => {
               </div>
             </div>
           </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Tabela agora ocupa a tela inteira com seu filtro acima dela */}
+      <div className="profiles-table-container">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
+          <div className="search-input-wrapper" style={{ minWidth: '300px' }}>
+            <input
+              type="text"
+              placeholder="Pesquisar por Nome ou CPF..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="profiles-input"
+              style={{ width: '100%', paddingRight: '2.5rem' }}
+            />
+            <Search className="search-icon" size={18} style={{ position: 'absolute', right: '12px' }} />
+          </div>
+          <span className="profiles-count" style={{ margin: 0 }}>{filteredProfiles.length} resultados</span>
         </div>
-      </div>
 
       {/* Table Section */}
       <div className="profiles-actions-panel fade-in">
@@ -308,6 +325,7 @@ const ProfilesPage = () => {
           onDelete={handleDelete}
           itemsPerPage={15}
         />
+      </div>
       </div>
 
     </div>

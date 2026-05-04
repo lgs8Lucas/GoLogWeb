@@ -1,10 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Package, FastForward } from 'lucide-react';
+import { X, Plus, Package, FastForward, Save } from 'lucide-react';
 import '../styles/TransportModal.css';
+import MapComponent from './MapComponent';
+import DeliveryModal from './DeliveryModal';
+import { transportService } from '../services/transportService';
+import { deliveryService } from '../services/deliveryService';
 
 const TransportModal = ({ isOpen, onClose }) => {
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
+  const [transportFormData, setTransportFormData] = useState({
+    routeReturnPlanned: 'Rota de Retorno Padrão',
+    routeReturnCompleted: 'Ainda não concluída',
+    deliveryQuantity: 0,
+    timeStopped: 0.0,
+    totalKilometer: 0,
+    totalTime: 0.0,
+    driverId: '',
+    transporterId: '',
+    equipamentGroupId: ''
+  });
+
   if (!isOpen) return null;
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setTransportFormData({ ...transportFormData, [name]: value });
+  };
+
+  const handleCreateTransport = async () => {
+    try {
+      await transportService.create(transportFormData);
+      alert('Viagem salva com sucesso! (Recarregue para ver, se a listagem estiver implementada)');
+      onClose();
+    } catch (error) {
+      console.error('Erro ao salvar viagem:', error);
+      alert('Erro ao salvar viagem. Verifique se colou os UUIDs corretamente.');
+    }
+  };
+
+  const handleSaveDelivery = async (deliveryData) => {
+    try {
+      await deliveryService.create(deliveryData);
+      alert('Entrega salva e vinculada com sucesso!');
+      setIsDeliveryModalOpen(false);
+    } catch (error) {
+      console.error('Erro ao salvar entrega:', error);
+      alert('Erro ao salvar entrega. Verifique os inúmeros UUIDs.');
+    }
+  };
 
   return createPortal(
     <div className="modal-overlay fade-in">
@@ -22,22 +66,26 @@ const TransportModal = ({ isOpen, onClose }) => {
             {/* Left Side: Motorista & Deliveries */}
             <div className="modal-left-col">
               <div className="form-group">
-                <label>Motorista</label>
-                <input type="text" className="modal-input" />
+                <label>UUID Motorista</label>
+                <input type="text" name="driverId" value={transportFormData.driverId} onChange={handleInputChange} className="modal-input" placeholder="Cole o UUID aqui..." />
+              </div>
+              <div className="form-group">
+                <label>UUID Empresa Transportadora</label>
+                <input type="text" name="transporterId" value={transportFormData.transporterId} onChange={handleInputChange} className="modal-input" placeholder="Cole o UUID aqui..." />
               </div>
               
               {/* Delivery Cards Carousel */}
               <div className="deliveries-carousel">
                 {/* Add Delivery Button Card */}
-                <button className="delivery-card add-delivery-card">
-                  <Plus size={48} color="#cbd5e1" strokeWidth={1} />
+                <button className="delivery-card add-delivery-card" onClick={() => setIsDeliveryModalOpen(true)}>
+                  <Plus size={48} color="var(--border-medium)" strokeWidth={1} />
                   <span>Adicionar<br />entrega</span>
                 </button>
 
                 {/* Delivery Card 1 */}
                 <div className="delivery-card outline-card">
                   <div className="delivery-card-icon">
-                    <Package size={40} color="#1f304c" strokeWidth={1.5} />
+                    <Package size={40} color="var(--primary-color)" strokeWidth={1.5} />
                   </div>
                   <div className="delivery-card-info">
                     <strong>#10001</strong>
@@ -50,7 +98,7 @@ const TransportModal = ({ isOpen, onClose }) => {
                 {/* Delivery Card 2 */}
                 <div className="delivery-card outline-card">
                   <div className="delivery-card-icon">
-                    <Package size={40} color="#1f304c" strokeWidth={1.5} />
+                    <Package size={40} color="var(--primary-color)" strokeWidth={1.5} />
                   </div>
                   <div className="delivery-card-info">
                     <strong>#10001</strong>
@@ -88,11 +136,11 @@ const TransportModal = ({ isOpen, onClose }) => {
 
               {/* Action Buttons */}
               <div className="modal-action-buttons">
-                <button className="btn-optimize">
+                <button className="btn-optimize" onClick={() => alert('Integração de roteirização futura.')}>
                   <FastForward size={16} /> Otimizar rota
                 </button>
-                <button className="btn-confirm" onClick={onClose}>
-                  Confirmar
+                <button className="btn-confirm" onClick={handleCreateTransport}>
+                  <Save size={16} /> Salvar Viagem
                 </button>
               </div>
             </div>
@@ -100,37 +148,33 @@ const TransportModal = ({ isOpen, onClose }) => {
             {/* Right Side: Conjunto & Map Preview */}
             <div className="modal-right-col">
               <div className="form-group">
-                <label>Conjunto</label>
-                <input type="text" className="modal-input" />
+                <label>UUID Conjunto</label>
+                <input type="text" name="equipamentGroupId" value={transportFormData.equipamentGroupId} onChange={handleInputChange} className="modal-input" placeholder="Cole o UUID aqui..." />
               </div>
               
-              <div className="map-preview-container">
-                <img 
-                  src="/@fs/home/fgsl/.gemini/antigravity/brain/d408a495-8f95-45cf-a16d-c77606a503b7/media__1774837734012.png" 
-                  alt="Map Placeholder" 
-                  className="modal-map-bg"
+              <div className="map-preview-container" style={{ position: 'relative', height: '100%', minHeight: '400px' }}>
+                <MapComponent 
+                  center={[-23.55052, -46.633308]}
+                  zoom={10}
+                  markers={[
+                    { id: 'start', lat: -23.55052, lng: -46.633308, label: 'Origem: SP', status: 'normal' },
+                    { id: 'end', lat: -22.7331, lng: -47.6465, label: 'Destino: Piracicaba', status: 'active' }
+                  ]}
                 />
-                
-                {/* Fake map route line & pins for the UI demo */}
-                <svg className="map-route-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <path d="M 30 30 Q 50 60, 70 50" fill="none" stroke="var(--primary-color)" strokeWidth="1" strokeDasharray="2,2" />
-                </svg>
-                
-                <div className="map-pin modal-pin" style={{ top: '25%', left: '28%' }}>
-                  <Package size={12} color="white" />
-                </div>
-                <div className="map-pin modal-pin" style={{ top: '65%', left: '35%' }}>
-                   <Package size={12} color="white" />
-                </div>
-                <div className="map-pin modal-pin" style={{ top: '45%', left: '72%' }}>
-                   <Package size={12} color="white" />
-                </div>
               </div>
             </div>
 
           </div>
         </div>
       </div>
+      
+      {/* Nested Delivery Modal */}
+      <DeliveryModal 
+        isOpen={isDeliveryModalOpen} 
+        onClose={() => setIsDeliveryModalOpen(false)} 
+        onSave={handleSaveDelivery} 
+        transportId="" 
+      />
     </div>,
     document.body
   );

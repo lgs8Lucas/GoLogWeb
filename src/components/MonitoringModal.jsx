@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, ZoomIn, ZoomOut, Truck, Package } from 'lucide-react';
 import '../styles/MonitoringModal.css';
+import MapComponent from './MapComponent';
 
 const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   if (!isOpen || !vehicle) return null;
@@ -19,35 +20,19 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
         <div className="monitoring-modal-body">
           {/* Left Column: Specific Map Route */}
           <div className="monitoring-modal-left">
-            <div className="route-map-container">
-              <img 
-                src="/@fs/home/fgsl/.gemini/antigravity/brain/d408a495-8f95-45cf-a16d-c77606a503b7/media__1774837734012.png" 
-                alt="Route Map" 
-                className="route-map-bg"
+            <div className="route-map-container" style={{ position: 'relative', height: '100%', width: '100%', overflow: 'hidden', borderRadius: '12px' }}>
+              <MapComponent 
+                center={vehicle ? [vehicle.lat, vehicle.lng] : [-23.55052, -46.633308]}
+                zoom={14}
+                markers={vehicle ? [{
+                  id: vehicle.id,
+                  lat: vehicle.lat,
+                  lng: vehicle.lng,
+                  label: vehicle.driver,
+                  status: vehicle.status,
+                  speed: vehicle.speed
+                }] : []}
               />
-              
-              {/* SVG Route Line */}
-              <svg className="route-path-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <path d="M 40 20 C 40 50, 45 60, 50 80" fill="none" stroke="#2563eb" strokeWidth="2.5" />
-              </svg>
-
-              {/* Pins */}
-              <div className="route-pin pin-start" style={{ top: '20%', left: '40%' }}>
-                <div className="route-pin-circle">
-                  <Truck size={14} color="#c92a2a" />
-                </div>
-              </div>
-              <div className="route-pin pin-end" style={{ top: '80%', left: '50%' }}>
-                <div className="route-pin-circle">
-                   <Package size={14} color="#c92a2a" />
-                </div>
-              </div>
-
-              {/* Zoom Controls */}
-              <div className="map-zoom-controls">
-                <button className="zoom-btn"><ZoomIn size={20} /></button>
-                <button className="zoom-btn"><ZoomOut size={20} /></button>
-              </div>
             </div>
           </div>
 

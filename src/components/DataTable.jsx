@@ -57,8 +57,8 @@ const DataTable = ({
 
   return (
     <>
-      <table className="profiles-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem', background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-        <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+      <table className="profiles-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem', background: 'var(--bg-surface)', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+        <thead style={{ background: 'var(--bg-hover)', borderBottom: '1px solid var(--border-color)' }}>
           <tr>
             {columns.map((col, index) => (
               <th 
@@ -68,7 +68,7 @@ const DataTable = ({
                   padding: '1rem', 
                   textAlign: 'left', 
                   fontSize: '0.85rem', 
-                  color: '#475569', 
+                  color: 'var(--text-muted)', 
                   textTransform: 'uppercase', 
                   letterSpacing: '0.05em', 
                   cursor: col.sortable !== false ? 'pointer' : 'default',
@@ -80,7 +80,7 @@ const DataTable = ({
               </th>
             ))}
             {(onEdit || onDelete) && (
-              <th className="actions-header" style={{ padding: '1rem', width: '100px', textAlign: 'center', fontSize: '0.85rem', color: '#475569' }}>
+              <th className="actions-header" style={{ padding: '1rem', width: '100px', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                 Ações
               </th>
             )}
@@ -88,13 +88,13 @@ const DataTable = ({
         </thead>
         <tbody>
           {loading ? (
-            <tr><td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} style={{textAlign:'center', padding: '2rem', color: '#64748b'}}>Carregando...</td></tr>
+            <tr><td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} style={{textAlign:'center', padding: '2rem', color: 'var(--text-muted)'}}>Carregando...</td></tr>
           ) : currentTableData.length === 0 ? (
-            <tr><td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} style={{textAlign:'center', padding: '2rem', color: '#64748b'}}>{emptyMessage}</td></tr>
+            <tr><td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} style={{textAlign:'center', padding: '2rem', color: 'var(--text-muted)'}}>{emptyMessage}</td></tr>
           ) : currentTableData.map((row, rowIndex) => (
-            <tr key={row.id || rowIndex} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s ease', ':hover': { backgroundColor: '#f8fafc' } }}>
+            <tr key={row.id || rowIndex} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s ease', ':hover': { backgroundColor: 'var(--bg-hover)' } }}>
               {columns.map((col, colIndex) => (
-                <td key={colIndex} style={{ padding: '1rem', fontSize: '0.95rem', color: '#334155' }}>
+                <td key={colIndex} style={{ padding: '1rem', fontSize: '0.95rem', color: 'var(--text-main)' }}>
                   {col.render ? col.render(row) : (row[col.key] || '-')}
                 </td>
               ))}
@@ -104,9 +104,9 @@ const DataTable = ({
                     <button 
                       onClick={() => onEdit(row)} 
                       aria-label="Edit"
-                      style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#2563eb'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#3b82f6'}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--info-color)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-color)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--info-color)'}
                     >
                       <Edit size={18} />
                     </button>
@@ -115,9 +115,9 @@ const DataTable = ({
                     <button 
                       onClick={() => onDelete(row)} 
                       aria-label="Delete"
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#dc2626'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#ef4444'}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--error-color)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--danger-color)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--error-color)'}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -135,19 +135,19 @@ const DataTable = ({
           <button 
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: currentPage === 1 ? '#e2e8f0' : '#3b82f6', color: currentPage === 1 ? '#94a3b8' : '#fff', border: 'none', borderRadius: '4px', padding: '6px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: currentPage === 1 ? 'var(--border-color)' : 'var(--info-color)', color: currentPage === 1 ? 'var(--text-muted)' : 'var(--white)', border: 'none', borderRadius: '4px', padding: '6px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
           >
             <ChevronLeft size={20} />
           </button>
           
-          <span style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '500' }}>
-            Página <span style={{ color: '#0f172a' }}>{currentPage}</span> de <span style={{ color: '#0f172a' }}>{totalPages}</span>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '500' }}>
+            Página <span style={{ color: 'var(--text-color)' }}>{currentPage}</span> de <span style={{ color: 'var(--text-color)' }}>{totalPages}</span>
           </span>
           
           <button 
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: currentPage === totalPages ? '#e2e8f0' : '#3b82f6', color: currentPage === totalPages ? '#94a3b8' : '#fff', border: 'none', borderRadius: '4px', padding: '6px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: currentPage === totalPages ? 'var(--border-color)' : 'var(--info-color)', color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--white)', border: 'none', borderRadius: '4px', padding: '6px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
           >
             <ChevronRight size={20} />
           </button>

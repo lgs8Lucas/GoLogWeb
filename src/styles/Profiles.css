@@ -17,7 +17,7 @@
 }
 
 .user-icon-avatar {
-  background-color: #e2e8f0;
+  background-color: var(--border-color);
   width: 48px;
   height: 48px;
   border-radius: 8px;
@@ -156,11 +156,11 @@
 }
 
 .btn-exclude {
-  background-color: #c92a2a; /* Vermelho escuro */
+  background-color: var(--danger-color);
 }
 
 .btn-save {
-  background-color: #27ae60; /* Verde escuro */
+  background-color: var(--success-color);
 }
 
 .btn-exclude:hover, .btn-save:hover {
@@ -204,7 +204,7 @@
 }
 
 .profiles-table tr:hover {
-  background-color: #f8fafc;
+  background-color: var(--bg-hover);
 }
 
 /* Badges */
@@ -220,11 +220,11 @@
 }
 
 .status-badge.ativo {
-  background-color: #27ae60;
+  background-color: var(--success-color);
 }
 
 .status-badge.inativo {
-  background-color: #c92a2a;
+  background-color: var(--danger-color);
 }
 
 /* Table Actions */
@@ -249,7 +249,7 @@
 }
 
 .delete-btn {
-  color: #c92a2a;
+  color: var(--danger-color);
 }
 
 .table-action-btn:hover {

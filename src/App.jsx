@@ -9,6 +9,8 @@ import TransportPage from './pages/TransportPage';
 import MonitoringPage from './pages/MonitoringPage';
 import FleetPage from './pages/FleetPage';
 import CompanyPage from './pages/CompanyPage';
+import TypeTransportPage from './pages/TypeTransportPage';
+import EquipamentGroupPage from './pages/EquipamentGroupPage';
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="perfis" element={<ProfilesPage />} />
               <Route path="empresas" element={<CompanyPage />} />
+              <Route path="tipos-transporte" element={<TypeTransportPage />} />
+              <Route path="conjuntos" element={<EquipamentGroupPage />} />
             </Route>
 
             <Route path="frota" element={<FleetPage />} />

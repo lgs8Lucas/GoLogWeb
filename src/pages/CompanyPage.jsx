@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Save, XOctagon, Building2, MapPin, ChevronLeft } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, Save, XOctagon, Building2, MapPin, ChevronLeft, Plus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Company.css';
 import { companyService } from '../services/companyService';
 import { addressService } from '../services/addressService';
 import DataTable from '../components/DataTable';
+import PageHeader from '../components/PageHeader';
 
 const CompanyPage = () => {
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ const CompanyPage = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const initialFormState = {
     legalName: '',
@@ -127,6 +130,7 @@ const CompanyPage = () => {
       setFormData(initialFormState);
       setEditingId(null);
       setEditingAddressId(null);
+      setIsModalOpen(false);
       fetchCompanies();
     } catch (error) {
       console.error("Erro ao salvar empresa:", error);
@@ -150,6 +154,7 @@ const CompanyPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setEditingId(company.id);
     setEditingAddressId(company.address?.id || null);
+    setIsModalOpen(true);
     setFormData({
       legalName: company.legalName || '',
       cnpjCpf: company.cnpjCpf || '',
@@ -198,22 +203,37 @@ const CompanyPage = () => {
 
   return (
     <div className="company-page fade-in">
-      <button className="back-button" onClick={() => navigate('/')}>
-        <ChevronLeft size={18} /> Voltar à Dashboard
-      </button>
+      <PageHeader 
+        title="Empresas"
+        description="Gerencie os clientes e fornecedores do sistema."
+        icon={Building2}
+        onBack={true}
+      >
+        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={20} />
+          Nova Empresa
+        </button>
+      </PageHeader>
 
-      <div className="company-form-section">
-        <div className="company-form-container">
-          <div className="form-header">
-            <Building2 size={24} className="form-icon" />
-            <h3>{editingId ? 'Editar Empresa' : 'Nova Empresa'}</h3>
-          </div>
-
-          {feedback.message && (
-            <div className={`form-feedback ${feedback.type} fade-in`}>
-              {feedback.message}
+      {isModalOpen && createPortal(
+        <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
+          <div className="modal-content" style={{ maxWidth: '800px' }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Building2 size={24} color="var(--primary-color)" />
+                {editingId ? 'Editar Empresa' : 'Nova Empresa'}
+              </h2>
+              <button className="modal-close-btn" onClick={() => { setIsModalOpen(false); setFormData(initialFormState); setEditingId(null); }}>
+                <X size={24} />
+              </button>
             </div>
-          )}
+
+            <div className="modal-body">
+              {feedback.message && (
+                <div className={`form-feedback ${feedback.type} fade-in`} style={{ marginBottom: '1rem', padding: '1rem', borderRadius: '8px', background: feedback.type === 'error' ? '#fee2e2' : '#dcfce3', color: feedback.type === 'error' ? '#991b1b' : '#166534' }}>
+                  {feedback.message}
+                </div>
+              )}
 
           <form onSubmit={handleSave} className="company-form">
             <div className="form-section-title">Dados Gerais</div>
@@ -278,17 +298,20 @@ const CompanyPage = () => {
               </div>
             </div>
 
-            <div className="form-actions">
-              <button type="button" className="btn-cancel" onClick={() => { setFormData(initialFormState); setEditingId(null); }}>
-                <XOctagon size={16} /> Cancelar
+            <div className="modal-action-buttons" style={{ justifyContent: 'flex-end', marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
+              <button type="button" className="btn-cancel" onClick={() => { setFormData(initialFormState); setEditingId(null); setIsModalOpen(false); }} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
+                <XOctagon size={16} style={{ display: 'inline', marginRight: '4px' }}/> Cancelar
               </button>
-              <button type="submit" className="btn-save">
+              <button type="submit" className="btn-primary">
                 <Save size={16} /> {editingId ? 'Atualizar Empresa' : 'Cadastrar Empresa'}
               </button>
             </div>
           </form>
-        </div>
-      </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <div className="company-list-section">
         <div className="list-header">

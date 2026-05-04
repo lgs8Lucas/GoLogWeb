@@ -15,7 +15,7 @@
 }
 
 .dashboard-content {
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -34,15 +34,15 @@
 }
 
 .dashboard-left {
-  flex: 1;
+  flex: 0 0 calc(70% - 1rem);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
 .dashboard-right {
+  flex: 0 0 calc(30% - 1rem);
   width: 100%;
-  max-width: 350px;
 }
 
 /* Action Cards */

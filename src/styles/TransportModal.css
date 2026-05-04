@@ -1,94 +1,3 @@
-/* Overlay Background */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-/* Modal Box */
-.modal-content {
-  background-color: var(--white);
-  border-radius: 12px;
-  width: 100%;
-  max-width: 1000px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
-}
-
-/* Header */
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem 2rem 1rem 2rem;
-}
-
-.modal-header h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-color);
-  margin: 0;
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s;
-}
-
-.modal-close-btn:hover {
-  transform: scale(1.1);
-}
-
-/* Body */
-.modal-body {
-  padding: 0 2rem 2rem 2rem;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Shared Forms */
-.form-group label {
-  font-size: 0.8rem;
-  color: var(--text-light);
-  margin-bottom: 0.35rem;
-  display: block;
-}
-
-.modal-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background-color: #f8fafc;
-  font-size: 0.875rem;
-  outline: none;
-  font-family: inherit;
-  transition: border-color var(--transition-speed);
-}
-
-.modal-input:focus {
-  border-color: var(--secondary-color);
-  background-color: var(--white);
-}
-
 /* Split Layout */
 .modal-split-layout {
   display: flex;
@@ -140,7 +49,7 @@
 
 .add-delivery-card {
   background-color: var(--white);
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed var(--border-medium);
   color: var(--text-color);
   font-weight: 600;
   font-size: 1rem;
@@ -149,7 +58,7 @@
 }
 
 .add-delivery-card:hover {
-  background-color: #f8fafc;
+  background-color: var(--bg-hover);
   border-color: var(--primary-color);
 }
 
@@ -196,7 +105,7 @@
 }
 
 .linked-table-wrapper {
-  background-color: #f8fafc;
+  background-color: var(--bg-hover);
   border-radius: 8px;
   border: 1px solid var(--border-color);
   overflow: hidden;
@@ -214,7 +123,7 @@
   font-weight: 600;
   padding: 0.65rem 0.5rem;
   border-bottom: 1px solid var(--border-color);
-  background-color: #f1f5f9;
+  background-color: var(--border-light);
 }
 
 .linked-table td {
@@ -269,7 +178,7 @@
   border-radius: 12px;
   overflow: hidden;
   position: relative;
-  background-color: #e2e8f0;
+  background-color: var(--border-color);
 }
 
 .modal-map-bg {
@@ -290,6 +199,6 @@
 }
 
 .modal-pin {
-  background-color: #c92a2a; /* Red markers as in the print */
+  background-color: var(--danger-color);
   border: 2px solid white;
 }

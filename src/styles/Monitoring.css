@@ -1,27 +1,64 @@
 /* Wrap entire page */
-.monitoring-page {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 70px - 4rem); /* Viewport - Navbar - Main Padding */
-  gap: 1rem;
+.monitoring-page.fullscreen-map {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  background-color: var(--bg-color);
   overflow: hidden;
-}
-
-.monitoring-header h2 {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
 }
 
 /* Map area */
-.monitoring-map-container {
-  flex: 1; /* take remaining height */
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  background-color: #e2e8f0; /* placeholder bg */
-  border: 1px solid var(--border-color);
+.monitoring-map-bg-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.monitoring-map-bg-wrapper .leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Floating Elements Container */
+.floating-header-panel {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.floating-header-panel .monitoring-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+
+.glass-btn {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--border-light) !important;
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 1) !important;
 }
 
 .monitoring-map-bg {
@@ -76,14 +113,16 @@
   top: 1.5rem;
   right: 1.5rem;
   width: 350px;
-  background-color: #f8fafc; /* very light grey */
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  z-index: 20;
+  z-index: 10;
 }
 
 .floating-panel h3 {
