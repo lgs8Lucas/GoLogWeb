@@ -4,17 +4,25 @@ import { Tags, Plus, X } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { shipmentTypeService } from '../services/shipmentTypeService';
+import { useToast } from '../components/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 import '../styles/Profiles.css'; // Reusing standard page layout
 
 const ShipmentTypePage = () => {
   const [types, setTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [editingId, setEditingId] = useState(null);
+  const { showToast } = useToast();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [typeToDelete, setTypeToDelete] = useState(null);
+
+  const initialFormState = {
     name: '',
     description: '',
     care: ''
-  });
+  };
+  const [formData, setFormData] = useState(initialFormState);
 
   const fetchTypes = async () => {
     setLoading(true);
@@ -40,10 +48,16 @@ const ShipmentTypePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await shipmentTypeService.create(formData);
-      alert('Tipo de carga salvo com sucesso!');
+      if (editingId) {
+        await shipmentTypeService.update(editingId, formData);
+        showToast('Tipo de carga atualizado com sucesso!', 'success');
+      } else {
+        await shipmentTypeService.create(formData);
+        showToast('Tipo de carga salvo com sucesso!', 'success');
+      }
       setIsModalOpen(false);
-      setFormData({ name: '', description: '', care: '' });
+      setEditingId(null);
+      setFormData(initialFormState);
       fetchTypes();
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -53,7 +67,37 @@ const ShipmentTypePage = () => {
       } else if (error.response?.data?.message) {
         mensagens = error.response.data.message;
       }
-      alert(mensagens);
+      showToast(mensagens, 'error');
+    }
+  };
+
+  const handleEditClick = (row) => {
+    setEditingId(row.id);
+    setFormData({
+      name: row.name || '',
+      description: row.description || '',
+      care: row.care || ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (row) => {
+    setTypeToDelete(row);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!typeToDelete) return;
+    try {
+      await shipmentTypeService.delete(typeToDelete.id);
+      showToast('Tipo de carga excluído com sucesso!', 'success');
+      fetchTypes();
+    } catch (error) {
+      console.error('Erro ao deletar:', error);
+      showToast('Erro ao excluir tipo de carga.', 'error');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setTypeToDelete(null);
     }
   };
 
@@ -82,6 +126,8 @@ const ShipmentTypePage = () => {
           columns={columns} 
           data={types} 
           loading={loading}
+          onEdit={handleEditClick}
+          onDelete={handleDelete}
           emptyMessage="Nenhum tipo de carga encontrado."
         />
       </div>
@@ -90,8 +136,8 @@ const ShipmentTypePage = () => {
         <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h2>Novo Tipo de Carga</h2>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
+              <h2>{editingId ? 'Editar Tipo de Carga' : 'Novo Tipo de Carga'}</h2>
+              <button className="modal-close-btn" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData(initialFormState); }}>
                 <X size={24} />
               </button>
             </div>
@@ -136,11 +182,11 @@ const ShipmentTypePage = () => {
                 </div>
                 
                 <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                  <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)} style={{ padding: '0.75rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
+                  <button type="button" className="btn-cancel" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData(initialFormState); }} style={{ padding: '0.75rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
                     Cancelar
                   </button>
                   <button type="submit" className="btn-save" style={{ padding: '0.75rem 1.5rem', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
-                    Salvar
+                    {editingId ? 'Atualizar' : 'Salvar'}
                   </button>
                 </div>
               </div>
@@ -149,6 +195,15 @@ const ShipmentTypePage = () => {
         </div>,
         document.body
       )}
+      
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Excluir Tipo de Carga"
+        message={`Tem certeza que deseja excluir o tipo de carga ${typeToDelete?.name}?`}
+      />
+
     </div>
   );
 };

@@ -5,18 +5,26 @@ import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentGroupService } from '../services/equipamentGroupService';
 import { equipamentService } from '../services/equipamentService';
+import { useToast } from '../components/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 import '../styles/Profiles.css'; 
 
 const EquipamentGroupPage = () => {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const { showToast } = useToast();
+  const [editingId, setEditingId] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState(null);
+  
+  const initialFormState = {
     observation: '',
     equipament1Id: '',
     equipament2Id: '',
     equipament3Id: ''
-  });
+  };
+  const [formData, setFormData] = useState(initialFormState);
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -25,6 +33,7 @@ const EquipamentGroupPage = () => {
       setGroups(data);
     } catch (error) {
       console.error('Erro ao carregar conjuntos:', error);
+      showToast('Erro ao carregar lista de conjuntos.', 'error');
     } finally {
       setLoading(false);
     }
@@ -40,6 +49,7 @@ const EquipamentGroupPage = () => {
         setEquipments(data || []);
       } catch (err) {
         console.error("Erro ao carregar equipamentos:", err);
+        showToast('Erro ao carregar equipamentos.', 'error');
       }
     };
     loadEquipments();
@@ -60,14 +70,56 @@ const EquipamentGroupPage = () => {
         equipament2Id: formData.equipament2Id || null,
         equipament3Id: formData.equipament3Id || null
       };
-      await equipamentGroupService.create(payload);
-      alert('Conjunto salvo com sucesso!');
+      if (editingId) {
+        await equipamentGroupService.update(editingId, payload);
+        showToast('Conjunto atualizado com sucesso!', 'success');
+      } else {
+        await equipamentGroupService.create(payload);
+        showToast('Conjunto salvo com sucesso!', 'success');
+      }
       setIsModalOpen(false);
-      setFormData({ observation: '', equipament1Id: '', equipament2Id: '', equipament3Id: '' });
+      setEditingId(null);
+      setFormData(initialFormState);
       fetchGroups();
     } catch (error) {
       console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar conjunto. Verifique se os IDs dos equipamentos estão corretos e existem no banco.');
+      if (error.response?.status === 409) {
+        showToast('Conflito: Um ou mais veículos já pertencem a outro conjunto.', 'error');
+      } else {
+        showToast('Erro ao salvar conjunto. Verifique se os IDs dos equipamentos estão corretos.', 'error');
+      }
+    }
+  };
+
+  const handleEditClick = (row) => {
+    setEditingId(row.id);
+    setFormData({
+      observation: row.observation || '',
+      equipament1Id: row.equipament1?.id || '',
+      equipament2Id: row.equipament2?.id || '',
+      equipament3Id: row.equipament3?.id || ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (row) => {
+    setGroupToDelete(row);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!groupToDelete) return;
+    try {
+      await equipamentGroupService.delete(groupToDelete.id);
+      showToast('Conjunto excluído com sucesso!', 'success');
+      fetchGroups();
+    } catch (error) {
+      console.error('Erro ao deletar conjunto:', error);
+      const msg = error.response?.data?.message || 'Erro ao excluir conjunto. Ele pode estar vinculado a um transporte ativo.';
+      showToast(msg, 'error');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setGroupToDelete(null);
     }
   };
 
@@ -120,6 +172,8 @@ const EquipamentGroupPage = () => {
           columns={columns} 
           data={groups} 
           loading={loading}
+          onEdit={handleEditClick}
+          onDelete={handleDelete}
           emptyMessage="Nenhum conjunto encontrado. Crie um novo ou aguarde a API disponibilizar a listagem."
         />
       </div>
@@ -128,8 +182,8 @@ const EquipamentGroupPage = () => {
         <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
           <div className="modal-content" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h2>Novo Conjunto</h2>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
+              <h2>{editingId ? 'Editar Conjunto' : 'Novo Conjunto'}</h2>
+              <button className="modal-close-btn" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData(initialFormState); }}>
                 <X size={24} />
               </button>
             </div>
@@ -204,11 +258,11 @@ const EquipamentGroupPage = () => {
                 </div>
                 
                 <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                  <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)} style={{ padding: '0.75rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
+                  <button type="button" className="btn-cancel" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData(initialFormState); }} style={{ padding: '0.75rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
                     Cancelar
                   </button>
                   <button type="submit" className="btn-save" style={{ padding: '0.75rem 1.5rem', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
-                    Salvar
+                    {editingId ? 'Atualizar' : 'Salvar'}
                   </button>
                 </div>
               </div>
@@ -217,6 +271,15 @@ const EquipamentGroupPage = () => {
         </div>,
         document.body
       )}
+
+      {/* Required ConfirmModal import wasn't included at top, wait I need to make sure ConfirmModal is imported */}
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Excluir Conjunto"
+        message="Tem certeza que deseja excluir este conjunto?"
+      />
     </div>
   );
 };

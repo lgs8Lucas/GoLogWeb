@@ -10,6 +10,8 @@ import { equipamentService } from '../services/equipamentService';
 import { tractorService } from '../services/tractorService';
 import { trailerService } from '../services/trailerService';
 import { companyService } from '../services/companyService';
+import { useToast } from '../components/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 const FleetPage = () => {
   const navigate = useNavigate();
@@ -19,6 +21,10 @@ const FleetPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [companies, setCompanies] = useState([]);
+  const { showToast } = useToast();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState(null);
+  const [originalValues, setOriginalValues] = useState({ plate: '', renavam: '' });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -99,6 +105,11 @@ const FleetPage = () => {
         companyId: formData.companyId
       };
 
+      if (editingId) {
+        if (commonPayload.plate === originalValues.plate) delete commonPayload.plate;
+        if (commonPayload.renavam === originalValues.renavam) delete commonPayload.renavam;
+      }
+
       if (isTrailer) {
         const trailerPayload = {
           ...commonPayload,
@@ -123,7 +134,7 @@ const FleetPage = () => {
         }
       }
 
-      alert(editingId ? 'Veículo atualizado com sucesso!' : 'Veículo criado com sucesso!');
+      showToast(editingId ? 'Veículo atualizado com sucesso!' : 'Veículo criado com sucesso!', 'success');
       setIsModalOpen(false);
       setEditingId(null);
       // Reset form
@@ -140,6 +151,7 @@ const FleetPage = () => {
         maximumVolume: '100',
         companyId: '7f564f96-d90f-42cc-beb2-e37cf63a324d'
       });
+      setOriginalValues({ plate: '', renavam: '' });
       fetchFleet();
     } catch (error) {
       console.error('Erro ao salvar veículo:', error);
@@ -149,7 +161,7 @@ const FleetPage = () => {
       } else if (error.response?.data?.message) {
         mensagens = error.response.data.message;
       }
-      alert(mensagens);
+      showToast(mensagens, 'error');
     }
   };
 
@@ -168,22 +180,35 @@ const FleetPage = () => {
       maximumVolume: row.raw.maximumVolume?.toString() || '100',
       companyId: row.raw.companyId || '7f564f96-d90f-42cc-beb2-e37cf63a324d'
     });
+    setOriginalValues({
+      plate: row.raw.plate || '',
+      renavam: row.raw.renavam || ''
+    });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (row) => {
-    if (!window.confirm(`Deseja realmente excluir o veículo de placa ${row.placa}?`)) return;
+  const handleDelete = (row) => {
+    setVehicleToDelete(row);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!vehicleToDelete) return;
     try {
-      if (row.isTrailer) {
-        await trailerService.delete(row.id);
+      if (vehicleToDelete.isTrailer) {
+        await trailerService.delete(vehicleToDelete.id);
       } else {
-        await tractorService.delete(row.id);
+        await tractorService.delete(vehicleToDelete.id);
       }
-      alert('Veículo excluído com sucesso!');
+      showToast('Veículo excluído com sucesso!', 'success');
       fetchFleet();
     } catch (error) {
       console.error('Erro ao deletar veículo:', error);
-      alert('Erro ao excluir veículo.');
+      const msg = error.response?.data?.message || 'Erro ao excluir veículo. Verifique se ele não pertence a um conjunto ou operação.';
+      showToast(msg, 'error');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setVehicleToDelete(null);
     }
   };
 
@@ -203,6 +228,7 @@ const FleetPage = () => {
       maximumVolume: '100',
       companyId: companies.length > 0 ? companies[0].id : ''
     });
+    setOriginalValues({ plate: '', renavam: '' });
   };
 
   const filteredFleet = fleet.filter(item => 
@@ -454,6 +480,14 @@ const FleetPage = () => {
           itemsPerPage={15}
         />
       </div>
+
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Excluir Veículo"
+        message={`Deseja realmente excluir o veículo de placa ${vehicleToDelete?.placa}?`}
+      />
 
     </div>
   );

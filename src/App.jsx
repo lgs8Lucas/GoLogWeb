@@ -14,12 +14,14 @@ import EquipamentGroupPage from './pages/EquipamentGroupPage';
 import ShipmentPage from './pages/ShipmentPage';
 import ShipmentTypePage from './pages/ShipmentTypePage';
 import OccurrencePage from './pages/OccurrencePage';
+import { ToastProvider } from './components/ToastContext';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Auth />} />
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Auth />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<DashboardLayout />}>
@@ -45,8 +47,9 @@ function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
 

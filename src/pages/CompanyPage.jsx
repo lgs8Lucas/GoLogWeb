@@ -8,6 +8,8 @@ import { addressService } from '../services/addressService';
 import { authService } from '../services/authService';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
+import { useToast } from '../components/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 const CompanyPage = () => {
   const navigate = useNavigate();
@@ -18,6 +20,9 @@ const CompanyPage = () => {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { showToast } = useToast();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState(null);
 
   const initialFormState = {
     legalName: '',
@@ -51,7 +56,7 @@ const CompanyPage = () => {
       setCompanies(data);
     } catch (error) {
       console.error("Erro ao buscar empresas:", error);
-      setFeedback({ type: 'error', message: 'Erro ao carregar lista de empresas.' });
+      showToast('Erro ao carregar lista de empresas.', 'error');
     } finally {
       setLoading(false);
     }
@@ -105,7 +110,9 @@ const CompanyPage = () => {
         city: formData.city,
         state: formData.state,
         country: formData.country,
-        complement: formData.complement
+        complement: formData.complement,
+        latitude: "-23.550520",
+        longitude: "-46.633308"
       };
 
       if (editingId && addressId) {
@@ -128,10 +135,10 @@ const CompanyPage = () => {
 
       if (editingId) {
         await companyService.updateCompany(editingId, companyPayload);
-        setFeedback({ type: 'success', message: `${isOperator ? 'Cliente' : 'Empresa'} atualizada com sucesso.` });
+        showToast(`${isOperator ? 'Cliente' : 'Empresa'} atualizada com sucesso.`, 'success');
       } else {
         await companyService.createCompany(companyPayload);
-        setFeedback({ type: 'success', message: `${isOperator ? 'Cliente' : 'Empresa'} cadastrada com sucesso.` });
+        showToast(`${isOperator ? 'Cliente' : 'Empresa'} cadastrada com sucesso.`, 'success');
       }
 
       setFormData(initialFormState);
@@ -150,19 +157,28 @@ const CompanyPage = () => {
         mensagens = error.response.data;
       }
       setFeedback({ type: 'error', message: mensagens });
+      showToast(mensagens, 'error');
     }
   };
 
-  const handleDelete = async (row) => {
+  const handleDelete = (row) => {
+    setCompanyToDelete(row);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!companyToDelete) return;
     const term = isOperator ? 'cliente' : 'empresa';
-    if (!window.confirm(`Deseja realmente excluir o ${term} ${row.legalName}?`)) return;
     try {
-      await companyService.deleteCompany(row.id);
-      setFeedback({ type: 'success', message: `${isOperator ? 'Cliente' : 'Empresa'} excluída com sucesso.` });
+      await companyService.deleteCompany(companyToDelete.id);
+      showToast(`${isOperator ? 'Cliente' : 'Empresa'} excluída com sucesso.`, 'success');
       fetchCompanies();
     } catch (error) {
       console.error("Erro ao deletar:", error);
-      setFeedback({ type: 'error', message: `Erro ao excluir o ${term}.` });
+      showToast(`Erro ao excluir o ${term}.`, 'error');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setCompanyToDelete(null);
     }
   };
 
@@ -371,6 +387,14 @@ const CompanyPage = () => {
           />
         </div>
       </div>
+      
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title={`Excluir ${isOperator ? 'Cliente' : 'Empresa'}`}
+        message={`Deseja realmente excluir ${isOperator ? 'o cliente' : 'a empresa'} ${companyToDelete?.legalName}?`}
+      />
     </div>
   );
 };

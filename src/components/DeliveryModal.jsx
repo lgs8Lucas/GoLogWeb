@@ -131,7 +131,7 @@ const DeliveryModal = ({ isOpen, onClose, onSave, transportId }) => {
                 <select name="deliveryTypeId" value={formData.deliveryTypeId} onChange={handleInputChange} className="modal-input" required>
                   <option value="">Selecione o tipo de entrega...</option>
                   {shipmentTypes.map(st => (
-                    <option key={st.id} value={st.id}>{st.type || `Tipo #${st.id.substring(0,8)}`}</option>
+                    <option key={st.id} value={st.id}>{st.name || `Tipo #${st.id.substring(0,8)}`}</option>
                   ))}
                 </select>
               </div>

@@ -9,6 +9,7 @@ import { deliveryService } from '../services/deliveryService';
 import { driverService } from '../services/driverService';
 import { companyService } from '../services/companyService';
 import { equipamentGroupService } from '../services/equipamentGroupService';
+import { useToast } from './ToastContext';
 
 const TransportModal = ({ isOpen, onClose, onSuccess }) => {
   const [drivers, setDrivers] = useState([]);
@@ -16,6 +17,7 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
   const [equipGroups, setEquipGroups] = useState([]);
   const [pendingDeliveries, setPendingDeliveries] = useState([]);
   const [loadingDeliveries, setLoadingDeliveries] = useState(false);
+  const { showToast } = useToast();
 
   const loadPendingDeliveries = async () => {
     setLoadingDeliveries(true);
@@ -76,37 +78,37 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
   const handleCreateTransport = async () => {
     try {
       await transportService.create(transportFormData);
-      alert('Viagem salva com sucesso!');
+      showToast('Viagem salva com sucesso!', 'success');
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error('Erro ao salvar viagem:', error);
-      alert('Erro ao salvar viagem. Verifique se os dados estão corretos.');
+      showToast('Erro ao salvar viagem. Verifique se os dados estão corretos.', 'error');
     }
   };
 
   const handleSaveDelivery = async (deliveryData) => {
     try {
       await deliveryService.create(deliveryData);
-      alert('Entrega salva com sucesso!');
+      showToast('Entrega salva com sucesso!', 'success');
       setIsDeliveryModalOpen(false);
       loadPendingDeliveries();
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Erro ao salvar entrega:', error);
-      alert('Erro ao salvar entrega.');
+      showToast('Erro ao salvar entrega.', 'error');
     }
   };
 
   const handleOptimize = async () => {
     try {
       await transportService.optimizeRoutes();
-      alert('Otimização de rotas concluída com sucesso!');
+      showToast('Otimização de rotas concluída com sucesso!', 'success');
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
       console.error("Erro ao otimizar rotas no modal:", err);
-      alert("Erro ao otimizar rotas.");
+      showToast("Erro ao otimizar rotas.", 'error');
     }
   };
 

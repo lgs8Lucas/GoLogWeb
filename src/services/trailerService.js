@@ -12,7 +12,7 @@ export const trailerService = {
   },
 
   updateTrailer: async (id, payload) => {
-    const response = await apiClient.put(`/trailer/${id}`, payload);
+    const response = await apiClient.patch(`/trailer/${id}`, payload);
     return response.data;
   },
 

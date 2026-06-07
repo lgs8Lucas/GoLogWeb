@@ -7,12 +7,14 @@ import { occurrenceService } from '../services/occurrenceService';
 import { transportService } from '../services/transportService';
 import { deliveryService } from '../services/deliveryService';
 import { userService } from '../services/userService';
+import { useToast } from '../components/ToastContext';
 import '../styles/Profiles.css'; // Reusing standard layout styling
 
 const OccurrencePage = () => {
   const [occurrences, setOccurrences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { showToast } = useToast();
   const [transportsList, setTransportsList] = useState([]);
   const [shipmentsList, setShipmentsList] = useState([]);
   const [usersList, setUsersList] = useState([]);
@@ -29,7 +31,12 @@ const OccurrencePage = () => {
     setLoading(true);
     try {
       const data = await occurrenceService.getAll();
-      setOccurrences(data);
+      const uniqueData = data.map((item, index) => ({
+        ...item,
+        originalId: item.id,
+        id: item.id ? `${item.id}-${index}` : `occ-${index}` // Fix duplicate keys while preserving originalId
+      }));
+      setOccurrences(uniqueData);
     } catch (error) {
       console.error('Erro ao carregar ocorrências:', error);
     } finally {
@@ -66,7 +73,7 @@ const OccurrencePage = () => {
     e.preventDefault();
     try {
       await occurrenceService.create(formData);
-      alert('Ocorrência registrada com sucesso!');
+      showToast('Ocorrência registrada com sucesso!', 'success');
       setIsModalOpen(false);
       setFormData({
         type: 'ATRASO',
@@ -85,12 +92,16 @@ const OccurrencePage = () => {
       } else if (error.response?.data?.message) {
         mensagens = error.response.data.message;
       }
-      alert(mensagens);
+      showToast(mensagens, 'error');
     }
   };
 
+  const filteredShipments = formData.transportId 
+    ? shipmentsList.filter(s => s.transport?.id === formData.transportId || s.transportId === formData.transportId)
+    : shipmentsList;
+
   const columns = [
-    { label: 'Código', key: 'id', render: (row) => row.id ? row.id.substring(0, 8) : 'N/A' },
+    { label: 'Código', key: 'id', render: (row) => row.originalId ? row.originalId.substring(0, 8) : 'N/A' },
     { label: 'Tipo', key: 'type' },
     { label: 'Descrição', key: 'description' },
     { 
@@ -182,9 +193,9 @@ const OccurrencePage = () => {
                     required 
                   >
                     <option value="">Selecione a viagem...</option>
-                    {transportsList.map(t => (
-                      <option key={t.id} value={t.id}>
-                        Transporte #{t.codeTransport || t.id.substring(0,8)} - {t.driver?.user?.name || 'Sem motorista'}
+                    {transportsList.map((t, idx) => (
+                      <option key={t.id || `transp-${idx}`} value={t.id}>
+                        Transporte #{t.codeTransport || (t.id ? t.id.substring(0,8) : '')} - {t.driver?.user?.name || 'Sem motorista'}
                       </option>
                     ))}
                   </select>
@@ -200,9 +211,9 @@ const OccurrencePage = () => {
                     required 
                   >
                     <option value="">Selecione a entrega...</option>
-                    {shipmentsList.map(s => (
-                      <option key={s.id} value={s.id}>
-                        Remessa #{s.codeShipment || s.id.substring(0,8)} | {s.typeOperation}: {s.customer?.legalName} ({s.address?.city || 'Araras'})
+                    {filteredShipments.map((s, idx) => (
+                      <option key={s.id || `ship-${idx}`} value={s.id}>
+                        Remessa #{s.codeShipment || (s.id ? s.id.substring(0,8) : '')} | {s.typeOperation}: {s.customer?.legalName} ({s.address?.city || 'Araras'})
                       </option>
                     ))}
                   </select>
@@ -218,8 +229,8 @@ const OccurrencePage = () => {
                     required 
                   >
                     <option value="">Selecione o operador...</option>
-                    {usersList.map(u => (
-                      <option key={u.id} value={u.id}>
+                    {usersList.map((u, idx) => (
+                      <option key={u.id || `user-${idx}`} value={u.id}>
                         {u.name} ({u.userProfile})
                       </option>
                     ))}

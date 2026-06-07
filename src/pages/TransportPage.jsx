@@ -10,6 +10,7 @@ import { deliveryService } from '../services/deliveryService';
 import { occurrenceService } from '../services/occurrenceService';
 import { decodePolyline } from '../utils/polyline';
 import MonitoringModal from '../components/MonitoringModal';
+import { useToast } from '../components/ToastContext';
 
 const TransportPage = () => {
   const navigate = useNavigate();
@@ -140,15 +141,17 @@ const TransportPage = () => {
     fetchTransports();
   }, []);
 
+  const { showToast } = useToast();
+
   const handleOptimizeRoutes = async () => {
     setOptimizing(true);
     try {
       await transportService.optimizeRoutes();
-      alert('Rotas otimizadas com sucesso!');
+      showToast('Rotas otimizadas com sucesso!', 'success');
       await fetchTransports();
     } catch (error) {
       console.error('Erro ao otimizar rotas:', error);
-      alert('Erro ao otimizar rotas.');
+      showToast('Erro ao otimizar rotas.', 'error');
     } finally {
       setOptimizing(false);
     }

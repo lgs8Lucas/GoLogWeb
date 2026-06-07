@@ -12,7 +12,7 @@ export const tractorService = {
   },
 
   updateTractor: async (id, payload) => {
-    const response = await apiClient.put(`/tractor/${id}`, payload);
+    const response = await apiClient.patch(`/tractor/${id}`, payload);
     return response.data;
   },
 

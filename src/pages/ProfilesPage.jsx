@@ -8,6 +8,8 @@ import { driverService } from '../services/driverService';
 import { companyService } from '../services/companyService';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
+import { useToast } from '../components/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 const ProfilesPage = () => {
   const navigate = useNavigate();
@@ -17,6 +19,9 @@ const ProfilesPage = () => {
   const [companies, setCompanies] = useState([]);
   const [feedback, setFeedback] = useState({ type: '', message: '' }); // 'error' ou 'success'
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { showToast } = useToast();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Edit Mode Controllers
   const [editingId, setEditingId] = useState(null);
@@ -74,14 +79,14 @@ const ProfilesPage = () => {
           name: formData.name,
           email: formData.email,
           cpf: formData.cpf,
-          password: formData.password || "IgnoreM3!", // Opcional no input, mas swagger do PUT exige
+          password: formData.password || 'Senha@123', // Senha obrigatória pela API
           "User Profile": formData.userProfile,
           userProfile: formData.userProfile,
           companyId: formData.companyId
         };
         await userService.updateUser(editingId, payload);
         savedUserId = editingId;
-        alert("Usuário atualizado com sucesso!");
+        showToast("Usuário atualizado com sucesso!", "success");
       } else {
         // Modo CREATE
         const payload = {
@@ -96,7 +101,7 @@ const ProfilesPage = () => {
         const newUserResponse = await userService.createUser(payload);
         // O swagger do CREATE reponde com o Objeto final incluindo UUID
         savedUserId = newUserResponse?.id;
-        alert("Cadastro realizado com sucesso.");
+        showToast("Cadastro realizado com sucesso.", "success");
       }
 
       // Chain function: Se for DRIVER, deve criar via driverService tbm.
@@ -128,22 +133,32 @@ const ProfilesPage = () => {
       }
 
       setFeedback({ type: 'error', message: mensagens });
+      showToast(mensagens, "error");
     }
   };
 
-  const handleDelete = async (row) => {
-    if (!window.confirm("Certeza que deseja escluir este usuário?")) return;
+  const handleDelete = (row) => {
+    setUserToDelete(row);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
     try {
-      await userService.deleteUser(row.id);
+      await userService.deleteUser(userToDelete.id);
       fetchProfiles();
       // Garantir reset de form e página atual se deletar o que ta editando
-      if (editingId === row.id) {
+      if (editingId === userToDelete.id) {
         setEditingId(null);
         setFormData(initialFormState);
       }
-      setFeedback({ type: 'success', message: 'Usuário removido com sucesso.' });
+      showToast("Usuário removido com sucesso.", "success");
     } catch (error) {
-      setFeedback({ type: 'error', message: "Erro ao excluir usuário." });
+      const msg = error.response?.data?.message || "Erro ao excluir usuário. Ele pode estar vinculado a motoristas ou operações.";
+      showToast(msg, "error");
+    } finally {
+      setDeleteConfirmOpen(false);
+      setUserToDelete(null);
     }
   };
 
@@ -329,6 +344,14 @@ const ProfilesPage = () => {
         />
       </div>
       </div>
+      
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Excluir Usuário"
+        message={`Tem certeza que deseja excluir o usuário ${userToDelete?.name}? Esta ação não poderá ser desfeita.`}
+      />
 
     </div>
   );

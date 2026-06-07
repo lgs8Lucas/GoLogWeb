@@ -14,14 +14,13 @@
   padding: 1rem;
 }
 
-/* Modal Content Box */
 .monitoring-modal-content {
   background-color: var(--white);
   border-radius: 16px;
-  width: 95%;
-  max-width: 1200px;
-  height: 85vh;
-  max-height: 85vh;
+  width: 98vw;
+  max-width: 1600px;
+  height: 95vh;
+  max-height: 95vh;
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   display: flex;
