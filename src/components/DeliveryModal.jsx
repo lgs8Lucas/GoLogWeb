@@ -19,7 +19,6 @@ const DeliveryModal = ({ isOpen, onClose, onSave, transportId }) => {
     deliverySequence: 1,
     userId: '',
     deliveryTypeId: '',
-    transportId: transportId || '',
     typeTransportId: '',
     originAdrressId: '',
     destinationAddressId: '',
@@ -111,11 +110,7 @@ const DeliveryModal = ({ isOpen, onClose, onSave, transportId }) => {
                 <input type="datetime-local" name="scheduledDelivery" value={formData.scheduledDelivery} onChange={handleInputChange} className="modal-input" required />
               </div>
 
-              {/* Vínculos Administrativos */}
-              <div className="form-group">
-                <label>UUID Transportadora / Viagem</label>
-                <input type="text" name="transportId" value={formData.transportId} onChange={handleInputChange} className="modal-input" required placeholder="ID da viagem" />
-              </div>
+
               <div className="form-group">
                 <label>Sequência de Entrega</label>
                 <input type="number" name="deliverySequence" value={formData.deliverySequence} onChange={handleInputChange} className="modal-input" required />

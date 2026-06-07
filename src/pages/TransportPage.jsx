@@ -17,6 +17,7 @@ const TransportPage = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [optimizing, setOptimizing] = useState(false);
 
   // Modals for map and occurrences
   const [isMonitoringModalOpen, setIsMonitoringModalOpen] = useState(false);
@@ -25,118 +26,133 @@ const TransportPage = () => {
   const [selectedOccs, setSelectedOccs] = useState([]);
   const [selectedOccsTransportId, setSelectedOccsTransportId] = useState('');
 
-  useEffect(() => {
-    const fetchTransports = async () => {
-      try {
-        const [transportsData, shipmentsData, occurrencesData] = await Promise.all([
-          transportService.getAll(),
-          deliveryService.getAllPersonalized(),
-          occurrenceService.getAll()
-        ]);
+  const fetchTransports = async () => {
+    try {
+      const [transportsData, shipmentsData, occurrencesData] = await Promise.all([
+        transportService.getAll(),
+        deliveryService.getAllPersonalized(),
+        occurrenceService.getAll()
+      ]);
 
-        // Group shipments by transport ID
-        const shipmentsByTransport = {};
-        shipmentsData.forEach(s => {
-          if (s.transport) {
-            const tid = s.transport.id;
-            if (!shipmentsByTransport[tid]) {
-              shipmentsByTransport[tid] = [];
-            }
-            shipmentsByTransport[tid].push(s);
+      // Group shipments by transport ID
+      const shipmentsByTransport = {};
+      shipmentsData.forEach(s => {
+        if (s.transport) {
+          const tid = s.transport.id;
+          if (!shipmentsByTransport[tid]) {
+            shipmentsByTransport[tid] = [];
           }
-        });
-
-        const mapped = transportsData.map(t => {
-          // Get shipments for this transport and sort by sequenceOrder
-          const shipments = shipmentsByTransport[t.id] || [];
-          shipments.sort((a, b) => {
-            const seqA = a.routeStop?.sequenceOrder ?? 999;
-            const seqB = b.routeStop?.sequenceOrder ?? 999;
-            return seqA - seqB;
-          });
-
-          // Build dynamic steps from database shipments
-          let steps = [];
-          if (shipments.length > 0) {
-            steps = shipments.map((s, index) => {
-              const isColeta = s.typeOperation === 'COLETA';
-              const label = `${isColeta ? 'Coleta' : 'Entrega'}: ${s.customer?.legalName || 'Cliente'} (${s.address?.city || s.customer?.address?.city || 'Araras'})`;
-              
-              let status = 'pending';
-              if (s.status === 'DELIVERED' || s.status === 'COMPLETED') {
-                status = 'completed';
-              } else if (s.status === 'IN_TRANSIT' || s.status === 'ACTIVE') {
-                status = 'active';
-              } else {
-                if (index === 0) status = 'completed';
-                else if (index === 1) status = 'active';
-                else status = 'pending';
-              }
-
-              return {
-                label,
-                status,
-                type: isColeta ? 'package' : 'pin'
-              };
-            });
-          } else {
-            steps = [
-              { label: 'Viagem planejada', status: 'active', type: 'package' }
-            ];
-          }
-
-          // Determine origin and destination names based on shipments (city + state combo)
-          const locations = shipments.map(s => {
-            const city = s.address?.city || s.customer?.address?.city || 'Araras';
-            const state = s.address?.state || s.customer?.address?.state || 'SP';
-            return `${city} - ${state}`;
-          });
-          const origin = locations[0] || 'Origem';
-          const destination = locations[locations.length - 1] || 'Destino';
-
-          // Compile all equipments associated with this transport
-          const equipmentsList = [];
-          if (t.equipamentGroup?.equipament1?.plate) {
-            equipmentsList.push(t.equipamentGroup.equipament1.plate);
-          }
-          if (t.equipamentGroup?.equipament2?.plate) {
-            equipmentsList.push(t.equipamentGroup.equipament2.plate);
-          }
-          if (t.equipamentGroup?.equipament3?.plate) {
-            equipmentsList.push(t.equipamentGroup.equipament3.plate);
-          }
-          const equipments = equipmentsList.length > 0 ? equipmentsList.join(', ') : '-';
-          
-          return {
-            id: `#${t.codeTransport || (t.id ? t.id.substring(0, 8) : 'N/A')}`,
-            origin: origin,
-            currentDest: destination,
-            equipments: equipments,
-            driver: t.driver?.user?.name || 'Sem motorista',
-            status: t.timeStopped > 0 ? 'Atrasado' : 'Em viagem',
-            shipmentQuantity: t.shipmentQuantity || shipments.length,
-            steps: steps,
-            rawTransport: t,
-            rawShipments: shipments,
-            occurrences: occurrencesData ? occurrencesData.filter(occ => {
-              const occTid = occ.transport?.id || occ.transportId;
-              return occTid === t.id;
-            }) : []
-          };
-        });
-
-        setTransports(mapped);
-        if (mapped.length > 0) {
-          setExpandedRow(mapped[0].id); // Expand first row by default
+          shipmentsByTransport[tid].push(s);
         }
-      } catch (error) {
-        console.error('Erro ao carregar transportes:', error);
-      } finally {
-        setLoading(false);
+      });
+
+      const mapped = transportsData.map(t => {
+        // Get shipments for this transport and sort by sequenceOrder
+        const shipments = shipmentsByTransport[t.id] || [];
+        shipments.sort((a, b) => {
+          const seqA = a.routeStop?.sequenceOrder ?? 999;
+          const seqB = b.routeStop?.sequenceOrder ?? 999;
+          return seqA - seqB;
+        });
+
+        // Build dynamic steps from database shipments
+        let steps = [];
+        if (shipments.length > 0) {
+          steps = shipments.map((s, index) => {
+            const isColeta = s.typeOperation === 'COLETA';
+            const label = `${isColeta ? 'Coleta' : 'Entrega'}: ${s.customer?.legalName || 'Cliente'} (${s.address?.city || s.customer?.address?.city || 'Araras'})`;
+            
+            let status = 'pending';
+            if (s.status === 'DELIVERED' || s.status === 'COMPLETED') {
+              status = 'completed';
+            } else if (s.status === 'IN_TRANSIT' || s.status === 'ACTIVE') {
+              status = 'active';
+            } else {
+              if (index === 0) status = 'completed';
+              else if (index === 1) status = 'active';
+              else status = 'pending';
+            }
+
+            return {
+              label,
+              status,
+              type: isColeta ? 'package' : 'pin'
+            };
+          });
+        } else {
+          steps = [
+            { label: 'Viagem planejada', status: 'active', type: 'package' }
+          ];
+        }
+
+        // Determine origin and destination names based on shipments (city + state combo)
+        const locations = shipments.map(s => {
+          const city = s.address?.city || s.customer?.address?.city || 'Araras';
+          const state = s.address?.state || s.customer?.address?.state || 'SP';
+          return `${city} - ${state}`;
+        });
+        const origin = locations[0] || 'Origem';
+        const destination = locations[locations.length - 1] || 'Destino';
+
+        // Compile all equipments associated with this transport
+        const equipmentsList = [];
+        if (t.equipamentGroup?.equipament1?.plate) {
+          equipmentsList.push(t.equipamentGroup.equipament1.plate);
+        }
+        if (t.equipamentGroup?.equipament2?.plate) {
+          equipmentsList.push(t.equipamentGroup.equipament2.plate);
+        }
+        if (t.equipamentGroup?.equipament3?.plate) {
+          equipmentsList.push(t.equipamentGroup.equipament3.plate);
+        }
+        const equipments = equipmentsList.length > 0 ? equipmentsList.join(', ') : '-';
+        
+        return {
+          id: `#${t.codeTransport || (t.id ? t.id.substring(0, 8) : 'N/A')}`,
+          origin: origin,
+          currentDest: destination,
+          equipments: equipments,
+          driver: t.driver?.user?.name || 'Sem motorista',
+          status: t.timeStopped > 0 ? 'Atrasado' : 'Em viagem',
+          shipmentQuantity: t.shipmentQuantity || shipments.length,
+          steps: steps,
+          rawTransport: t,
+          rawShipments: shipments,
+          occurrences: occurrencesData ? occurrencesData.filter(occ => {
+            const occTid = occ.transport?.id || occ.transportId;
+            return occTid === t.id;
+          }) : []
+        };
+      });
+
+      setTransports(mapped);
+      if (mapped.length > 0) {
+        setExpandedRow(mapped[0].id); // Expand first row by default
       }
-    };
+    } catch (error) {
+      console.error('Erro ao carregar transportes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTransports();
   }, []);
+
+  const handleOptimizeRoutes = async () => {
+    setOptimizing(true);
+    try {
+      await transportService.optimizeRoutes();
+      alert('Rotas otimizadas com sucesso!');
+      await fetchTransports();
+    } catch (error) {
+      console.error('Erro ao otimizar rotas:', error);
+      alert('Erro ao otimizar rotas.');
+    } finally {
+      setOptimizing(false);
+    }
+  };
 
   const toggleRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -226,11 +242,21 @@ const TransportPage = () => {
         icon={Navigation}
         onBack={true}
       >
+        <div style={{ display: 'flex', gap: '1rem' }}>
+        <button 
+          className="btn-primary" 
+          style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }} 
+          onClick={handleOptimizeRoutes}
+          disabled={optimizing}
+        >
+          {optimizing ? 'Otimizando...' : 'Otimizar Rotas'}
+        </button>
         <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
           <Plus size={20} />
           Criar Transporte
         </button>
-      </PageHeader>
+      </div>
+    </PageHeader>
 
       {/* Main List */}
       <div className="transport-list">
@@ -323,7 +349,7 @@ const TransportPage = () => {
       </div>
 
       {/* Modal */}
-      <TransportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <TransportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchTransports} />
 
       {/* Modal de Ocorrências */}
       {isOccModalOpen && createPortal(

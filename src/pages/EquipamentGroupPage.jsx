@@ -98,6 +98,9 @@ const EquipamentGroupPage = () => {
     }
   ];
 
+  const tractors = equipments.filter(eq => eq.maximumVolume === undefined || eq.maximumVolume === null);
+  const trailers = equipments.filter(eq => eq.maximumVolume !== undefined && eq.maximumVolume !== null);
+
   return (
     <div className="profiles-container fade-in">
       <PageHeader 
@@ -148,12 +151,9 @@ const EquipamentGroupPage = () => {
                   <h3 style={{ fontSize: '0.9rem', marginBottom: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Link size={16} /> Vinculação de Equipamentos
                   </h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--warning-color)', marginBottom: '1rem' }}>
-                    Nota: Como a API ainda não lista os caminhões/carretas, você precisa colar o ID (UUID) exato do equipamento gerado pelo banco de dados.
-                  </p>
                   
                   <div className="form-group" style={{ marginBottom: '1rem' }}>
-                    <label>Equipamento 1 (Obrigatório - Geralmente o Cavalo/Caminhão)</label>
+                    <label>Equipamento 1 (Obrigatório - Cavalo Mecânico / Caminhão)</label>
                     <select 
                       name="equipament1Id"
                       value={formData.equipament1Id}
@@ -161,8 +161,8 @@ const EquipamentGroupPage = () => {
                       className="modal-input" 
                       required 
                     >
-                      <option value="">Selecione o veículo...</option>
-                      {equipments.map(eq => (
+                      <option value="">Selecione o caminhão...</option>
+                      {tractors.map(eq => (
                         <option key={eq.id} value={eq.id}>
                           {eq.plate} - {eq.model || 'Volvo FH'}
                         </option>
@@ -170,15 +170,15 @@ const EquipamentGroupPage = () => {
                     </select>
                   </div>
                   <div className="form-group" style={{ marginBottom: '1rem' }}>
-                    <label>Equipamento 2 (Opcional - Carreta 1)</label>
+                    <label>Equipamento 2 (Opcional - Carreta / Reboque 1)</label>
                     <select 
                       name="equipament2Id"
                       value={formData.equipament2Id}
                       onChange={handleInputChange}
                       className="modal-input" 
                     >
-                      <option value="">Selecione o veículo...</option>
-                      {equipments.map(eq => (
+                      <option value="">Selecione a carreta...</option>
+                      {trailers.map(eq => (
                         <option key={eq.id} value={eq.id}>
                           {eq.plate} - {eq.model || 'Reboque'}
                         </option>
@@ -186,15 +186,15 @@ const EquipamentGroupPage = () => {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Equipamento 3 (Opcional - Carreta 2 / Bitrem)</label>
+                    <label>Equipamento 3 (Opcional - Carreta / Reboque 2)</label>
                     <select 
                       name="equipament3Id"
                       value={formData.equipament3Id}
                       onChange={handleInputChange}
                       className="modal-input" 
                     >
-                      <option value="">Selecione o veículo...</option>
-                      {equipments.map(eq => (
+                      <option value="">Selecione a carreta...</option>
+                      {trailers.map(eq => (
                         <option key={eq.id} value={eq.id}>
                           {eq.plate} - {eq.model || 'Reboque'}
                         </option>

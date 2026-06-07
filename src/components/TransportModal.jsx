@@ -10,10 +10,26 @@ import { driverService } from '../services/driverService';
 import { companyService } from '../services/companyService';
 import { equipamentGroupService } from '../services/equipamentGroupService';
 
-const TransportModal = ({ isOpen, onClose }) => {
+const TransportModal = ({ isOpen, onClose, onSuccess }) => {
   const [drivers, setDrivers] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [equipGroups, setEquipGroups] = useState([]);
+  const [pendingDeliveries, setPendingDeliveries] = useState([]);
+  const [loadingDeliveries, setLoadingDeliveries] = useState(false);
+
+  const loadPendingDeliveries = async () => {
+    setLoadingDeliveries(true);
+    try {
+      const data = await deliveryService.getAll();
+      // Filtrar as entregas que não têm transporte atrelado
+      const filtered = (data || []).filter(s => !s.transport && (!s.status || s.status.toUpperCase() === 'PENDING' || s.status === ''));
+      setPendingDeliveries(filtered);
+    } catch (err) {
+      console.error("Erro ao carregar entregas pendentes:", err);
+    } finally {
+      setLoadingDeliveries(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -34,6 +50,7 @@ const TransportModal = ({ isOpen, onClose }) => {
       }
     };
     loadModalData();
+    loadPendingDeliveries();
   }, [isOpen]);
 
   const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
@@ -59,22 +76,37 @@ const TransportModal = ({ isOpen, onClose }) => {
   const handleCreateTransport = async () => {
     try {
       await transportService.create(transportFormData);
-      alert('Viagem salva com sucesso! (Recarregue para ver, se a listagem estiver implementada)');
+      alert('Viagem salva com sucesso!');
+      if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error('Erro ao salvar viagem:', error);
-      alert('Erro ao salvar viagem. Verifique se colou os UUIDs corretamente.');
+      alert('Erro ao salvar viagem. Verifique se os dados estão corretos.');
     }
   };
 
   const handleSaveDelivery = async (deliveryData) => {
     try {
       await deliveryService.create(deliveryData);
-      alert('Entrega salva e vinculada com sucesso!');
+      alert('Entrega salva com sucesso!');
       setIsDeliveryModalOpen(false);
+      loadPendingDeliveries();
+      if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Erro ao salvar entrega:', error);
-      alert('Erro ao salvar entrega. Verifique os inúmeros UUIDs.');
+      alert('Erro ao salvar entrega.');
+    }
+  };
+
+  const handleOptimize = async () => {
+    try {
+      await transportService.optimizeRoutes();
+      alert('Otimização de rotas concluída com sucesso!');
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err) {
+      console.error("Erro ao otimizar rotas no modal:", err);
+      alert("Erro ao otimizar rotas.");
     }
   };
 
@@ -124,53 +156,50 @@ const TransportModal = ({ isOpen, onClose }) => {
                   <span>Adicionar<br />entrega</span>
                 </button>
 
-                {/* Delivery Card 1 */}
-                <div className="delivery-card outline-card">
-                  <div className="delivery-card-icon">
-                    <Package size={40} color="var(--primary-color)" strokeWidth={1.5} />
+                {pendingDeliveries.map((s, index) => (
+                  <div key={s.id || index} className="delivery-card outline-card">
+                    <div className="delivery-card-icon">
+                      <Package size={40} color="var(--primary-color)" strokeWidth={1.5} />
+                    </div>
+                    <div className="delivery-card-info">
+                      <strong>#{s.id ? s.id.substring(0, 8) : `Carga #${index+1}`}</strong>
+                      <span>{s.typeOperation}</span>
+                      <span>{s.weight || 0} kg | {s.volume || 0} m³</span>
+                      <span style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {s.customer?.legalName || 'Sem cliente'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="delivery-card-info">
-                    <strong>#10001</strong>
-                    <span>Araras - SP</span>
-                    <span>Limeira - SP</span>
-                    <span>Shopping Patio ...</span>
-                  </div>
-                </div>
-
-                {/* Delivery Card 2 */}
-                <div className="delivery-card outline-card">
-                  <div className="delivery-card-icon">
-                    <Package size={40} color="var(--primary-color)" strokeWidth={1.5} />
-                  </div>
-                  <div className="delivery-card-info">
-                    <strong>#10001</strong>
-                    <span>Pirassununga - SP</span>
-                    <span>Leme - SP</span>
-                    <span>Padaria Seu Zé</span>
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Linked Deliveries Table */}
               <div className="linked-deliveries-section">
-                <h3>Entregas vinculadas</h3>
+                <h3>Cargas Aguardando Roteirização ({pendingDeliveries.length})</h3>
                 <div className="linked-table-wrapper">
                   <table className="linked-table">
                     <thead>
                       <tr>
-                        <th>ID</th>
-                        <th>Origem</th>
-                        <th>Destino</th>
+                        <th>Código</th>
+                        <th>Operação</th>
                         <th>Cliente</th>
+                        <th>Cidade/Destino</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>#10001</td>
-                        <td>Araras - SP</td>
-                        <td>Limeira - SP</td>
-                        <td>Shopping Patio Limeira</td>
-                      </tr>
+                      {pendingDeliveries.map((s, idx) => (
+                        <tr key={s.id || idx}>
+                          <td>{s.id ? s.id.substring(0, 8) : 'N/A'}</td>
+                          <td>{s.typeOperation || 'ENTREGA'}</td>
+                          <td>{s.customer?.legalName || '-'}</td>
+                          <td>{s.address?.city || s.customer?.address?.city || 'Araras'} - {s.address?.state || s.customer?.address?.state || 'SP'}</td>
+                        </tr>
+                      ))}
+                      {pendingDeliveries.length === 0 && (
+                        <tr>
+                          <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-light)' }}>Nenhuma entrega pendente.</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -178,7 +207,7 @@ const TransportModal = ({ isOpen, onClose }) => {
 
               {/* Action Buttons */}
               <div className="modal-action-buttons">
-                <button className="btn-optimize" onClick={() => alert('Integração de roteirização futura.')}>
+                <button className="btn-optimize" onClick={handleOptimize}>
                   <FastForward size={16} /> Otimizar rota
                 </button>
                 <button className="btn-confirm" onClick={handleCreateTransport}>

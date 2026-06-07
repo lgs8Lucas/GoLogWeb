@@ -9,6 +9,7 @@ import PageHeader from '../components/PageHeader';
 import { equipamentService } from '../services/equipamentService';
 import { tractorService } from '../services/tractorService';
 import { trailerService } from '../services/trailerService';
+import { companyService } from '../services/companyService';
 
 const FleetPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const FleetPage = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [companies, setCompanies] = useState([]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -32,7 +34,7 @@ const FleetPage = () => {
     kmPerLiter: '2.5',
     // Trailer specific
     maximumVolume: '100',
-    companyId: '7f564f96-d90f-42cc-beb2-e37cf63a324d' // Default GoLogTransportes UUID
+    companyId: ''
   });
 
   const fetchFleet = async () => {
@@ -41,7 +43,7 @@ const FleetPage = () => {
       const data = await equipamentService.getAll();
       const mapped = data.map(item => {
         // Simple heuristic to distinguish tractor vs trailer based on model/capacity/axles
-        const isTrailer = item.model?.toLowerCase().includes('carreta') || item.model?.toLowerCase().includes('reboque') || (item.maximumCapacity > 15000);
+        const isTrailer = item.maximumVolume !== undefined && item.maximumVolume !== null;
         return {
           id: item.id,
           placa: item.plate,
@@ -51,6 +53,7 @@ const FleetPage = () => {
           capacidade: `${item.maximumCapacity || 0} kg`,
           tipo: isTrailer ? 'Carreta' : 'Caminhão',
           isTrailer: isTrailer,
+          empresa: item.company?.legalName || '-',
           raw: item
         };
       });
@@ -64,6 +67,18 @@ const FleetPage = () => {
 
   useEffect(() => {
     fetchFleet();
+    const fetchCompanies = async () => {
+      try {
+        const comps = await companyService.getAllCompanies();
+        setCompanies(comps || []);
+        if (comps && comps.length > 0) {
+          setFormData(prev => ({ ...prev, companyId: comps[0].id }));
+        }
+      } catch (err) {
+        console.error("Erro ao buscar empresas para frota:", err);
+      }
+    };
+    fetchCompanies();
   }, []);
 
   const handleInputChange = (e) => {
@@ -186,7 +201,7 @@ const FleetPage = () => {
       typeFuel: 'DIESEL',
       kmPerLiter: '2.5',
       maximumVolume: '100',
-      companyId: '7f564f96-d90f-42cc-beb2-e37cf63a324d'
+      companyId: companies.length > 0 ? companies[0].id : ''
     });
   };
 
@@ -202,7 +217,8 @@ const FleetPage = () => {
     { label: 'Renavam', key: 'renavam' },
     { label: 'Marca/Modelo', key: 'marca' },
     { label: 'Capacid.', key: 'capacidade' },
-    { label: 'Tipo', key: 'tipo' }
+    { label: 'Tipo', key: 'tipo' },
+    { label: 'Empresa Vinculada', key: 'empresa' }
   ];
 
   return (
@@ -264,15 +280,21 @@ const FleetPage = () => {
                   </div>
 
                   <div className="form-field">
-                    <label className="profiles-label">UUID Empresa Vinculada</label>
-                    <input 
-                      type="text" 
+                    <label className="profiles-label">Empresa Vinculada</label>
+                    <select 
                       name="companyId" 
                       value={formData.companyId} 
                       onChange={handleInputChange} 
                       className="profiles-input" 
                       required 
-                    />
+                    >
+                      <option value="">Selecione a empresa...</option>
+                      {companies.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.legalName}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="form-field">

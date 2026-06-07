@@ -40,5 +40,11 @@ export const transportService = {
   delete: async (id) => {
     const response = await apiClient.delete(`/transport/${id}`);
     return response.data;
+  },
+
+  optimizeRoutes: async () => {
+    const response = await apiClient.post('/api-route-optimization');
+    return response.data;
   }
 };
+

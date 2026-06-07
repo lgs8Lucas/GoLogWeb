@@ -151,8 +151,8 @@ const OccurrencePage = () => {
             <form onSubmit={handleSubmit}>
               <div className="modal-body" style={{ gap: '1.2rem' }}>
                 
-                <div style={{ background: 'var(--bg-hover)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-light)', fontSize: '0.8rem', color: 'var(--warning-color)' }}>
-                  <strong>Importante:</strong> Cole os UUIDs válidos correspondentes do banco de dados para realizar a vinculação correta.
+                <div style={{ background: 'var(--bg-hover)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-light)', fontSize: '0.8rem', color: 'var(--primary-color)' }}>
+                  <strong>Instrução:</strong> Selecione a viagem, remessa e operador correspondente nos campos suspensos abaixo.
                 </div>
 
                 <div className="form-group">
