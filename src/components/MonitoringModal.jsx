@@ -68,10 +68,20 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
               )}
             </div>
 
-            <div className="route-section">
-              <h3>Ocorrências</h3>
+            <div className="route-section" style={{ marginBottom: '2rem' }}>
+              <h3>Ocorrências ({vehicle.occurrences?.length || 0})</h3>
               <div className="route-occurrences">
-                <p style={{ fontSize: '14px', color: 'var(--text-light)', margin: 0 }}>Nenhuma ocorrência registrada para esta rota.</p>
+                {vehicle.occurrences && vehicle.occurrences.length > 0 ? (
+                  vehicle.occurrences.map((occ, index) => (
+                    <div key={occ.id || index} className="route-list-item bg-very-light-pink" style={{ marginBottom: '8px', borderLeft: '3px solid var(--danger-color, #c92a2a)', paddingLeft: '8px', textAlign: 'left' }}>
+                      <strong style={{ color: 'var(--danger-color, #c92a2a)', fontSize: '0.85rem' }}>{occ.type}</strong>
+                      <p style={{ margin: '4px 0', fontSize: '0.8rem', color: 'var(--text-color)' }}>{occ.description}</p>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Criador: {occ.sender?.name || 'Sistema'}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ fontSize: '14px', color: 'var(--text-light)', margin: 0 }}>Nenhuma ocorrência registrada para esta rota.</p>
+                )}
               </div>
             </div>
 
