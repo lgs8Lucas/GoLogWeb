@@ -4,6 +4,7 @@ import { Layers, Plus, X, Link } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentGroupService } from '../services/equipamentGroupService';
+import { equipamentService } from '../services/equipamentService';
 import '../styles/Profiles.css'; 
 
 const EquipamentGroupPage = () => {
@@ -29,8 +30,19 @@ const EquipamentGroupPage = () => {
     }
   };
 
+  const [equipments, setEquipments] = useState([]);
+
   useEffect(() => {
     fetchGroups();
+    const loadEquipments = async () => {
+      try {
+        const data = await equipamentService.getAll();
+        setEquipments(data || []);
+      } catch (err) {
+        console.error("Erro ao carregar equipamentos:", err);
+      }
+    };
+    loadEquipments();
   }, []);
 
   const handleInputChange = (e) => {
@@ -71,6 +83,17 @@ const EquipamentGroupPage = () => {
         if (row.equipament2) count++;
         if (row.equipament3) count++;
         return `${count} veículo(s)`;
+      }
+    },
+    {
+      label: 'Veículos / Placas',
+      key: 'veiculos',
+      render: (row) => {
+        const plates = [];
+        if (row.equipament1?.plate) plates.push(row.equipament1.plate);
+        if (row.equipament2?.plate) plates.push(row.equipament2.plate);
+        if (row.equipament3?.plate) plates.push(row.equipament3.plate);
+        return plates.length > 0 ? plates.join(' + ') : '-';
       }
     }
   ];
@@ -131,37 +154,52 @@ const EquipamentGroupPage = () => {
                   
                   <div className="form-group" style={{ marginBottom: '1rem' }}>
                     <label>Equipamento 1 (Obrigatório - Geralmente o Cavalo/Caminhão)</label>
-                    <input 
-                      type="text" 
+                    <select 
                       name="equipament1Id"
                       value={formData.equipament1Id}
                       onChange={handleInputChange}
                       className="modal-input" 
                       required 
-                      placeholder="Cole o UUID aqui..."
-                    />
+                    >
+                      <option value="">Selecione o veículo...</option>
+                      {equipments.map(eq => (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.plate} - {eq.model || 'Volvo FH'}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="form-group" style={{ marginBottom: '1rem' }}>
                     <label>Equipamento 2 (Opcional - Carreta 1)</label>
-                    <input 
-                      type="text" 
+                    <select 
                       name="equipament2Id"
                       value={formData.equipament2Id}
                       onChange={handleInputChange}
                       className="modal-input" 
-                      placeholder="Cole o UUID aqui..."
-                    />
+                    >
+                      <option value="">Selecione o veículo...</option>
+                      {equipments.map(eq => (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.plate} - {eq.model || 'Reboque'}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="form-group">
                     <label>Equipamento 3 (Opcional - Carreta 2 / Bitrem)</label>
-                    <input 
-                      type="text" 
+                    <select 
                       name="equipament3Id"
                       value={formData.equipament3Id}
                       onChange={handleInputChange}
                       className="modal-input" 
-                      placeholder="Cole o UUID aqui..."
-                    />
+                    >
+                      <option value="">Selecione o veículo...</option>
+                      {equipments.map(eq => (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.plate} - {eq.model || 'Reboque'}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 

@@ -153,7 +153,8 @@ const TransportPage = () => {
       driver: rawT?.driver?.user?.name || 'Sem motorista',
       plate: item.equipments,
       routePlannedCoords: coords,
-      shipments: shipments
+      shipments: shipments,
+      occurrences: item.occurrences || []
     };
     
     setSelectedMonitoringVehicle(vehicleData);

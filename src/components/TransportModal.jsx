@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, Package, FastForward, Save } from 'lucide-react';
 import '../styles/TransportModal.css';
@@ -6,8 +6,36 @@ import MapComponent from './MapComponent';
 import DeliveryModal from './DeliveryModal';
 import { transportService } from '../services/transportService';
 import { deliveryService } from '../services/deliveryService';
+import { driverService } from '../services/driverService';
+import { companyService } from '../services/companyService';
+import { equipamentGroupService } from '../services/equipamentGroupService';
 
 const TransportModal = ({ isOpen, onClose }) => {
+  const [drivers, setDrivers] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [equipGroups, setEquipGroups] = useState([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadModalData = async () => {
+      try {
+        const [driversData, companiesData, groupsData] = await Promise.all([
+          driverService.getAll(),
+          companyService.getAllCompanies(),
+          equipamentGroupService.getAll()
+        ]);
+        setDrivers(driversData || []);
+        // Filtra empresas para pegar transportadoras (onde isCliente === false)
+        setCompanies((companiesData || []).filter(c => !c.isCliente));
+        setEquipGroups(groupsData || []);
+      } catch (err) {
+        console.error("Erro ao carregar dados do modal de transporte:", err);
+      }
+    };
+    loadModalData();
+  }, [isOpen]);
+
   const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
   const [transportFormData, setTransportFormData] = useState({
     routeReturnPlanned: 'Rota de Retorno Padrão',
@@ -66,12 +94,26 @@ const TransportModal = ({ isOpen, onClose }) => {
             {/* Left Side: Motorista & Deliveries */}
             <div className="modal-left-col">
               <div className="form-group">
-                <label>UUID Motorista</label>
-                <input type="text" name="driverId" value={transportFormData.driverId} onChange={handleInputChange} className="modal-input" placeholder="Cole o UUID aqui..." />
+                <label>Motorista</label>
+                <select name="driverId" value={transportFormData.driverId} onChange={handleInputChange} className="modal-input" required>
+                  <option value="">Selecione o motorista...</option>
+                  {drivers.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.user?.name || `Motorista #${d.id.substring(0,8)}`}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
-                <label>UUID Empresa Transportadora</label>
-                <input type="text" name="transporterId" value={transportFormData.transporterId} onChange={handleInputChange} className="modal-input" placeholder="Cole o UUID aqui..." />
+                <label>Empresa Transportadora</label>
+                <select name="transporterId" value={transportFormData.transporterId} onChange={handleInputChange} className="modal-input" required>
+                  <option value="">Selecione a transportadora...</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.legalName}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               {/* Delivery Cards Carousel */}
@@ -148,8 +190,22 @@ const TransportModal = ({ isOpen, onClose }) => {
             {/* Right Side: Conjunto & Map Preview */}
             <div className="modal-right-col">
               <div className="form-group">
-                <label>UUID Conjunto</label>
-                <input type="text" name="equipamentGroupId" value={transportFormData.equipamentGroupId} onChange={handleInputChange} className="modal-input" placeholder="Cole o UUID aqui..." />
+                <label>Conjunto de Equipamentos</label>
+                <select name="equipamentGroupId" value={transportFormData.equipamentGroupId} onChange={handleInputChange} className="modal-input" required>
+                  <option value="">Selecione o conjunto...</option>
+                  {equipGroups.map(g => {
+                    const plates = [];
+                    if (g.equipament1?.plate) plates.push(g.equipament1.plate);
+                    if (g.equipament2?.plate) plates.push(g.equipament2.plate);
+                    if (g.equipament3?.plate) plates.push(g.equipament3.plate);
+                    const plateStr = plates.length > 0 ? ` (${plates.join(' + ')})` : '';
+                    return (
+                      <option key={g.id} value={g.id}>
+                        {g.observation || `Conjunto #${g.id.substring(0,8)}`}{plateStr}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
               
               <div className="map-preview-container" style={{ position: 'relative', height: '100%', minHeight: '400px' }}>

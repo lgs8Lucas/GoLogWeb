@@ -4,19 +4,25 @@ import { AlertTriangle, Plus, X } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { occurrenceService } from '../services/occurrenceService';
+import { transportService } from '../services/transportService';
+import { deliveryService } from '../services/deliveryService';
+import { userService } from '../services/userService';
 import '../styles/Profiles.css'; // Reusing standard layout styling
 
 const OccurrencePage = () => {
   const [occurrences, setOccurrences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [transportsList, setTransportsList] = useState([]);
+  const [shipmentsList, setShipmentsList] = useState([]);
+  const [usersList, setUsersList] = useState([]);
   const [formData, setFormData] = useState({
     type: 'ATRASO',
     description: '',
     attachment: 'Sem anexo',
     shipmentId: '',
     transportId: '',
-    senderId: 'c916e36f-4846-41be-9b32-9e0ff8850a29' // Pre-populated with Admin Master ID from gologdb.sql
+    senderId: ''
   });
 
   const fetchOccurrences = async () => {
@@ -33,6 +39,22 @@ const OccurrencePage = () => {
 
   useEffect(() => {
     fetchOccurrences();
+
+    const loadSelectData = async () => {
+      try {
+        const [transportsData, shipmentsData, usersData] = await Promise.all([
+          transportService.getAll(),
+          deliveryService.getAllPersonalized(),
+          userService.getAllUsers()
+        ]);
+        setTransportsList(transportsData || []);
+        setShipmentsList(shipmentsData || []);
+        setUsersList(usersData || []);
+      } catch (err) {
+        console.error("Erro ao carregar seletores de ocorrência:", err);
+      }
+    };
+    loadSelectData();
   }, []);
 
   const handleInputChange = (e) => {
@@ -52,7 +74,7 @@ const OccurrencePage = () => {
         attachment: 'Sem anexo',
         shipmentId: '',
         transportId: '',
-        senderId: 'c916e36f-4846-41be-9b32-9e0ff8850a29'
+        senderId: ''
       });
       fetchOccurrences();
     } catch (error) {
@@ -71,8 +93,26 @@ const OccurrencePage = () => {
     { label: 'Código', key: 'id', render: (row) => row.id ? row.id.substring(0, 8) : 'N/A' },
     { label: 'Tipo', key: 'type' },
     { label: 'Descrição', key: 'description' },
-    { label: 'Entrega (Shipment)', key: 'shipmentId', render: (row) => row.shipment?.id ? row.shipment.id.substring(0, 8) : (row.shipmentId ? row.shipmentId.substring(0, 8) : '-') },
-    { label: 'Viagem (Transport)', key: 'transportId', render: (row) => row.transport?.id ? row.transport.id.substring(0, 8) : (row.transportId ? row.transportId.substring(0, 8) : '-') },
+    { 
+      label: 'Entrega (Shipment)', 
+      key: 'shipmentId', 
+      render: (row) => {
+        if (row.shipment?.customer?.legalName) {
+          return `${row.shipment.customer.legalName} (${row.shipment.typeOperation})`;
+        }
+        return row.shipment?.id ? row.shipment.id.substring(0, 8) : (row.shipmentId ? row.shipmentId.substring(0, 8) : '-');
+      }
+    },
+    { 
+      label: 'Viagem (Transport)', 
+      key: 'transportId', 
+      render: (row) => {
+        if (row.transport?.codeTransport) {
+          return `Transporte #${row.transport.codeTransport}`;
+        }
+        return row.transport?.id ? row.transport.id.substring(0, 8) : (row.transportId ? row.transportId.substring(0, 8) : '-');
+      }
+    },
     { label: 'Criador', key: 'senderName', render: (row) => row.sender?.name || 'Sistema' }
   ];
 
@@ -133,41 +173,57 @@ const OccurrencePage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>UUID Viagem (Transport ID)</label>
-                  <input 
-                    type="text" 
+                  <label>Viagem (Transporte)</label>
+                  <select 
                     name="transportId"
                     value={formData.transportId}
                     onChange={handleInputChange}
                     className="modal-input" 
                     required 
-                    placeholder="Cole o UUID da Viagem..."
-                  />
+                  >
+                    <option value="">Selecione a viagem...</option>
+                    {transportsList.map(t => (
+                      <option key={t.id} value={t.id}>
+                        Transporte #{t.codeTransport || t.id.substring(0,8)} - {t.driver?.user?.name || 'Sem motorista'}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-group">
-                  <label>UUID Entrega (Shipment ID)</label>
-                  <input 
-                    type="text" 
+                  <label>Entrega (Shipment)</label>
+                  <select 
                     name="shipmentId"
                     value={formData.shipmentId}
                     onChange={handleInputChange}
                     className="modal-input" 
                     required 
-                    placeholder="Cole o UUID da Entrega..."
-                  />
+                  >
+                    <option value="">Selecione a entrega...</option>
+                    {shipmentsList.map(s => (
+                      <option key={s.id} value={s.id}>
+                        Remessa #{s.codeShipment || s.id.substring(0,8)} | {s.typeOperation}: {s.customer?.legalName} ({s.address?.city || 'Araras'})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-group">
-                  <label>UUID Operador Responsável (Sender ID)</label>
-                  <input 
-                    type="text" 
+                  <label>Operador Responsável</label>
+                  <select 
                     name="senderId"
                     value={formData.senderId}
                     onChange={handleInputChange}
                     className="modal-input" 
                     required 
-                  />
+                  >
+                    <option value="">Selecione o operador...</option>
+                    {usersList.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.userProfile})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-group">
