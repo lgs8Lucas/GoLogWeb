@@ -28,5 +28,13 @@ export const addressService = {
 
   deleteAddress: async (id) => {
     await apiClient.delete(`/address/${id}`);
-  }
+  },
+
+  // Standard generic REST aliases for compatibility
+  getAll: async () => addressService.getAllAddresses(),
+  getById: async (id) => addressService.getAddressById(id),
+  create: async (payload) => addressService.createAddress(payload),
+  update: async (id, payload) => addressService.updateAddress(id, payload),
+  patch: async (id, payload) => addressService.patchAddress(id, payload),
+  delete: async (id) => addressService.deleteAddress(id)
 };

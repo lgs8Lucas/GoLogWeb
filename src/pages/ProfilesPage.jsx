@@ -117,7 +117,9 @@ const ProfilesPage = () => {
       console.error("Erro ao salvar:", error);
 
       let mensagens = "Erro na operação do usuário.";
-      if (error.response?.data?.errors) {
+      if (Array.isArray(error.response?.data)) {
+        mensagens = error.response.data.join('\n');
+      } else if (error.response?.data?.errors) {
         mensagens = error.response.data.errors.map(err => err.defaultMessage || err.message).join('\n');
       } else if (error.response?.data?.message) {
         mensagens = error.response.data.message;

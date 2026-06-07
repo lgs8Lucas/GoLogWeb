@@ -4,20 +4,104 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
 import PageHeader from '../components/PageHeader';
+import { transportService } from '../services/transportService';
+import { deliveryService } from '../services/deliveryService';
 
 const TransportPage = () => {
   const navigate = useNavigate();
   const [transports, setTransports] = useState([]);
-  const [expandedRow, setExpandedRow] = useState("#100060"); // Default expanded from mockup
+  const [expandedRow, setExpandedRow] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: A API possui TypeTransport (Categoria), mas falta o domínio completo de Transport/Viagem
-    // (Origem, Destino, Status, Passos da Viagem).
-    // Aguardando criação dos endpoints de GET /transport.
-    setTransports([]);
-    setLoading(false);
+    const fetchTransports = async () => {
+      try {
+        const [transportsData, shipmentsData] = await Promise.all([
+          transportService.getAll(),
+          deliveryService.getAllPersonalized()
+        ]);
+
+        // Group shipments by transport ID
+        const shipmentsByTransport = {};
+        shipmentsData.forEach(s => {
+          if (s.transport) {
+            const tid = s.transport.id;
+            if (!shipmentsByTransport[tid]) {
+              shipmentsByTransport[tid] = [];
+            }
+            shipmentsByTransport[tid].push(s);
+          }
+        });
+
+        const mapped = transportsData.map(t => {
+          // Get shipments for this transport and sort by sequenceOrder
+          const shipments = shipmentsByTransport[t.id] || [];
+          shipments.sort((a, b) => {
+            const seqA = a.routeStop?.sequenceOrder ?? 999;
+            const seqB = b.routeStop?.sequenceOrder ?? 999;
+            return seqA - seqB;
+          });
+
+          // Build dynamic steps from database shipments
+          let steps = [];
+          if (shipments.length > 0) {
+            steps = shipments.map((s, index) => {
+              const isColeta = s.typeOperation === 'COLETA';
+              const label = `${isColeta ? 'Coleta' : 'Entrega'}: ${s.customer?.legalName || 'Cliente'} (${s.address?.city || s.customer?.address?.city || 'Araras'})`;
+              
+              let status = 'pending';
+              if (s.status === 'DELIVERED' || s.status === 'COMPLETED') {
+                status = 'completed';
+              } else if (s.status === 'IN_TRANSIT' || s.status === 'ACTIVE') {
+                status = 'active';
+              } else {
+                if (index === 0) status = 'completed';
+                else if (index === 1) status = 'active';
+                else status = 'pending';
+              }
+
+              return {
+                label,
+                status,
+                type: isColeta ? 'package' : 'pin'
+              };
+            });
+          } else {
+            steps = [
+              { label: 'Viagem planejada', status: 'active', type: 'package' }
+            ];
+          }
+
+          // Determine origin and destination names based on shipments
+          const cities = shipments.map(s => s.address?.city || s.customer?.address?.city || 'Araras');
+          const origin = cities[0] || 'Origem';
+          const destination = cities[cities.length - 1] || 'Destino';
+          
+          return {
+            id: `#${t.codeTransport || (t.id ? t.id.substring(0, 8) : 'N/A')}`,
+            origin: origin,
+            currentDest: destination,
+            eq1: t.equipamentGroup?.equipament1?.plate || 'Cavalo',
+            eq2: t.equipamentGroup?.equipament2?.plate || '-',
+            driver: t.driver?.user?.name || 'Sem motorista',
+            status: t.timeStopped > 0 ? 'Atrasado' : 'Em viagem',
+            shipmentQuantity: t.shipmentQuantity || shipments.length,
+            steps: steps
+          };
+        });
+
+        setTransports(mapped);
+        if (mapped.length > 0) {
+          setExpandedRow(mapped[0].id); // Expand first row by default
+        }
+      } catch (error) {
+        console.error('Erro ao carregar transportes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTransports();
   }, []);
 
   const toggleRow = (id) => {
@@ -139,15 +223,15 @@ const TransportPage = () => {
       <div className="transport-footer-summary">
         <div className="summary-item">
           <span>Total de transportes:</span>
-          <strong>0</strong>
+          <strong>{transports.length}</strong>
         </div>
         <div className="summary-item">
           <span>Total de entregas:</span>
-          <strong>0</strong>
+          <strong>{transports.reduce((sum, t) => sum + (t.shipmentQuantity || 0), 0)}</strong>
         </div>
         <div className="summary-item">
           <span>Equipamentos em atividade:</span>
-          <strong>0</strong>
+          <strong>{transports.length}</strong>
         </div>
         <div className="summary-item">
           <span>Equipamentos parados:</span>
@@ -155,7 +239,7 @@ const TransportPage = () => {
         </div>
         <div className="summary-item">
           <span>Atrasos:</span>
-          <strong>0</strong>
+          <strong>{transports.filter(t => t.status === 'Atrasado').length}</strong>
         </div>
       </div>
 

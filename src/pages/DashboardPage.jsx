@@ -12,11 +12,14 @@ import {
   BarChart3,
   Building2,
   Layers,
-  Tags
+  Tags,
+  AlertTriangle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import MapComponent from '../components/MapComponent';
+import { deliveryService } from '../services/deliveryService';
+import { decodePolyline } from '../utils/polyline';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -24,6 +27,7 @@ const DashboardPage = () => {
   const userRole = authService.getUserRole();
 
   const [stats, setStats] = useState(null);
+  const [polylines, setPolylines] = useState([]);
 
   useEffect(() => {
     // TODO: Aguardando endpoint de estatísticas da API (ex: GET /dashboard/stats)
@@ -40,6 +44,34 @@ const DashboardPage = () => {
         atrasos: { value: 0 }
       }
     });
+
+    const fetchMapRoutes = async () => {
+      try {
+        const shipments = await deliveryService.getAllPersonalized();
+        const transportsMap = {};
+
+        shipments.forEach(s => {
+          if (!s.transport) return;
+          const tid = s.transport.id;
+          if (!transportsMap[tid]) {
+            transportsMap[tid] = {
+              id: tid,
+              routePlanned: s.transport.routePlanned
+            };
+          }
+        });
+
+        const decoded = Object.values(transportsMap).map(t => ({
+          id: t.id,
+          coords: decodePolyline(t.routePlanned)
+        }));
+
+        setPolylines(decoded);
+      } catch (error) {
+        console.error('Erro ao carregar rotas no dashboard:', error);
+      }
+    };
+    fetchMapRoutes();
   }, []);
 
   return (
@@ -49,17 +81,19 @@ const DashboardPage = () => {
 
         {/* Main 4 Action Cards */}
         <div className="action-cards-grid">
-          {/* Card 1 */}
-          <div className="action-card">
-            <div className="action-card-icon">
-              <User size={24} color={primaryColor} />
+          {/* Card 1: Usuários (Admin only) */}
+          {userRole === 'ADMIN' && (
+            <div className="action-card">
+              <div className="action-card-icon">
+                <User size={24} color={primaryColor} />
+              </div>
+              <div className="action-card-content">
+                <h3>Usuários</h3>
+                <p>Cadastre ou edite os usuários do sistema.</p>
+              </div>
+              <button className="verify-btn" onClick={() => navigate('/perfis')}>Verificar</button>
             </div>
-            <div className="action-card-content">
-              <h3>Usuários</h3>
-              <p>Cadastre ou edite os usuários do sistema.</p>
-            </div>
-            <button className="verify-btn" onClick={() => navigate('/perfis')}>Verificar</button>
-          </div>
+          )}
 
           {/* Card 2 */}
           <div className="action-card">
@@ -92,25 +126,31 @@ const DashboardPage = () => {
             </div>
             <div className="action-card-content">
               <h3>Planejamento logístico</h3>
-              <p>Crie a melhor rota para as suas entregas.</p>
+              <p>Consulte e acompanhe as entregas e coletas.</p>
             </div>
-            <button className="verify-btn">Verificar</button>
+            <button className="verify-btn" onClick={() => navigate('/entregas')}>Verificar</button>
           </div>
 
-          {/* Admin Restricted Card: Empresas */}
-          {userRole === 'ADMIN' && (
+          {/* Restricted Cards: ADMIN and OPERATOR */}
+          {(userRole === 'ADMIN' || userRole === 'OPERATOR') && (
             <>
+              {/* Empresas / Clientes */}
               <div className="action-card fade-in">
                 <div className="action-card-icon">
                   <Building2 size={24} color={primaryColor} />
                 </div>
                 <div className="action-card-content">
-                  <h3>Empresas</h3>
-                  <p>Gerencie companhias e unidades logísticas.</p>
+                  <h3>{userRole === 'OPERATOR' ? 'Clientes' : 'Empresas'}</h3>
+                  <p>
+                    {userRole === 'OPERATOR'
+                      ? 'Gerencie clientes logísticos.'
+                      : 'Gerencie companhias e unidades logísticas.'}
+                  </p>
                 </div>
                 <button className="verify-btn" onClick={() => navigate('/empresas')}>Verificar</button>
               </div>
 
+              {/* Tipos de Transporte */}
               <div className="action-card fade-in">
                 <div className="action-card-icon">
                   <Tags size={24} color={primaryColor} />
@@ -122,6 +162,7 @@ const DashboardPage = () => {
                 <button className="verify-btn" onClick={() => navigate('/tipos-transporte')}>Verificar</button>
               </div>
 
+              {/* Conjuntos */}
               <div className="action-card fade-in">
                 <div className="action-card-icon">
                   <Layers size={24} color={primaryColor} />
@@ -131,6 +172,30 @@ const DashboardPage = () => {
                   <p>Agrupe caminhões e carretas para viagens.</p>
                 </div>
                 <button className="verify-btn" onClick={() => navigate('/conjuntos')}>Verificar</button>
+              </div>
+
+              {/* Tipos de Carga */}
+              <div className="action-card fade-in">
+                <div className="action-card-icon">
+                  <Package size={24} color={primaryColor} />
+                </div>
+                <div className="action-card-content">
+                  <h3>Tipos de Carga</h3>
+                  <p>Gerencie as regras de SLA e cuidados de cargas.</p>
+                </div>
+                <button className="verify-btn" onClick={() => navigate('/tipos-carga')}>Verificar</button>
+              </div>
+
+              {/* Ocorrências */}
+              <div className="action-card fade-in">
+                <div className="action-card-icon">
+                  <AlertTriangle size={24} color={primaryColor} />
+                </div>
+                <div className="action-card-content">
+                  <h3>Ocorrências</h3>
+                  <p>Acompanhe e registre incidentes de viagens.</p>
+                </div>
+                <button className="verify-btn" onClick={() => navigate('/ocorrencias')}>Verificar</button>
               </div>
             </>
           )}
@@ -152,11 +217,7 @@ const DashboardPage = () => {
               <MapComponent 
                  interactive={false}
                  zoom={10}
-                 markers={[
-                   { id: '1', lat: -23.55052, lng: -46.633308, status: 'active', label: 'Caminhão 1' },
-                   { id: '2', lat: -23.5615, lng: -46.6550, status: 'normal', label: 'Caminhão 2' },
-                   { id: '3', lat: -23.5420, lng: -46.6200, status: 'delayed', label: 'Caminhão 3' }
-                 ]}
+                 polylines={polylines}
               />
             </div>
 

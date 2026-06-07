@@ -3,9 +3,15 @@ import { Search, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Navbar.css';
 import Logo from '../assets/logo.png';
+import { authService } from '../services/authService';
 
 const Navbar = () => {
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login');
+  };
 
   return (
     <header className="main-navbar">
@@ -18,7 +24,7 @@ const Navbar = () => {
           <button className="icon-btn" aria-label="Search">
             <Search size={22} color="var(--primary-color)" />
           </button>
-          <button className="icon-btn" aria-label="Logout">
+          <button className="icon-btn" aria-label="Logout" onClick={handleLogout}>
             <LogOut size={22} color="var(--primary-color)" />
           </button>
         </div>

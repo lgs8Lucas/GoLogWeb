@@ -11,6 +11,9 @@ import FleetPage from './pages/FleetPage';
 import CompanyPage from './pages/CompanyPage';
 import TypeTransportPage from './pages/TypeTransportPage';
 import EquipamentGroupPage from './pages/EquipamentGroupPage';
+import ShipmentPage from './pages/ShipmentPage';
+import ShipmentTypePage from './pages/ShipmentTypePage';
+import OccurrencePage from './pages/OccurrencePage';
 
 function App() {
   return (
@@ -24,14 +27,20 @@ function App() {
 
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="perfis" element={<ProfilesPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']} />}>
               <Route path="empresas" element={<CompanyPage />} />
               <Route path="tipos-transporte" element={<TypeTransportPage />} />
               <Route path="conjuntos" element={<EquipamentGroupPage />} />
+              <Route path="tipos-carga" element={<ShipmentTypePage />} />
+              <Route path="ocorrencias" element={<OccurrencePage />} />
             </Route>
 
             <Route path="frota" element={<FleetPage />} />
             <Route path="transporte" element={<TransportPage />} />
             <Route path="monitoramento" element={<MonitoringPage />} />
+            <Route path="entregas" element={<ShipmentPage />} />
           </Route>
         </Route>
 

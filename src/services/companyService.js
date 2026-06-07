@@ -30,4 +30,11 @@ export const companyService = {
     await apiClient.delete(`/company/${id}`);
   },
 
+  // Standard generic REST aliases for compatibility
+  getAll: async () => companyService.getAllCompanies(),
+  getById: async (id) => companyService.getCompanyById(id),
+  create: async (payload) => companyService.createCompany(payload),
+  update: async (id, payload) => companyService.updateCompany(id, payload),
+  patch: async (id, payload) => companyService.patchCompany(id, payload),
+  delete: async (id) => companyService.deleteCompany(id)
 };

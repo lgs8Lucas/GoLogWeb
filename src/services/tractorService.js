@@ -22,10 +22,24 @@ export const tractorService = {
   },
 
   deleteTractor: async (id) => {
-    // Note: The OpenAPI spec for Tractor has DELETE mapped to /tractor with an 'id' query parameter
-    // instead of the standard /tractor/{id}. If this is a mistake in the API, we might need `/tractor/${id}`.
-    // Based on the spec:
+    // The OpenAPI spec for Tractor has DELETE mapped to /tractor with an 'id' query parameter
     const response = await apiClient.delete('/tractor', { params: { id } });
     return response.data;
-  }
+  },
+
+  // Standard generic REST aliases for compatibility
+  getAll: async () => {
+    try {
+      const response = await apiClient.get('/tractor');
+      return response.data;
+    } catch (error) {
+      console.warn('GET /tractor is not implemented yet in the backend. Fallback: returning empty list []', error);
+      return [];
+    }
+  },
+  getById: async (id) => tractorService.getTractorById(id),
+  create: async (payload) => tractorService.createTractor(payload),
+  update: async (id, payload) => tractorService.updateTractor(id, payload),
+  patch: async (id, payload) => tractorService.patchTractor(id, payload),
+  delete: async (id) => tractorService.deleteTractor(id)
 };

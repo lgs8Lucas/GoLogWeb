@@ -5,11 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/Company.css';
 import { companyService } from '../services/companyService';
 import { addressService } from '../services/addressService';
+import { authService } from '../services/authService';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 
 const CompanyPage = () => {
   const navigate = useNavigate();
+  const userRole = authService.getUserRole();
+  const isOperator = userRole === 'OPERATOR';
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,9 +59,13 @@ const CompanyPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let val = type === 'checkbox' ? checked : value;
+    if (name === 'isCliente') {
+      val = value === 'true' || value === true;
+    }
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: val
     }));
   };
 
@@ -121,10 +128,10 @@ const CompanyPage = () => {
 
       if (editingId) {
         await companyService.updateCompany(editingId, companyPayload);
-        setFeedback({ type: 'success', message: 'Empresa atualizada com sucesso.' });
+        setFeedback({ type: 'success', message: `${isOperator ? 'Cliente' : 'Empresa'} atualizada com sucesso.` });
       } else {
         await companyService.createCompany(companyPayload);
-        setFeedback({ type: 'success', message: 'Empresa cadastrada com sucesso.' });
+        setFeedback({ type: 'success', message: `${isOperator ? 'Cliente' : 'Empresa'} cadastrada com sucesso.` });
       }
 
       setFormData(initialFormState);
@@ -134,19 +141,28 @@ const CompanyPage = () => {
       fetchCompanies();
     } catch (error) {
       console.error("Erro ao salvar empresa:", error);
-      setFeedback({ type: 'error', message: error.response?.data?.message || 'Erro ao realizar operação.' });
+      let mensagens = 'Erro ao realizar operação.';
+      if (Array.isArray(error.response?.data)) {
+        mensagens = error.response.data.join('\n');
+      } else if (error.response?.data?.message) {
+        mensagens = error.response.data.message;
+      } else if (typeof error.response?.data === 'string') {
+        mensagens = error.response.data;
+      }
+      setFeedback({ type: 'error', message: mensagens });
     }
   };
 
   const handleDelete = async (row) => {
-    if (!window.confirm(`Deseja realmente excluir a empresa ${row.legalName}?`)) return;
+    const term = isOperator ? 'cliente' : 'empresa';
+    if (!window.confirm(`Deseja realmente excluir o ${term} ${row.legalName}?`)) return;
     try {
       await companyService.deleteCompany(row.id);
-      setFeedback({ type: 'success', message: 'Empresa excluída com sucesso.' });
+      setFeedback({ type: 'success', message: `${isOperator ? 'Cliente' : 'Empresa'} excluída com sucesso.` });
       fetchCompanies();
     } catch (error) {
       console.error("Erro ao deletar:", error);
-      setFeedback({ type: 'error', message: 'Erro ao excluir empresa.' });
+      setFeedback({ type: 'error', message: `Erro ao excluir o ${term}.` });
     }
   };
 
@@ -172,7 +188,12 @@ const CompanyPage = () => {
     });
   };
 
-  const filteredCompanies = companies.filter(c => {
+  const displayedCompanies = companies.filter(c => {
+    if (isOperator && !c.isCliente) return false;
+    return true;
+  });
+
+  const filteredCompanies = displayedCompanies.filter(c => {
     const q = searchTerm.toLowerCase();
     return (c.legalName && c.legalName.toLowerCase().includes(q)) || 
            (c.cnpjCpf && c.cnpjCpf.toLowerCase().includes(q));
@@ -204,14 +225,14 @@ const CompanyPage = () => {
   return (
     <div className="company-page fade-in">
       <PageHeader 
-        title="Empresas"
-        description="Gerencie os clientes e fornecedores do sistema."
+        title={isOperator ? "Clientes" : "Empresas"}
+        description={isOperator ? "Gerencie os clientes do sistema." : "Gerencie os clientes e fornecedores do sistema."}
         icon={Building2}
         onBack={true}
       >
         <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
           <Plus size={20} />
-          Nova Empresa
+          {isOperator ? "Novo Cliente" : "Nova Empresa"}
         </button>
       </PageHeader>
 
@@ -221,7 +242,10 @@ const CompanyPage = () => {
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Building2 size={24} color="var(--primary-color)" />
-                {editingId ? 'Editar Empresa' : 'Nova Empresa'}
+                {editingId 
+                  ? (isOperator ? 'Editar Cliente' : 'Editar Empresa') 
+                  : (isOperator ? 'Novo Cliente' : 'Nova Empresa')
+                }
               </h2>
               <button className="modal-close-btn" onClick={() => { setIsModalOpen(false); setFormData(initialFormState); setEditingId(null); }}>
                 <X size={24} />
@@ -255,8 +279,8 @@ const CompanyPage = () => {
                 <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className="company-input" placeholder="(00) 00000-0000" required />
               </div>
               <div className="form-field checkbox-field">
-                <label className="company-label">Tipo de Relalação</label>
-                <select name="isCliente" value={formData.isCliente} onChange={handleInputChange} className="company-input">
+                <label className="company-label">Tipo de Relação</label>
+                <select name="isCliente" value={formData.isCliente} onChange={handleInputChange} className="company-input" disabled={isOperator}>
                   <option value={true}>Cliente</option>
                   <option value={false}>Fornecedor / Parceiro</option>
                 </select>
@@ -303,7 +327,10 @@ const CompanyPage = () => {
                 <XOctagon size={16} style={{ display: 'inline', marginRight: '4px' }}/> Cancelar
               </button>
               <button type="submit" className="btn-primary">
-                <Save size={16} /> {editingId ? 'Atualizar Empresa' : 'Cadastrar Empresa'}
+                <Save size={16} /> {editingId 
+                  ? (isOperator ? 'Atualizar Cliente' : 'Atualizar Empresa') 
+                  : (isOperator ? 'Cadastrar Cliente' : 'Cadastrar Empresa')
+                }
               </button>
             </div>
           </form>
@@ -319,13 +346,18 @@ const CompanyPage = () => {
             <Search size={18} className="search-icon" />
             <input 
               type="text" 
-              placeholder="Pesquisar empresa..." 
+              placeholder={isOperator ? "Pesquisar cliente..." : "Pesquisar empresa..."} 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
               className="list-search-input"
             />
           </div>
-          <span className="list-count">{companies.length} empresas</span>
+          <span className="list-count">
+            {isOperator 
+              ? `${displayedCompanies.length} clientes` 
+              : `${companies.length} empresas`
+            }
+          </span>
         </div>
 
         <div className="list-container">

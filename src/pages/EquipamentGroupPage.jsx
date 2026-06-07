@@ -17,10 +17,20 @@ const EquipamentGroupPage = () => {
     equipament3Id: ''
   });
 
+  const fetchGroups = async () => {
+    setLoading(true);
+    try {
+      const data = await equipamentGroupService.getAll();
+      setGroups(data);
+    } catch (error) {
+      console.error('Erro ao carregar conjuntos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // TODO: A API ainda não possui endpoint GET ALL para Equipament Group (/equipament-group).
-    setGroups([]);
-    setLoading(false);
+    fetchGroups();
   }, []);
 
   const handleInputChange = (e) => {
@@ -31,10 +41,18 @@ const EquipamentGroupPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await equipamentGroupService.create(formData);
-      alert('Conjunto salvo com sucesso! (Não aparecerá na tabela até a API implementar a listagem)');
+      // Map to appropriate UUID fields for request
+      const payload = {
+        observation: formData.observation,
+        equipament1Id: formData.equipament1Id,
+        equipament2Id: formData.equipament2Id || null,
+        equipament3Id: formData.equipament3Id || null
+      };
+      await equipamentGroupService.create(payload);
+      alert('Conjunto salvo com sucesso!');
       setIsModalOpen(false);
       setFormData({ observation: '', equipament1Id: '', equipament2Id: '', equipament3Id: '' });
+      fetchGroups();
     } catch (error) {
       console.error('Erro ao salvar:', error);
       alert('Erro ao salvar conjunto. Verifique se os IDs dos equipamentos estão corretos e existem no banco.');
@@ -42,9 +60,19 @@ const EquipamentGroupPage = () => {
   };
 
   const columns = [
-    { label: 'ID', key: 'id' },
+    { label: 'ID', key: 'id', render: (row) => row.id.substring(0, 8) },
     { label: 'Observação', key: 'observation' },
-    { label: 'Qtd. Equipamentos', key: 'qtd', render: () => '...' }
+    { 
+      label: 'Qtd. Equipamentos', 
+      key: 'qtd', 
+      render: (row) => {
+        let count = 0;
+        if (row.equipament1) count++;
+        if (row.equipament2) count++;
+        if (row.equipament3) count++;
+        return `${count} veículo(s)`;
+      }
+    }
   ];
 
   return (

@@ -24,5 +24,12 @@ export const userService = {
   deleteUser: async (id) => {
     const response = await apiClient.delete(`/user/${id}`);
     return response.data;
-  }
+  },
+
+  // Standard generic REST aliases for compatibility
+  getAll: async () => userService.getAllUsers(),
+  getById: async (id) => userService.getUserById(id),
+  create: async (payload) => userService.createUser(payload),
+  update: async (id, payload) => userService.updateUser(id, payload),
+  delete: async (id) => userService.deleteUser(id)
 };

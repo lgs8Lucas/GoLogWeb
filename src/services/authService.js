@@ -28,10 +28,10 @@ export const authService = {
 
     try {
       const payload = jwtDecode(token);
-      const userLevel = payload.userProfile;
+      const userLevel = payload.role || payload.userProfile;
 
       if (!userLevel) {
-        console.error("Token válido, mas sem o perfil do usuário. Expulsando.");
+        console.error("Token válido, mas sem o perfil do usuário (role). Expulsando.");
         localStorage.removeItem('golog_token');
         return null;
       }
