@@ -16,6 +16,7 @@ const FleetPage = () => {
   const [fleet, setFleet] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -48,7 +49,9 @@ const FleetPage = () => {
           renavam: item.renavam,
           marca: item.model || 'Volvo FH',
           capacidade: `${item.maximumCapacity || 0} kg`,
-          tipo: isTrailer ? 'Carreta' : 'Caminhão'
+          tipo: isTrailer ? 'Carreta' : 'Caminhão',
+          isTrailer: isTrailer,
+          raw: item
         };
       });
       setFleet(mapped);
@@ -86,19 +89,28 @@ const FleetPage = () => {
           ...commonPayload,
           maximumVolume: parseFloat(formData.maximumVolume || 0)
         };
-        await trailerService.create(trailerPayload);
+        if (editingId) {
+          await trailerService.update(editingId, trailerPayload);
+        } else {
+          await trailerService.create(trailerPayload);
+        }
       } else {
         const tractorPayload = {
           ...commonPayload,
           typeFuel: formData.typeFuel,
-          "Type Fuel": formData.typeFuel, // Backwards-compatibility/typo map
+          "Type Fuel": formData.typeFuel,
           kmPerLiter: parseFloat(formData.kmPerLiter || 0)
         };
-        await tractorService.create(tractorPayload);
+        if (editingId) {
+          await tractorService.update(editingId, tractorPayload);
+        } else {
+          await tractorService.create(tractorPayload);
+        }
       }
 
-      alert('Veículo criado com sucesso!');
+      alert(editingId ? 'Veículo atualizado com sucesso!' : 'Veículo criado com sucesso!');
       setIsModalOpen(false);
+      setEditingId(null);
       // Reset form
       setFormData({
         plate: '',
@@ -124,6 +136,58 @@ const FleetPage = () => {
       }
       alert(mensagens);
     }
+  };
+
+  const handleEditClick = (row) => {
+    setEditingId(row.id);
+    setFormData({
+      plate: row.raw.plate || '',
+      status: row.raw.active !== false ? 'ativo' : 'inativo',
+      renavam: row.raw.renavam || '',
+      model: row.raw.model || '',
+      maximumCapacity: row.raw.maximumCapacity?.toString() || '',
+      numberAxles: row.raw.numberAxles?.toString() || '2',
+      tipo: row.isTrailer ? 'carreta' : 'truck',
+      typeFuel: row.raw.typeFuel || 'DIESEL',
+      kmPerLiter: row.raw.kmPerLiter?.toString() || '2.5',
+      maximumVolume: row.raw.maximumVolume?.toString() || '100',
+      companyId: row.raw.companyId || '7f564f96-d90f-42cc-beb2-e37cf63a324d'
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (row) => {
+    if (!window.confirm(`Deseja realmente excluir o veículo de placa ${row.placa}?`)) return;
+    try {
+      if (row.isTrailer) {
+        await trailerService.delete(row.id);
+      } else {
+        await tractorService.delete(row.id);
+      }
+      alert('Veículo excluído com sucesso!');
+      fetchFleet();
+    } catch (error) {
+      console.error('Erro ao deletar veículo:', error);
+      alert('Erro ao excluir veículo.');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData({
+      plate: '',
+      status: 'ativo',
+      renavam: '',
+      model: '',
+      maximumCapacity: '',
+      numberAxles: '2',
+      tipo: 'carreta',
+      typeFuel: 'DIESEL',
+      kmPerLiter: '2.5',
+      maximumVolume: '100',
+      companyId: '7f564f96-d90f-42cc-beb2-e37cf63a324d'
+    });
   };
 
   const filteredFleet = fleet.filter(item => 
@@ -161,9 +225,9 @@ const FleetPage = () => {
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Truck size={24} color="var(--primary-color)" />
-                Novo Veículo
+                {editingId ? 'Editar Veículo' : 'Novo Veículo'}
               </h2>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
+              <button className="modal-close-btn" onClick={handleCloseModal}>
                 <X size={24} />
               </button>
             </div>
@@ -327,11 +391,11 @@ const FleetPage = () => {
                   )}
 
                   <div className="modal-action-buttons" style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                    <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
+                    <button type="button" className="btn-cancel" onClick={handleCloseModal} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
                       <XOctagon size={16} /> Cancelar
                     </button>
                     <button type="submit" className="btn-primary">
-                      <Save size={16} /> Salvar Veículo
+                      <Save size={16} /> {editingId ? 'Atualizar Veículo' : 'Salvar Veículo'}
                     </button>
                   </div>
                   
@@ -363,6 +427,8 @@ const FleetPage = () => {
           columns={fleetColumns}
           data={filteredFleet}
           loading={loading}
+          onEdit={handleEditClick}
+          onDelete={handleDelete}
           itemsPerPage={15}
         />
       </div>
