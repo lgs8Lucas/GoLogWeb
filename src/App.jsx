@@ -11,7 +11,6 @@ import FleetPage from './pages/FleetPage';
 import CompanyPage from './pages/CompanyPage';
 import TypeTransportPage from './pages/TypeTransportPage';
 import EquipamentGroupPage from './pages/EquipamentGroupPage';
-import ShipmentPage from './pages/ShipmentPage';
 import ShipmentTypePage from './pages/ShipmentTypePage';
 import OccurrencePage from './pages/OccurrencePage';
 import { ToastProvider } from './components/ToastContext';
@@ -42,7 +41,7 @@ function App() {
             <Route path="frota" element={<FleetPage />} />
             <Route path="transporte" element={<TransportPage />} />
             <Route path="monitoramento" element={<MonitoringPage />} />
-            <Route path="entregas" element={<ShipmentPage />} />
+            <Route path="entregas" element={<Navigate to="/transporte" replace />} />
           </Route>
         </Route>
 

@@ -11,6 +11,8 @@ import { occurrenceService } from '../services/occurrenceService';
 import { decodePolyline } from '../utils/polyline';
 import MonitoringModal from '../components/MonitoringModal';
 import { useToast } from '../components/ToastContext';
+import DataTable from '../components/DataTable';
+import DeliveryModal from '../components/DeliveryModal';
 
 const TransportPage = () => {
   const navigate = useNavigate();
@@ -19,6 +21,12 @@ const TransportPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [optimizing, setOptimizing] = useState(false);
+
+  // Tabs and Shipments state
+  const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas'
+  const [shipments, setShipments] = useState([]);
+  const [shipmentSearchTerm, setShipmentSearchTerm] = useState('');
+  const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
 
   // Modals for map and occurrences
   const [isMonitoringModalOpen, setIsMonitoringModalOpen] = useState(false);
@@ -127,6 +135,7 @@ const TransportPage = () => {
       });
 
       setTransports(mapped);
+      setShipments(shipmentsData);
       if (mapped.length > 0) {
         setExpandedRow(mapped[0].id); // Expand first row by default
       }
@@ -154,6 +163,18 @@ const TransportPage = () => {
       showToast('Erro ao otimizar rotas.', 'error');
     } finally {
       setOptimizing(false);
+    }
+  };
+
+  const handleSaveShipment = async (formData) => {
+    try {
+      await deliveryService.create(formData);
+      showToast('Entrega criada com sucesso!', 'success');
+      setIsShipmentModalOpen(false);
+      await fetchTransports(); // This updates both transports and shipments
+    } catch (error) {
+      console.error('Erro ao criar entrega:', error);
+      showToast('Erro ao criar entrega.', 'error');
     }
   };
 
@@ -237,6 +258,22 @@ const TransportPage = () => {
     );
   };
 
+  // Shipments (Entregas) Data Handling
+  const filteredShipments = shipments.filter(item => 
+    (item.id || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase()) ||
+    (item.status || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase()) ||
+    (item.typeOperation || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase())
+  );
+
+  const shipmentColumns = [
+    { label: 'Código', key: 'id', render: (row) => row.id ? row.id.substring(0, 8) : 'N/A' },
+    { label: 'Operação', key: 'typeOperation', render: (row) => row.typeOperation || 'ENTREGA' },
+    { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
+    { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
+    { label: 'Agendamento', key: 'schedulind', render: (row) => row.schedulind ? new Date(row.schedulind).toLocaleString('pt-BR') : '-' },
+    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDING' }
+  ];
+
   return (
     <div className="transport-page fade-in">
       <PageHeader 
@@ -246,23 +283,58 @@ const TransportPage = () => {
         onBack={true}
       >
         <div style={{ display: 'flex', gap: '1rem' }}>
+          {activeTab === 'transportes' ? (
+            <>
+              <button 
+                className="btn-primary" 
+                style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }} 
+                onClick={handleOptimizeRoutes}
+                disabled={optimizing}
+              >
+                {optimizing ? 'Otimizando...' : 'Otimizar Rotas'}
+              </button>
+              <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+                <Plus size={20} />
+                Criar Transporte
+              </button>
+            </>
+          ) : (
+            <button className="btn-primary" onClick={() => setIsShipmentModalOpen(true)}>
+              <Plus size={20} />
+              Nova Entrega
+            </button>
+          )}
+        </div>
+      </PageHeader>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '1rem', padding: '0 2rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
         <button 
-          className="btn-primary" 
-          style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }} 
-          onClick={handleOptimizeRoutes}
-          disabled={optimizing}
+          onClick={() => setActiveTab('transportes')}
+          style={{ 
+            background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
+            color: activeTab === 'transportes' ? 'var(--primary-color)' : 'var(--text-light)',
+            borderBottom: activeTab === 'transportes' ? '2px solid var(--primary-color)' : '2px solid transparent'
+          }}
         >
-          {optimizing ? 'Otimizando...' : 'Otimizar Rotas'}
+          Transportes
         </button>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          Criar Transporte
+        <button 
+          onClick={() => setActiveTab('entregas')}
+          style={{ 
+            background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
+            color: activeTab === 'entregas' ? 'var(--primary-color)' : 'var(--text-light)',
+            borderBottom: activeTab === 'entregas' ? '2px solid var(--primary-color)' : '2px solid transparent'
+          }}
+        >
+          Entregas (Backlog)
         </button>
       </div>
-    </PageHeader>
 
-      {/* Main List */}
-      <div className="transport-list">
+      {activeTab === 'transportes' ? (
+        <>
+          {/* Main List */}
+          <div className="transport-list">
         {/* Columns Header */}
         <div className="transport-list-header">
           <div className="col-id">Transporte</div>
@@ -350,9 +422,41 @@ const TransportPage = () => {
           <strong>{transports.filter(t => t.status === 'Atrasado').length}</strong>
         </div>
       </div>
+        </>
+      ) : (
+        <div style={{ padding: '0 2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
+            <div className="search-input-wrapper" style={{ minWidth: '300px', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Pesquisar por ID, status ou tipo..."
+                value={shipmentSearchTerm}
+                onChange={(e) => setShipmentSearchTerm(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem 2.5rem 0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+              />
+            </div>
+            <span style={{ fontWeight: 500, color: 'var(--text-light)' }}>{filteredShipments.length} resultados</span>
+          </div>
+          
+          <DataTable 
+            columns={shipmentColumns} 
+            data={filteredShipments} 
+            loading={loading}
+            emptyMessage="Nenhuma entrega registrada."
+            itemsPerPage={15}
+          />
+        </div>
+      )}
 
       {/* Modal */}
       <TransportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchTransports} />
+
+      {/* Modal Nova Entrega */}
+      <DeliveryModal 
+        isOpen={isShipmentModalOpen} 
+        onClose={() => setIsShipmentModalOpen(false)} 
+        onSave={handleSaveShipment} 
+      />
 
       {/* Modal de Ocorrências */}
       {isOccModalOpen && createPortal(
