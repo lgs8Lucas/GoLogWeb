@@ -59,7 +59,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
           {/* Left Column: Specific Map Route */}
           <div className="monitoring-modal-left">
             <div className="route-map-container" style={{ position: 'relative', height: '100%', width: '100%', overflow: 'hidden', borderRadius: '12px' }}>
-              <MapComponent 
+              <MapComponent
                 zoom={14}
                 polylines={polylines}
               />
@@ -68,7 +68,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
 
           {/* Right Column: Route Details */}
           <div className="monitoring-modal-right">
-            
+
             <div className="route-info-block">
               <p>Motorista: <strong>{vehicle.driver}</strong></p>
               <p>Placa: <strong>{vehicle.plate}</strong></p>
@@ -84,7 +84,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                     const isColeta = s.typeOperation === 'COLETA';
                     const stepStatus = getStepStatus(s, index);
                     const IconComponent = isColeta ? Package : MapPin;
-                    
+
                     return (
                       <div key={s.id || index} className={`modal-timeline-item ${stepStatus}`}>
                         <div className="modal-timeline-badge">
@@ -104,7 +104,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                           </div>
                           <p className="modal-timeline-addr">{s.address?.street}, {s.address?.number} - {s.address?.city} ({s.address?.state})</p>
                           <p className="modal-timeline-metrics">
-                            Peso: <strong>{s.weight || 0} kg</strong> | Volume: <strong>{s.volume || 0} m³</strong>
+                            Peso: <strong>{s.routeStop?.weight || 0} kg</strong> | Volume: <strong>{s.routeStop?.volume || 0} m³</strong>
                           </p>
                         </div>
                         {index < vehicle.shipments.length - 1 && (

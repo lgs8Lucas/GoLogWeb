@@ -425,7 +425,7 @@ const TransportPage = () => {
         </>
       ) : (
         <div style={{ padding: '0 2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
             <div className="search-input-wrapper" style={{ minWidth: '300px', position: 'relative' }}>
               <input
                 type="text"
