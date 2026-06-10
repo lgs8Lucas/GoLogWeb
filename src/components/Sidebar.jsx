@@ -7,6 +7,7 @@ import {
   Package,
   MapPin,
   Building2,
+  Map,
   Tags,
   Layers,
   AlertTriangle
@@ -56,6 +57,11 @@ const Sidebar = () => {
             <NavLink to="/empresas" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
               <Building2 size={20} color="var(--primary-color)" />
               <span>{userRole === 'OPERATOR' ? 'Clientes' : 'Empresas'}</span>
+            </NavLink>
+
+            <NavLink to="/enderecos" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
+              <Map size={20} color="var(--primary-color)" />
+              <span>Endereços</span>
             </NavLink>
 
             <NavLink to="/tipos-transporte" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
