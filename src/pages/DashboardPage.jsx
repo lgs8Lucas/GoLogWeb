@@ -83,6 +83,7 @@ const DashboardPage = () => {
           stops: t.stops
         }));
 
+        console.log('Dashboard polylines with stops:', decoded);
         setPolylines(decoded);
       } catch (error) {
         console.error('Erro ao carregar rotas no dashboard:', error);

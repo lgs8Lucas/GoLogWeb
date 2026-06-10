@@ -137,7 +137,7 @@ const MapComponent = ({
                 const iconToUse = isCollection ? collectionIcon : isDelivery ? deliveryIcon : stopIcon;
 
                 return (
-                  <Marker key={`stop-${poly.id}-${i}`} position={stopCoord} icon={iconToUse}>
+                  <Marker key={`stop-${poly.id}-${i}`} position={stopCoord} icon={iconToUse} zIndexOffset={1000}>
                     {interactive && <Popup><strong>{label}</strong></Popup>}
                   </Marker>
                 );
