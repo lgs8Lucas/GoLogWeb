@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Truck, Package, MapPin, AlertTriangle, User } from 'lucide-react';
+import { X, Truck, Package, MapPin, AlertTriangle, User, Clock, Route, Leaf } from 'lucide-react';
 import '../styles/MonitoringModal.css';
 import MapComponent from './MapComponent';
 
@@ -16,9 +16,26 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
       id: vehicle.id,
       coords: vehicle.routePlannedCoords || [],
       color: '#2563eb',
-      label: `Rota #${vehicle.code}`
+      label: `Rota #${vehicle.code}`,
+      stops: vehicle.shipments?.map(s => {
+        if (s.address && s.address.latitude && s.address.longitude) {
+          return {
+            coord: [parseFloat(s.address.latitude), parseFloat(s.address.longitude)],
+            type: s.typeOperation,
+            label: s.customer?.legalName || 'Cliente'
+          };
+        }
+        return null;
+      }).filter(Boolean) || []
     }
   ];
+
+  const formatTime = (seconds) => {
+    if (!seconds) return '0h 0m';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${h}h ${m}m`;
+  };
 
   const getStepStatus = (s, index) => {
     if (s.status === 'DELIVERED' || s.status === 'COMPLETED') {
@@ -72,8 +89,22 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
             <div className="route-info-block">
               <p>Motorista: <strong>{vehicle.driver}</strong></p>
               <p>Placa: <strong>{vehicle.plate}</strong></p>
-              <p>Total de remessas: <strong>{totalShipments}</strong></p>
-              <p>Remessas pendentes: <strong>{pendingShipments}</strong></p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Route size={16} color="var(--primary-color)" />
+                  <span>{((vehicle.calculedDistance || 0) / 1000).toFixed(2)} km</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Clock size={16} color="var(--warning-color)" />
+                  <span>{formatTime(vehicle.totalTimeCalculed)}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', gridColumn: 'span 2' }}>
+                  <Leaf size={16} color="var(--success-color)" />
+                  <span style={{ color: 'var(--success-color)', fontWeight: 'bold' }}>
+                    Emissão Est.: {(vehicle.totalCostCalculed || 0).toFixed(2)} kg CO₂
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="route-section">

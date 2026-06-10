@@ -1,23 +1,39 @@
 import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, useMap, Polyline, Popup, Marker } from 'react-leaflet';
-import L from 'leaflet';
-import { renderToString } from 'react-dom/server';
-import { MapPin, Flag, Navigation } from 'lucide-react';
+const createCustomIcon = (svgPath, bgColor) => {
+  const markerHtml = `
+    <div style="position: relative; display: flex; justify-content: center; align-items: center; width: 36px; height: 36px; background-color: ${bgColor}; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 2px solid white;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        ${svgPath}
+      </svg>
+    </div>
+  `;
 
-const createCustomIcon = (IconComponent, color) => {
-  const iconHtml = renderToString(<IconComponent size={24} color={color} fill="white" strokeWidth={2} />);
   return L.divIcon({
-    html: `<div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 2px solid ${color};">${iconHtml}</div>`,
-    className: 'custom-leaflet-marker',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+    html: markerHtml,
+    className: '',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -18]
   });
 };
 
-const startIcon = createCustomIcon(Navigation, 'var(--success-color, #10b981)');
-const endIcon = createCustomIcon(Flag, 'var(--danger-color, #ef4444)');
-const stopIcon = createCustomIcon(MapPin, 'var(--primary-color, #3b82f6)');
+// Flag
+const flagPath = '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>';
+const startIcon = createCustomIcon(flagPath, '#10b981'); // Bandeira Verde
+const endIcon = createCustomIcon(flagPath, '#ef4444');   // Bandeira Vermelha
+
+// Building (Empresa)
+const buildingPath = '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>';
+const collectionIcon = createCustomIcon(buildingPath, '#0ea5e9'); // Azul info
+
+// Box (Caixa)
+const boxPath = '<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>';
+const deliveryIcon = createCustomIcon(boxPath, '#10b981'); // Verde Sucesso
+
+// MapPin
+const pinPath = '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>';
+const stopIcon = createCustomIcon(pinPath, '#f59e0b'); // Laranja Warning
 
 const MapUpdater = ({ center, zoom, polylines }) => {
   const map = useMap();
@@ -101,11 +117,31 @@ const MapComponent = ({
               </Marker>
 
               {/* Intermediate Stops if provided */}
-              {poly.stops && poly.stops.map((stopCoord, i) => (
-                <Marker key={`stop-${poly.id}-${i}`} position={stopCoord} icon={stopIcon}>
-                  {interactive && <Popup><strong>Parada {i + 1}</strong></Popup>}
-                </Marker>
-              ))}
+              {poly.stops && poly.stops.map((stop, i) => {
+                let stopCoord;
+                let isCollection = false;
+                let isDelivery = false;
+                let label = `Parada ${i + 1}`;
+
+                if (Array.isArray(stop)) {
+                  stopCoord = stop;
+                } else if (stop && stop.coord) {
+                  stopCoord = stop.coord;
+                  isCollection = stop.type === 'COLETA';
+                  isDelivery = stop.type === 'ENTREGA';
+                  if (stop.label) label = `${isCollection ? 'Coleta: ' : isDelivery ? 'Entrega: ' : ''}${stop.label}`;
+                } else {
+                  return null;
+                }
+
+                const iconToUse = isCollection ? collectionIcon : isDelivery ? deliveryIcon : stopIcon;
+
+                return (
+                  <Marker key={`stop-${poly.id}-${i}`} position={stopCoord} icon={iconToUse}>
+                    {interactive && <Popup><strong>{label}</strong></Popup>}
+                  </Marker>
+                );
+              })}
 
             </React.Fragment>
           );

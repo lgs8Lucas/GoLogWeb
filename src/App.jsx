@@ -11,6 +11,7 @@ import FleetPage from './pages/FleetPage';
 import CompanyPage from './pages/CompanyPage';
 import TypeTransportPage from './pages/TypeTransportPage';
 import EquipamentGroupPage from './pages/EquipamentGroupPage';
+import AddressPage from './pages/AddressPage';
 import ShipmentTypePage from './pages/ShipmentTypePage';
 import OccurrencePage from './pages/OccurrencePage';
 import { ToastProvider } from './components/ToastContext';
@@ -32,6 +33,7 @@ function App() {
 
             <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']} />}>
               <Route path="empresas" element={<CompanyPage />} />
+              <Route path="enderecos" element={<AddressPage />} />
               <Route path="tipos-transporte" element={<TypeTransportPage />} />
               <Route path="conjuntos" element={<EquipamentGroupPage />} />
               <Route path="tipos-carga" element={<ShipmentTypePage />} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, ChevronLeft, Navigation, AlertTriangle, X } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, ChevronLeft, Navigation, AlertTriangle, X, Route, Clock, Leaf } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
@@ -372,7 +372,27 @@ const TransportPage = () => {
                 {isExpanded && item.steps && (
                   <div className="transport-card-details fade-in">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-color)' }}>Entregas e Coletas</h4>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-color)' }}>Entregas e Coletas</h4>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', backgroundColor: 'var(--bg-light)', padding: '0.25rem 0.75rem', borderRadius: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Route size={16} color="var(--primary-color)" />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{((item.rawTransport?.calculedDistance || 0) / 1000).toFixed(2)} km</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={16} color="var(--warning-color)" />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                              {Math.floor((item.rawTransport?.totalTimeCalculed || 0) / 3600)}h {Math.floor(((item.rawTransport?.totalTimeCalculed || 0) % 3600) / 60)}m
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Leaf size={16} color="var(--success-color)" />
+                            <span style={{ fontSize: '0.85rem', color: 'var(--success-color)', fontWeight: 'bold' }}>
+                              {(item.rawTransport?.totalCostCalculed || 0).toFixed(2)} kg CO₂
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button 
                           className="btn-primary" 

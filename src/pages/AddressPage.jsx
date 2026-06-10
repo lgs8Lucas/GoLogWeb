@@ -84,7 +84,18 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+
+    // Clean payload for API validation constraints
+    const payload = { ...formData };
+    if (!payload.complement || payload.complement.trim() === '') {
+      delete payload.complement;
+    }
+    
+    // Ensure coords are strings
+    if (payload.latitude) payload.latitude = String(payload.latitude);
+    if (payload.longitude) payload.longitude = String(payload.longitude);
+
+    onSave(payload);
   };
 
   return createPortal(
