@@ -104,7 +104,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                           </div>
                           <p className="modal-timeline-addr">{s.address?.street}, {s.address?.number} - {s.address?.city} ({s.address?.state})</p>
                           <p className="modal-timeline-metrics">
-                            Peso: <strong>{s.weight || 0} kg</strong> | Volume: <strong>{s.volume || 0} m³</strong>
+                            Peso: <strong>{s.routeStop?.weight || 0} kg</strong> | Volume: <strong>{s.routeStop?.volume || 0} m³</strong>
                           </p>
                         </div>
                         {index < vehicle.shipments.length - 1 && (
