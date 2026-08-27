@@ -13,6 +13,7 @@ import MonitoringModal from '../components/MonitoringModal';
 import { useToast } from '../components/ToastContext';
 import DataTable from '../components/DataTable';
 import DeliveryModal from '../components/DeliveryModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 const TransportPage = () => {
   const navigate = useNavigate();
@@ -23,10 +24,14 @@ const TransportPage = () => {
   const [optimizing, setOptimizing] = useState(false);
 
   // Tabs and Shipments state
-  const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas'
-  const [shipments, setShipments] = useState([]);
+  const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas' | 'remessas'
+  const [shipments, setShipments] = useState([]); // backlog: /shipment/list-personalized
+  const [allShipments, setAllShipments] = useState([]); // todas as remessas: /shipment
   const [shipmentSearchTerm, setShipmentSearchTerm] = useState('');
+  const [allSearchTerm, setAllSearchTerm] = useState('');
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
+  const [editingShipment, setEditingShipment] = useState(null);
+  const [shipmentToDelete, setShipmentToDelete] = useState(null);
 
   // Modals for map and occurrences
   const [isMonitoringModalOpen, setIsMonitoringModalOpen] = useState(false);
@@ -37,9 +42,10 @@ const TransportPage = () => {
 
   const fetchTransports = async () => {
     try {
-      const [transportsData, shipmentsData, occurrencesData] = await Promise.all([
+      const [transportsData, shipmentsData, allShipmentsData, occurrencesData] = await Promise.all([
         transportService.getAll(),
         deliveryService.getAllPersonalized(),
+        deliveryService.getAll(),
         occurrenceService.getAll()
       ]);
 
@@ -135,7 +141,8 @@ const TransportPage = () => {
       });
 
       setTransports(mapped);
-      setShipments(shipmentsData);
+      setShipments(shipmentsData); // backlog (list-personalized)
+      setAllShipments(allShipmentsData || []); // todas as remessas
       if (mapped.length > 0) {
         setExpandedRow(mapped[0].id); // Expand first row by default
       }
@@ -166,15 +173,51 @@ const TransportPage = () => {
     }
   };
 
-  const handleSaveShipment = async (formData) => {
+  const handleSaveShipment = async (formData, id) => {
     try {
-      await deliveryService.create(formData);
-      showToast('Entrega criada com sucesso!', 'success');
+      if (id) {
+        await deliveryService.update(id, formData);
+        showToast('Registro atualizado com sucesso!', 'success');
+      } else {
+        await deliveryService.create(formData);
+        showToast('Remessa criada com sucesso!', 'success');
+      }
       setIsShipmentModalOpen(false);
+      setEditingShipment(null);
       await fetchTransports(); // This updates both transports and shipments
     } catch (error) {
-      console.error('Erro ao criar entrega:', error);
-      showToast('Erro ao criar entrega.', 'error');
+      console.error('Erro ao salvar entrega:', error);
+      showToast(id ? 'Erro ao atualizar registro.' : 'Erro ao criar remessa.', 'error');
+    }
+  };
+
+  const handleNewShipment = () => {
+    setEditingShipment(null);
+    setIsShipmentModalOpen(true);
+  };
+
+  const handleEditShipment = async (row) => {
+    try {
+      const full = await deliveryService.getById(row.id);
+      setEditingShipment(full);
+      setIsShipmentModalOpen(true);
+    } catch (error) {
+      console.error('Erro ao carregar registro:', error);
+      showToast('Erro ao carregar registro para edição.', 'error');
+    }
+  };
+
+  const confirmDeleteShipment = async () => {
+    if (!shipmentToDelete) return;
+    try {
+      await deliveryService.delete(shipmentToDelete.id);
+      showToast('Registro excluído com sucesso!', 'success');
+      await fetchTransports();
+    } catch (error) {
+      console.error('Erro ao excluir registro:', error);
+      showToast('Erro ao excluir registro.', 'error');
+    } finally {
+      setShipmentToDelete(null);
     }
   };
 
@@ -258,21 +301,55 @@ const TransportPage = () => {
     );
   };
 
-  // Shipments (Entregas) Data Handling
-  const filteredShipments = shipments.filter(item => 
-    (item.id || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase()) ||
-    (item.status || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase()) ||
-    (item.typeOperation || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase())
-  );
-
+  // Shipments (Entregas / Remessas) Data Handling
   const shipmentColumns = [
     { label: 'Código', key: 'id', render: (row) => row.id ? row.id.substring(0, 8) : 'N/A' },
     { label: 'Operação', key: 'typeOperation', render: (row) => row.typeOperation || 'ENTREGA' },
     { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
     { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
-    { label: 'Agendamento', key: 'schedulind', render: (row) => row.schedulind ? new Date(row.schedulind).toLocaleString('pt-BR') : '-' },
+    { label: 'Agendamento', key: 'schedulind', render: (row) => {
+      const sched = row.shedulind || row.schedulind;
+      return sched ? new Date(sched).toLocaleString('pt-BR') : '-';
+    } },
     { label: 'Status', key: 'status', render: (row) => row.status || 'PENDING' }
   ];
+
+  const renderShipmentsPanel = (data, searchTerm, setSearchTerm, emptyMessage) => {
+    const filtered = data.filter(item =>
+      (item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.status || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.typeOperation || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+      <div style={{ padding: '0 2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
+            <div className="search-input-wrapper" style={{ minWidth: '300px', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Pesquisar por ID, status ou tipo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem 2.5rem 0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+              />
+            </div>
+          </div>
+          <span style={{ fontWeight: 500, color: 'var(--text-light)' }}>{filtered.length} resultados</span>
+        </div>
+
+        <DataTable
+          columns={shipmentColumns}
+          data={filtered}
+          loading={loading}
+          onEdit={handleEditShipment}
+          onDelete={(row) => setShipmentToDelete(row)}
+          emptyMessage={emptyMessage}
+          itemsPerPage={15}
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="transport-page fade-in">
@@ -299,9 +376,9 @@ const TransportPage = () => {
               </button>
             </>
           ) : (
-            <button className="btn-primary" onClick={() => setIsShipmentModalOpen(true)}>
+            <button className="btn-primary" onClick={handleNewShipment}>
               <Plus size={20} />
-              Nova Entrega
+              Nova Remessa
             </button>
           )}
         </div>
@@ -328,6 +405,16 @@ const TransportPage = () => {
           }}
         >
           Entregas (Backlog)
+        </button>
+        <button
+          onClick={() => setActiveTab('remessas')}
+          style={{
+            background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
+            color: activeTab === 'remessas' ? 'var(--primary-color)' : 'var(--text-light)',
+            borderBottom: activeTab === 'remessas' ? '2px solid var(--primary-color)' : '2px solid transparent'
+          }}
+        >
+          Todas as Remessas
         </button>
       </div>
 
@@ -423,39 +510,39 @@ const TransportPage = () => {
         </div>
       </div>
         </>
+      ) : activeTab === 'entregas' ? (
+        renderShipmentsPanel(
+          shipments,
+          shipmentSearchTerm, setShipmentSearchTerm,
+          'Nenhuma entrega no backlog.'
+        )
       ) : (
-        <div style={{ padding: '0 2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
-            <div className="search-input-wrapper" style={{ minWidth: '300px', position: 'relative' }}>
-              <input
-                type="text"
-                placeholder="Pesquisar por ID, status ou tipo..."
-                value={shipmentSearchTerm}
-                onChange={(e) => setShipmentSearchTerm(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem 2.5rem 0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}
-              />
-            </div>
-            <span style={{ fontWeight: 500, color: 'var(--text-light)' }}>{filteredShipments.length} resultados</span>
-          </div>
-          
-          <DataTable 
-            columns={shipmentColumns} 
-            data={filteredShipments} 
-            loading={loading}
-            emptyMessage="Nenhuma entrega registrada."
-            itemsPerPage={15}
-          />
-        </div>
+        renderShipmentsPanel(
+          allShipments,
+          allSearchTerm, setAllSearchTerm,
+          'Nenhuma remessa registrada.'
+        )
       )}
 
       {/* Modal */}
       <TransportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchTransports} />
 
-      {/* Modal Nova Entrega */}
-      <DeliveryModal 
-        isOpen={isShipmentModalOpen} 
-        onClose={() => setIsShipmentModalOpen(false)} 
-        onSave={handleSaveShipment} 
+      {/* Modal Nova Remessa / Edição */}
+      <DeliveryModal
+        isOpen={isShipmentModalOpen}
+        onClose={() => { setIsShipmentModalOpen(false); setEditingShipment(null); }}
+        onSave={handleSaveShipment}
+        initialData={editingShipment}
+      />
+
+      {/* Confirmação de exclusão de entrega/coleta */}
+      <ConfirmModal
+        isOpen={!!shipmentToDelete}
+        onClose={() => setShipmentToDelete(null)}
+        onConfirm={confirmDeleteShipment}
+        title="Excluir registro"
+        message={`Tem certeza que deseja excluir ${shipmentToDelete?.typeOperation === 'COLETA' ? 'esta coleta' : 'esta entrega'}${shipmentToDelete?.id ? ` (#${shipmentToDelete.id.substring(0, 8)})` : ''}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
       />
 
       {/* Modal de Ocorrências */}

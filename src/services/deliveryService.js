@@ -1,28 +1,40 @@
 import { apiClient } from './apiClient';
 
-export const deliveryService = {
-  create: async (deliveryData) => {
-    // Translate frontend DeliveryModal properties to the backend's ShipmentCreateRequest schema
-    const payload = {
-      typeOperation: deliveryData.typeOperation || 'ENTREGA',
-      weight: parseFloat(deliveryData.weight || 0.0),
-      volume: parseFloat(deliveryData.volume || 0.0),
-      // Handle the backend's 'schedulind' property typo
-      schedulind: deliveryData.scheduledDelivery || deliveryData.scheduledCollection || new Date().toISOString(),
-      status: deliveryData.status || 'PENDING',
-      userId: deliveryData.userId,
-      shipmentTypeId: deliveryData.deliveryTypeId,
-      typeTransportId: deliveryData.typeTransportId,
-      // Map destination address to addressId
-      addressId: deliveryData.destinationAddressId || deliveryData.originAdrressId,
-      // Map customer delivery to customerId
-      customerId: deliveryData.customerDeliveryId || deliveryData.customerCollectsId,
-      operationOrigemId: deliveryData.operationOrigemId || null,
-      transportId: deliveryData.transportId || null
-    };
+// Translate frontend DeliveryModal properties to the backend's ShipmentCreateRequest schema.
+// typeOperation drives whether the relevant point is the collection origin (COLETA) or the delivery destination (ENTREGA)
+const buildShipmentPayload = (deliveryData) => {
+  const typeOperation = deliveryData.typeOperation || 'ENTREGA';
+  const isColeta = typeOperation === 'COLETA';
 
-    // The backend POST endpoint is /shipment
-    const response = await apiClient.post('/shipment', payload);
+  return {
+    typeOperation,
+    weight: parseFloat(deliveryData.weight || 0.0),
+    volume: parseFloat(deliveryData.volume || 0.0),
+    // Handle the backend's 'schedulind' property typo
+    schedulind: (isColeta ? deliveryData.scheduledCollection : deliveryData.scheduledDelivery)
+      || deliveryData.scheduledDelivery || deliveryData.scheduledCollection || new Date().toISOString(),
+    status: deliveryData.status || 'PENDING',
+    userId: deliveryData.userId,
+    shipmentTypeId: deliveryData.deliveryTypeId,
+    typeTransportId: deliveryData.typeTransportId,
+    // For COLETA use the origin address/customer, for ENTREGA use the destination ones
+    addressId: isColeta
+      ? (deliveryData.originAdrressId || deliveryData.destinationAddressId)
+      : (deliveryData.destinationAddressId || deliveryData.originAdrressId),
+    customerId: isColeta
+      ? (deliveryData.customerCollectsId || deliveryData.customerDeliveryId)
+      : (deliveryData.customerDeliveryId || deliveryData.customerCollectsId),
+    // Only an ENTREGA can point back to the COLETA that originated it
+    operationOrigemId: isColeta ? null : (deliveryData.operationOrigemId || null),
+    transportId: deliveryData.transportId || null
+  };
+};
+
+export const deliveryService = {
+  buildShipmentPayload,
+
+  create: async (deliveryData) => {
+    const response = await apiClient.post('/shipment', buildShipmentPayload(deliveryData));
     return response.data;
   },
 
@@ -41,8 +53,9 @@ export const deliveryService = {
     return response.data;
   },
 
-  update: async (id, data) => {
-    const response = await apiClient.put(`/shipment/${id}`, data);
+  update: async (id, deliveryData) => {
+    // PUT /shipment/{id} expects the same ShipmentCreateRequest schema as create
+    const response = await apiClient.put(`/shipment/${id}`, buildShipmentPayload(deliveryData));
     return response.data;
   },
 
