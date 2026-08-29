@@ -26,7 +26,7 @@ const TransportPage = () => {
   // Tabs and Shipments state
   const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas' | 'remessas'
   const [shipments, setShipments] = useState([]); // backlog: /shipment/list-personalized
-  const [allShipments, setAllShipments] = useState([]); // todas as remessas: /shipment
+  const [allShipments, setAllShipments] = useState([]); // remessas não otimizadas: /shipment/list-by-status?status=PENDENTE
   const [shipmentSearchTerm, setShipmentSearchTerm] = useState('');
   const [allSearchTerm, setAllSearchTerm] = useState('');
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
@@ -45,7 +45,7 @@ const TransportPage = () => {
       const [transportsData, shipmentsData, allShipmentsData, occurrencesData] = await Promise.all([
         transportService.getAll(),
         deliveryService.getAllPersonalized(),
-        deliveryService.getAll(),
+        deliveryService.getByStatus('PENDENTE'),
         occurrenceService.getAll()
       ]);
 
@@ -142,7 +142,7 @@ const TransportPage = () => {
 
       setTransports(mapped);
       setShipments(shipmentsData); // backlog (list-personalized)
-      setAllShipments(allShipmentsData || []); // todas as remessas
+      setAllShipments(allShipmentsData || []); // remessas pendentes (não otimizadas)
       if (mapped.length > 0) {
         setExpandedRow(mapped[0].id); // Expand first row by default
       }
@@ -314,15 +314,18 @@ const TransportPage = () => {
     { label: 'Status', key: 'status', render: (row) => row.status || 'PENDING' }
   ];
 
-  const renderShipmentsPanel = (data, searchTerm, setSearchTerm, emptyMessage) => {
-    const filtered = data.filter(item =>
+  const renderShipmentsPanel = (panelKey, data, searchTerm, setSearchTerm, emptyMessage, statusFilter) => {
+    const base = statusFilter
+      ? data.filter(item => item.status === statusFilter)
+      : data;
+    const filtered = base.filter(item =>
       (item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.status || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.typeOperation || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
-      <div style={{ padding: '0 2rem' }}>
+      <div key={panelKey} style={{ padding: '0 2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
           <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
             <div className="search-input-wrapper" style={{ minWidth: '300px', position: 'relative' }}>
@@ -414,7 +417,7 @@ const TransportPage = () => {
             borderBottom: activeTab === 'remessas' ? '2px solid var(--primary-color)' : '2px solid transparent'
           }}
         >
-          Todas as Remessas
+          Remessas não otimizadas
         </button>
       </div>
 
@@ -512,15 +515,18 @@ const TransportPage = () => {
         </>
       ) : activeTab === 'entregas' ? (
         renderShipmentsPanel(
+          'entregas',
           shipments,
           shipmentSearchTerm, setShipmentSearchTerm,
           'Nenhuma entrega no backlog.'
         )
       ) : (
         renderShipmentsPanel(
+          'remessas',
           allShipments,
           allSearchTerm, setAllSearchTerm,
-          'Nenhuma remessa registrada.'
+          'Nenhuma remessa pendente.',
+          'PENDENTE'
         )
       )}
 

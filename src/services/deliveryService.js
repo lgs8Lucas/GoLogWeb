@@ -48,6 +48,12 @@ export const deliveryService = {
     return response.data;
   },
 
+  // GET /shipment/list-by-status — status: PENDENTE | AGUARDANDO_INICIO | INICIADO | FINALIZADO
+  getByStatus: async (status) => {
+    const response = await apiClient.get('/shipment/list-by-status', { params: { status } });
+    return response.data;
+  },
+
   getById: async (id) => {
     const response = await apiClient.get(`/shipment/${id}`);
     return response.data;
