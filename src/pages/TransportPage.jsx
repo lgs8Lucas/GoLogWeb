@@ -78,9 +78,9 @@ const TransportPage = () => {
             const label = `${isColeta ? 'Coleta' : 'Entrega'}: ${s.customer?.legalName || 'Cliente'} (${s.address?.city || s.customer?.address?.city || 'Araras'})`;
             
             let status = 'pending';
-            if (s.status === 'DELIVERED' || s.status === 'COMPLETED') {
+            if (s.status === 'FINALIZADO') {
               status = 'completed';
-            } else if (s.status === 'IN_TRANSIT' || s.status === 'ACTIVE') {
+            } else if (s.status === 'INICIADO') {
               status = 'active';
             } else {
               if (index === 0) status = 'completed';
@@ -311,7 +311,7 @@ const TransportPage = () => {
       const sched = row.shedulind || row.schedulind;
       return sched ? new Date(sched).toLocaleString('pt-BR') : '-';
     } },
-    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDING' }
+    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDENTE' }
   ];
 
   const renderShipmentsPanel = (panelKey, data, searchTerm, setSearchTerm, emptyMessage, statusFilter) => {

@@ -8,7 +8,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   if (!isOpen || !vehicle) return null;
 
   const totalShipments = vehicle.shipments?.length || 0;
-  const pendingShipments = vehicle.shipments?.filter(s => !s.status || s.status.toUpperCase() === 'PENDING').length || 0;
+  const pendingShipments = vehicle.shipments?.filter(s => !s.status || s.status.toUpperCase() === 'PENDENTE').length || 0;
 
   // Render polyline list
   const polylines = [
@@ -21,9 +21,9 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   ];
 
   const getStepStatus = (s, index) => {
-    if (s.status === 'DELIVERED' || s.status === 'COMPLETED') {
+    if (s.status === 'FINALIZADO') {
       return 'completed';
-    } else if (s.status === 'IN_TRANSIT' || s.status === 'ACTIVE') {
+    } else if (s.status === 'INICIADO') {
       return 'active';
     } else {
       if (index === 0) return 'completed';

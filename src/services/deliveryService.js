@@ -13,7 +13,7 @@ const buildShipmentPayload = (deliveryData) => {
     // Handle the backend's 'schedulind' property typo
     schedulind: (isColeta ? deliveryData.scheduledCollection : deliveryData.scheduledDelivery)
       || deliveryData.scheduledDelivery || deliveryData.scheduledCollection || new Date().toISOString(),
-    status: deliveryData.status || 'PENDING',
+    status: deliveryData.status || 'PENDENTE',
     userId: deliveryData.userId,
     shipmentTypeId: deliveryData.deliveryTypeId,
     typeTransportId: deliveryData.typeTransportId,
