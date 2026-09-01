@@ -76,7 +76,7 @@ const TransportPage = () => {
           steps = shipments.map((s, index) => {
             const isColeta = s.typeOperation === 'COLETA';
             const label = `${isColeta ? 'Coleta' : 'Entrega'}: ${s.customer?.legalName || 'Cliente'} (${s.address?.city || s.customer?.address?.city || 'Araras'})`;
-            
+
             let status = 'pending';
             if (s.status === 'FINALIZADO') {
               status = 'completed';
@@ -121,7 +121,7 @@ const TransportPage = () => {
           equipmentsList.push(t.equipamentGroup.equipament3.plate);
         }
         const equipments = equipmentsList.length > 0 ? equipmentsList.join(', ') : '-';
-        
+
         return {
           id: `#${t.codeTransport || (t.id ? t.id.substring(0, 8) : 'N/A')}`,
           origin: origin,
@@ -239,7 +239,7 @@ const TransportPage = () => {
       shipments: shipments,
       occurrences: item.occurrences || []
     };
-    
+
     setSelectedMonitoringVehicle(vehicleData);
     setIsMonitoringModalOpen(true);
   };
@@ -269,10 +269,10 @@ const TransportPage = () => {
         {steps.map((step, index) => {
           let IconComponent = Package;
           if (step.type === 'pin') IconComponent = MapPin;
-          
+
           return (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className={`timeline-item ${step.status}`}
               onClick={onItemClick}
               style={{ cursor: 'pointer' }}
@@ -307,10 +307,12 @@ const TransportPage = () => {
     { label: 'Operação', key: 'typeOperation', render: (row) => row.typeOperation || 'ENTREGA' },
     { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
     { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
-    { label: 'Agendamento', key: 'schedulind', render: (row) => {
-      const sched = row.shedulind || row.schedulind;
-      return sched ? new Date(sched).toLocaleString('pt-BR') : '-';
-    } },
+    {
+      label: 'Agendamento', key: 'schedulind', render: (row) => {
+        const sched = row.shedulind || row.schedulind;
+        return sched ? new Date(sched).toLocaleString('pt-BR') : '-';
+      }
+    },
     { label: 'Status', key: 'status', render: (row) => row.status || 'PENDENTE' }
   ];
 
@@ -356,7 +358,7 @@ const TransportPage = () => {
 
   return (
     <div className="transport-page fade-in">
-      <PageHeader 
+      <PageHeader
         title="Transporte"
         description="Acompanhe e gerencie as viagens ativas e o status das entregas."
         icon={Navigation}
@@ -365,9 +367,9 @@ const TransportPage = () => {
         <div style={{ display: 'flex', gap: '1rem' }}>
           {activeTab === 'transportes' ? (
             <>
-              <button 
-                className="btn-primary" 
-                style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }} 
+              <button
+                className="btn-primary"
+                style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }}
                 onClick={handleOptimizeRoutes}
                 disabled={optimizing}
               >
@@ -389,9 +391,9 @@ const TransportPage = () => {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', padding: '0 2rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-        <button 
+        <button
           onClick={() => setActiveTab('transportes')}
-          style={{ 
+          style={{
             background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
             color: activeTab === 'transportes' ? 'var(--primary-color)' : 'var(--text-light)',
             borderBottom: activeTab === 'transportes' ? '2px solid var(--primary-color)' : '2px solid transparent'
@@ -399,15 +401,15 @@ const TransportPage = () => {
         >
           Transportes
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('entregas')}
-          style={{ 
+          style={{
             background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
             color: activeTab === 'entregas' ? 'var(--primary-color)' : 'var(--text-light)',
             borderBottom: activeTab === 'entregas' ? '2px solid var(--primary-color)' : '2px solid transparent'
           }}
         >
-          Entregas (Backlog)
+          Remessas (Backlog)
         </button>
         <button
           onClick={() => setActiveTab('remessas')}
@@ -417,7 +419,7 @@ const TransportPage = () => {
             borderBottom: activeTab === 'remessas' ? '2px solid var(--primary-color)' : '2px solid transparent'
           }}
         >
-          Remessas não otimizadas
+          Remessas Não Otimizadas
         </button>
       </div>
 
@@ -425,93 +427,93 @@ const TransportPage = () => {
         <>
           {/* Main List */}
           <div className="transport-list">
-        {/* Columns Header */}
-        <div className="transport-list-header">
-          <div className="col-id">Transporte</div>
-          <div className="col-origin">Origem</div>
-          <div className="col-dest">Destino Atual</div>
-          <div className="col-eq-all">Equipamentos</div>
-          <div className="col-driver">Motorista</div>
-          <div className="col-status">Status</div>
-          <div className="col-action"></div>
-        </div>
+            {/* Columns Header */}
+            <div className="transport-list-header">
+              <div className="col-id">Transporte</div>
+              <div className="col-origin">Origem</div>
+              <div className="col-dest">Destino Atual</div>
+              <div className="col-eq-all">Equipamentos</div>
+              <div className="col-driver">Motorista</div>
+              <div className="col-status">Status</div>
+              <div className="col-action"></div>
+            </div>
 
-        {/* Rows */}
-        <div className="transport-rows">
-          {loading ? (
-             <div style={{padding:'2rem', textAlign:'center'}}>Carregando transportes...</div>
-          ) : transports.map((item) => {
-            const isExpanded = expandedRow === item.id;
-            
-            return (
-              <div key={item.id} className={`transport-card ${isExpanded ? 'expanded' : ''}`}>
-                <div className="transport-card-main" onClick={() => toggleRow(item.id)}>
-                  <div className="col-id font-semibold">{item.id}</div>
-                  <div className="col-origin font-bold">{item.origin}</div>
-                  <div className="col-dest font-bold">{item.currentDest}</div>
-                  <div className="col-eq-all font-bold">{item.equipments}</div>
-                  <div className="col-driver font-bold">{item.driver}</div>
-                  <div className="col-status">{renderStatusBadge(item.status)}</div>
-                  <div className="col-action">
-                    <button className="expand-btn">
-                      {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
-                  </div>
-                </div>
+            {/* Rows */}
+            <div className="transport-rows">
+              {loading ? (
+                <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando transportes...</div>
+              ) : transports.map((item) => {
+                const isExpanded = expandedRow === item.id;
 
-                {isExpanded && item.steps && (
-                  <div className="transport-card-details fade-in">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-color)' }}>Entregas e Coletas</h4>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button 
-                          className="btn-primary" 
-                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
-                          onClick={() => handleOpenMap(item)}
-                        >
-                          Acompanhar Rota no Mapa
-                        </button>
-                        <button 
-                          className="btn-primary" 
-                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--danger-color, #c92a2a)' }}
-                          onClick={() => handleOpenOccurrences(item)}
-                        >
-                          Ver Ocorrências ({item.occurrences?.length || 0})
+                return (
+                  <div key={item.id} className={`transport-card ${isExpanded ? 'expanded' : ''}`}>
+                    <div className="transport-card-main" onClick={() => toggleRow(item.id)}>
+                      <div className="col-id font-semibold">{item.id}</div>
+                      <div className="col-origin font-bold">{item.origin}</div>
+                      <div className="col-dest font-bold">{item.currentDest}</div>
+                      <div className="col-eq-all font-bold">{item.equipments}</div>
+                      <div className="col-driver font-bold">{item.driver}</div>
+                      <div className="col-status">{renderStatusBadge(item.status)}</div>
+                      <div className="col-action">
+                        <button className="expand-btn">
+                          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </button>
                       </div>
                     </div>
-                    {renderStepper(item.steps, () => handleOpenMap(item))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Footer Summary */}
-      <div className="transport-footer-summary">
-        <div className="summary-item">
-          <span>Total de transportes:</span>
-          <strong>{transports.length}</strong>
-        </div>
-        <div className="summary-item">
-          <span>Total de entregas:</span>
-          <strong>{transports.reduce((sum, t) => sum + (t.shipmentQuantity || 0), 0)}</strong>
-        </div>
-        <div className="summary-item">
-          <span>Equipamentos em atividade:</span>
-          <strong>{transports.length}</strong>
-        </div>
-        <div className="summary-item">
-          <span>Equipamentos parados:</span>
-          <strong>0</strong>
-        </div>
-        <div className="summary-item">
-          <span>Atrasos:</span>
-          <strong>{transports.filter(t => t.status === 'Atrasado').length}</strong>
-        </div>
-      </div>
+                    {isExpanded && item.steps && (
+                      <div className="transport-card-details fade-in">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-color)' }}>Entregas e Coletas</h4>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                              className="btn-primary"
+                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                              onClick={() => handleOpenMap(item)}
+                            >
+                              Acompanhar Rota no Mapa
+                            </button>
+                            <button
+                              className="btn-primary"
+                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--danger-color, #c92a2a)' }}
+                              onClick={() => handleOpenOccurrences(item)}
+                            >
+                              Ver Ocorrências ({item.occurrences?.length || 0})
+                            </button>
+                          </div>
+                        </div>
+                        {renderStepper(item.steps, () => handleOpenMap(item))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Footer Summary */}
+          <div className="transport-footer-summary">
+            <div className="summary-item">
+              <span>Total de transportes:</span>
+              <strong>{transports.length}</strong>
+            </div>
+            <div className="summary-item">
+              <span>Total de entregas:</span>
+              <strong>{transports.reduce((sum, t) => sum + (t.shipmentQuantity || 0), 0)}</strong>
+            </div>
+            <div className="summary-item">
+              <span>Equipamentos em atividade:</span>
+              <strong>{transports.length}</strong>
+            </div>
+            <div className="summary-item">
+              <span>Equipamentos parados:</span>
+              <strong>0</strong>
+            </div>
+            <div className="summary-item">
+              <span>Atrasos:</span>
+              <strong>{transports.filter(t => t.status === 'Atrasado').length}</strong>
+            </div>
+          </div>
         </>
       ) : activeTab === 'entregas' ? (
         renderShipmentsPanel(
@@ -588,13 +590,13 @@ const TransportPage = () => {
 
       {/* Monitoring Modal */}
       {selectedMonitoringVehicle && (
-        <MonitoringModal 
-          isOpen={isMonitoringModalOpen} 
+        <MonitoringModal
+          isOpen={isMonitoringModalOpen}
           onClose={() => {
             setIsMonitoringModalOpen(false);
             setSelectedMonitoringVehicle(null);
-          }} 
-          vehicle={selectedMonitoringVehicle} 
+          }}
+          vehicle={selectedMonitoringVehicle}
         />
       )}
 
