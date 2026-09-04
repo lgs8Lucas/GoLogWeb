@@ -9,7 +9,8 @@ import {
   Building2,
   Tags,
   Layers,
-  AlertTriangle
+  AlertTriangle,
+  CalendarClock
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import '../styles/Sidebar.css';
@@ -66,6 +67,11 @@ const Sidebar = () => {
             <NavLink to="/conjuntos" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
               <Layers size={20} color="var(--primary-color)" />
               <span>Conjuntos</span>
+            </NavLink>
+
+            <NavLink to="/escalas" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
+              <CalendarClock size={20} color="var(--primary-color)" />
+              <span>Escala de Trabalho</span>
             </NavLink>
 
             <NavLink to="/tipos-carga" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>

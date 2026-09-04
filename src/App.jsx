@@ -13,6 +13,7 @@ import TypeTransportPage from './pages/TypeTransportPage';
 import EquipamentGroupPage from './pages/EquipamentGroupPage';
 import ShipmentTypePage from './pages/ShipmentTypePage';
 import OccurrencePage from './pages/OccurrencePage';
+import WorkSchedulePage from './pages/WorkSchedulePage';
 import { ToastProvider } from './components/ToastContext';
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
               <Route path="conjuntos" element={<EquipamentGroupPage />} />
               <Route path="tipos-carga" element={<ShipmentTypePage />} />
               <Route path="ocorrencias" element={<OccurrencePage />} />
+              <Route path="escalas" element={<WorkSchedulePage />} />
             </Route>
 
             <Route path="frota" element={<FleetPage />} />
