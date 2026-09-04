@@ -11,8 +11,10 @@ export const trailerService = {
     return response.data;
   },
 
+  // PUT (not PATCH): the backend's CORS config doesn't allow PATCH on /trailer/{id},
+  // and PUT expects the full TrailerCreateRequest payload (status, plate, renavam, etc. all required).
   updateTrailer: async (id, payload) => {
-    const response = await apiClient.patch(`/trailer/${id}`, payload);
+    const response = await apiClient.put(`/trailer/${id}`, payload);
     return response.data;
   },
 

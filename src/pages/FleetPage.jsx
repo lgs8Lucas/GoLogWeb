@@ -24,12 +24,11 @@ const FleetPage = () => {
   const { showToast } = useToast();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState(null);
-  const [originalValues, setOriginalValues] = useState({ plate: '', renavam: '' });
 
   // Form State
   const [formData, setFormData] = useState({
     plate: '',
-    status: 'ativo',
+    status: 'ATIVO', // EquipamentStatus: ATIVO | DESATIVADO | EM_MANUTENCAO
     renavam: '',
     model: '',
     maximumCapacity: '',
@@ -43,6 +42,12 @@ const FleetPage = () => {
     companyId: ''
   });
 
+  const STATUS_LABELS = {
+    ATIVO: 'Ativo',
+    DESATIVADO: 'Desativado',
+    EM_MANUTENCAO: 'Em Manutenção'
+  };
+
   const fetchFleet = async () => {
     setLoading(true);
     try {
@@ -53,7 +58,7 @@ const FleetPage = () => {
         return {
           id: item.id,
           placa: item.plate,
-          status: item.active !== false ? 'Ativo' : 'Inativo',
+          status: STATUS_LABELS[item.status] || (item.active !== false ? 'Ativo' : 'Inativo'),
           renavam: item.renavam,
           marca: item.model || 'Volvo FH',
           capacidade: `${item.maximumCapacity || 0} kg`,
@@ -96,19 +101,18 @@ const FleetPage = () => {
     e.preventDefault();
     try {
       const isTrailer = formData.tipo === 'carreta';
+      // PUT /tractor/{id} and /trailer/{id} use the same CreateRequest schema as POST
+      // (all fields required, incl. status/plate/renavam), since the backend's CORS config
+      // blocks PATCH on these routes.
       const commonPayload = {
         plate: formData.plate,
         renavam: formData.renavam,
         model: formData.model,
         numberAxles: parseInt(formData.numberAxles, 10),
         maximumCapacity: parseFloat(formData.maximumCapacity || 0),
+        status: formData.status,
         companyId: formData.companyId
       };
-
-      if (editingId) {
-        if (commonPayload.plate === originalValues.plate) delete commonPayload.plate;
-        if (commonPayload.renavam === originalValues.renavam) delete commonPayload.renavam;
-      }
 
       if (isTrailer) {
         const trailerPayload = {
@@ -140,7 +144,7 @@ const FleetPage = () => {
       // Reset form
       setFormData({
         plate: '',
-        status: 'ativo',
+        status: 'ATIVO',
         renavam: '',
         model: '',
         maximumCapacity: '',
@@ -149,17 +153,24 @@ const FleetPage = () => {
         typeFuel: 'DIESEL',
         kmPerLiter: '2.5',
         maximumVolume: '100',
-        companyId: '7f564f96-d90f-42cc-beb2-e37cf63a324d'
+        companyId: companies.length > 0 ? companies[0].id : ''
       });
-      setOriginalValues({ plate: '', renavam: '' });
       fetchFleet();
     } catch (error) {
-      console.error('Erro ao salvar veículo:', error);
+      console.error('Erro ao salvar veículo:', error.response?.data ?? error);
+      const data = error.response?.data;
       let mensagens = 'Erro ao salvar veículo. Verifique se o UUID da empresa está correto e se preencheu todos os campos requeridos.';
-      if (Array.isArray(error.response?.data)) {
-        mensagens = error.response.data.join('\n');
-      } else if (error.response?.data?.message) {
-        mensagens = error.response.data.message;
+      if (Array.isArray(data)) {
+        mensagens = data.join('\n');
+      } else if (typeof data === 'string' && data.trim()) {
+        mensagens = data;
+      } else if (data?.message) {
+        mensagens = data.message;
+      } else if (data?.detail) {
+        // Spring's ProblemDetail (RFC 7807) shape
+        mensagens = data.detail;
+      } else if (data?.error) {
+        mensagens = data.error;
       }
       showToast(mensagens, 'error');
     }
@@ -169,7 +180,7 @@ const FleetPage = () => {
     setEditingId(row.id);
     setFormData({
       plate: row.raw.plate || '',
-      status: row.raw.active !== false ? 'ativo' : 'inativo',
+      status: row.raw.status || (row.raw.active !== false ? 'ATIVO' : 'DESATIVADO'),
       renavam: row.raw.renavam || '',
       model: row.raw.model || '',
       maximumCapacity: row.raw.maximumCapacity?.toString() || '',
@@ -178,11 +189,7 @@ const FleetPage = () => {
       typeFuel: row.raw.typeFuel || 'DIESEL',
       kmPerLiter: row.raw.kmPerLiter?.toString() || '2.5',
       maximumVolume: row.raw.maximumVolume?.toString() || '100',
-      companyId: row.raw.companyId || '7f564f96-d90f-42cc-beb2-e37cf63a324d'
-    });
-    setOriginalValues({
-      plate: row.raw.plate || '',
-      renavam: row.raw.renavam || ''
+      companyId: row.raw.company?.id || row.raw.companyId || ''
     });
     setIsModalOpen(true);
   };
@@ -217,7 +224,7 @@ const FleetPage = () => {
     setEditingId(null);
     setFormData({
       plate: '',
-      status: 'ativo',
+      status: 'ATIVO',
       renavam: '',
       model: '',
       maximumCapacity: '',
@@ -228,7 +235,6 @@ const FleetPage = () => {
       maximumVolume: '100',
       companyId: companies.length > 0 ? companies[0].id : ''
     });
-    setOriginalValues({ plate: '', renavam: '' });
   };
 
   const filteredFleet = fleet.filter(item => 
@@ -293,15 +299,15 @@ const FleetPage = () => {
                   
                   <div className="form-field">
                     <label className="profiles-label">Status</label>
-                    <select 
-                      name="status" 
-                      value={formData.status} 
-                      onChange={handleInputChange} 
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
                       className="profiles-input"
                     >
-                      <option value="ativo">Ativo</option>
-                      <option value="inativo">Inativo</option>
-                      <option value="manutencao">Em Manutenção</option>
+                      <option value="ATIVO">Ativo</option>
+                      <option value="DESATIVADO">Desativado</option>
+                      <option value="EM_MANUTENCAO">Em Manutenção</option>
                     </select>
                   </div>
 
