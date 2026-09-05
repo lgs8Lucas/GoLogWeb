@@ -14,6 +14,7 @@ import { useToast } from '../components/ToastContext';
 import DataTable from '../components/DataTable';
 import DeliveryModal from '../components/DeliveryModal';
 import ConfirmModal from '../components/ConfirmModal';
+import OptimizeRouteModal from '../components/OptimizeRouteModal';
 
 const TransportPage = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const TransportPage = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [optimizing, setOptimizing] = useState(false);
+  const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
 
   // Tabs and Shipments state
   const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas' | 'remessas'
@@ -159,20 +160,6 @@ const TransportPage = () => {
 
   const { showToast } = useToast();
 
-  const handleOptimizeRoutes = async () => {
-    setOptimizing(true);
-    try {
-      await transportService.optimizeRoutes();
-      showToast('Rotas otimizadas com sucesso!', 'success');
-      await fetchTransports();
-    } catch (error) {
-      console.error('Erro ao otimizar rotas:', error);
-      showToast('Erro ao otimizar rotas.', 'error');
-    } finally {
-      setOptimizing(false);
-    }
-  };
-
   const handleSaveShipment = async (formData, id) => {
     try {
       if (id) {
@@ -198,7 +185,11 @@ const TransportPage = () => {
 
   const handleEditShipment = async (row) => {
     try {
-      const full = await deliveryService.getById(row.id);
+      // GET /shipment/{id} está retornando 404 no backend para IDs válidos (confirmado via PUT direto);
+      // usamos a listagem completa (que já funciona) e buscamos o registro pelo ID como contorno.
+      const all = await deliveryService.getAll();
+      const full = (all || []).find(s => s.id === row.id);
+      if (!full) throw new Error('Registro não encontrado na listagem.');
       setEditingShipment(full);
       setIsShipmentModalOpen(true);
     } catch (error) {
@@ -370,10 +361,9 @@ const TransportPage = () => {
               <button
                 className="btn-primary"
                 style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }}
-                onClick={handleOptimizeRoutes}
-                disabled={optimizing}
+                onClick={() => setIsOptimizeModalOpen(true)}
               >
-                {optimizing ? 'Otimizando...' : 'Otimizar Rotas'}
+                Otimizar Rotas
               </button>
               <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
                 <Plus size={20} />
@@ -534,6 +524,13 @@ const TransportPage = () => {
 
       {/* Modal */}
       <TransportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchTransports} />
+
+      {/* Modal de Otimização de Rotas */}
+      <OptimizeRouteModal
+        isOpen={isOptimizeModalOpen}
+        onClose={() => setIsOptimizeModalOpen(false)}
+        onSuccess={fetchTransports}
+      />
 
       {/* Modal Nova Remessa / Edição */}
       <DeliveryModal

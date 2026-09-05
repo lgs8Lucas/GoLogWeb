@@ -173,7 +173,7 @@ const WorkSchedulePage = () => {
     { label: 'Motorista', key: 'motorista', render: (row) => row.driver ? driverLabel(row.driver) : '-' },
     { label: 'Conjunto / Placas', key: 'conjunto', render: (row) => row.equipamentGroup ? groupLabel(row.equipamentGroup) : '-' },
     {
-      label: 'Data da Escala',
+      label: 'Válida até',
       key: 'scheduleDate',
       render: (row) => row.scheduleDate ? new Date(`${row.scheduleDate}T00:00:00`).toLocaleDateString('pt-BR') : '-'
     },
@@ -261,7 +261,7 @@ const WorkSchedulePage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Data da Escala</label>
+                  <label>Válida até</label>
                   <input
                     type="date"
                     name="scheduleDate"
