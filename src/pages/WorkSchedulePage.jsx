@@ -22,6 +22,16 @@ const groupLabel = (g) => {
   return plates.length > 0 ? plates.join(' + ') : `Conjunto #${g.id.substring(0, 8)}`;
 };
 
+const toTimeInputValue = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.substring(0, 5);
+  if (typeof value === 'object' && value.hour !== undefined) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(value.hour)}:${pad(value.minute)}`;
+  }
+  return '';
+};
+
 const WorkSchedulePage = () => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +48,8 @@ const WorkSchedulePage = () => {
     driverId: '',
     equipamentGroupId: '',
     scheduleDate: '',
+    startWorkday: '',
+    endWorkday: '',
     status: 'ATIVO'
   };
   const [formData, setFormData] = useState(initialFormState);
@@ -91,6 +103,8 @@ const WorkSchedulePage = () => {
         driverId: formData.driverId,
         equipamentGroupId: formData.equipamentGroupId,
         scheduleDate: formData.scheduleDate,
+        startWorkday: formData.startWorkday,
+        endWorkday: formData.endWorkday,
         status: formData.status
       };
       if (editingId) {
@@ -127,6 +141,8 @@ const WorkSchedulePage = () => {
       driverId: row.driver?.id || '',
       equipamentGroupId: row.equipamentGroup?.id || '',
       scheduleDate: row.scheduleDate || '',
+      startWorkday: toTimeInputValue(row.startWorkday),
+      endWorkday: toTimeInputValue(row.endWorkday),
       status: row.status || 'ATIVO'
     });
     setIsModalOpen(true);
@@ -160,6 +176,15 @@ const WorkSchedulePage = () => {
       label: 'Data da Escala',
       key: 'scheduleDate',
       render: (row) => row.scheduleDate ? new Date(`${row.scheduleDate}T00:00:00`).toLocaleDateString('pt-BR') : '-'
+    },
+    {
+      label: 'Turno',
+      key: 'turno',
+      render: (row) => {
+        const start = toTimeInputValue(row.startWorkday);
+        const end = toTimeInputValue(row.endWorkday);
+        return start || end ? `${start || '--:--'} às ${end || '--:--'}` : '-';
+      }
     },
     { label: 'Status', key: 'status', render: (row) => STATUS_LABELS[row.status] || row.status || '-' }
   ];
@@ -245,6 +270,32 @@ const WorkSchedulePage = () => {
                     className="modal-input"
                     required
                   />
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Início do Turno</label>
+                    <input
+                      type="time"
+                      name="startWorkday"
+                      value={formData.startWorkday}
+                      onChange={handleInputChange}
+                      className="modal-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Final do Turno</label>
+                    <input
+                      type="time"
+                      name="endWorkday"
+                      value={formData.endWorkday}
+                      onChange={handleInputChange}
+                      className="modal-input"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group">
