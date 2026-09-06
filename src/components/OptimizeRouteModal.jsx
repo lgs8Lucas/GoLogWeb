@@ -30,11 +30,18 @@ const checkboxItemStyle = {
   cursor: 'pointer'
 };
 
+const ROUTE_PRIORITY_OPTIONS = [
+  { value: 'ECONOMIA', label: 'Economia', description: 'Prioriza o menor custo de viagem' },
+  { value: 'EQUILIBRIO', label: 'Equilíbrio', description: 'Balanceia custo e tempo de viagem' },
+  { value: 'TEMPO', label: 'Tempo', description: 'Prioriza a rota mais rápida' }
+];
+
 const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
   const [shipments, setShipments] = useState([]);
   const [workSchedules, setWorkSchedules] = useState([]);
   const [selectedShipmentIds, setSelectedShipmentIds] = useState([]);
   const [selectedScheduleIds, setSelectedScheduleIds] = useState([]);
+  const [routePriority, setRoutePriority] = useState('EQUILIBRIO');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
@@ -44,6 +51,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
 
     setSelectedShipmentIds([]);
     setSelectedScheduleIds([]);
+    setRoutePriority('EQUILIBRIO');
     setLoading(true);
 
     const loadData = async () => {
@@ -79,7 +87,8 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       await transportService.optimizeRoutes({
         shipmentIds: selectedShipmentIds,
-        workScheduleIds: selectedScheduleIds
+        workScheduleIds: selectedScheduleIds,
+        routePriority
       });
       showToast('Rotas otimizadas com sucesso!', 'success');
       if (onSuccess) onSuccess();
@@ -112,6 +121,19 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
             <p style={{ textAlign: 'center', color: 'var(--text-light)' }}>Carregando remessas e escalas...</p>
           ) : (
             <>
+              <div className="form-group">
+                <label>Prioridade da Otimização</label>
+                <select
+                  className="modal-input"
+                  value={routePriority}
+                  onChange={(e) => setRoutePriority(e.target.value)}
+                >
+                  {ROUTE_PRIORITY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label} — {opt.description}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="form-group">
                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Remessas Pendentes ({selectedShipmentIds.length}/{shipments.length})</span>

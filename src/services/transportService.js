@@ -42,8 +42,8 @@ export const transportService = {
     return response.data;
   },
 
-  optimizeRoutes: async ({ shipmentIds = [], workScheduleIds = [] } = {}) => {
-    const response = await apiClient.post('/api-route-optimization', { shipmentIds, workScheduleIds });
+  optimizeRoutes: async ({ shipmentIds = [], workScheduleIds = [], routePriority } = {}) => {
+    const response = await apiClient.post('/api-route-optimization', { shipmentIds, workScheduleIds, routePriority });
     return response.data;
   }
 };

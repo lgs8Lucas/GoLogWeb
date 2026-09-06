@@ -405,7 +405,7 @@ const TransportPage = () => {
           onClick={() => setActiveTab('remessas')}
           style={{
             background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
-            cologir: activeTab === 'remessas' ? 'var(--primary-color)' : 'var(--text-light)',
+            color: activeTab === 'remessas' ? 'var(--primary-color)' : 'var(--text-light)',
             borderBottom: activeTab === 'remessas' ? '2px solid var(--primary-color)' : '2px solid transparent'
           }}
         >
