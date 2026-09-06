@@ -186,6 +186,11 @@ const WorkSchedulePage = () => {
         return start || end ? `${start || '--:--'} às ${end || '--:--'}` : '-';
       }
     },
+    {
+      label: 'Custo/Hora',
+      key: 'costPerHour',
+      render: (row) => row.costPerHour != null ? row.costPerHour.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
+    },
     { label: 'Status', key: 'status', render: (row) => STATUS_LABELS[row.status] || row.status || '-' }
   ];
 

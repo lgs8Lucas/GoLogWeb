@@ -36,7 +36,7 @@ const FleetPage = () => {
     tipo: 'carreta', // 'carreta' (Trailer) or 'truck'/'toco'/'vuc' (Tractor)
     // Tractor specific
     typeFuel: 'DIESEL',
-    kmPerLiter: '2.5',
+    costPerKilometer: '',
     // Trailer specific
     maximumVolume: '100',
     companyId: ''
@@ -64,6 +64,9 @@ const FleetPage = () => {
           capacidade: `${item.maximumCapacity || 0} kg`,
           tipo: isTrailer ? 'Carreta' : 'Caminhão',
           isTrailer: isTrailer,
+          custoKm: !isTrailer && item.costPerKilometer != null
+            ? item.costPerKilometer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+            : '-',
           empresa: item.company?.legalName || '-',
           raw: item
         };
@@ -129,7 +132,7 @@ const FleetPage = () => {
           ...commonPayload,
           typeFuel: formData.typeFuel,
           "Type Fuel": formData.typeFuel,
-          kmPerLiter: parseFloat(formData.kmPerLiter || 0)
+          costPerKilometer: parseFloat(formData.costPerKilometer || 0)
         };
         if (editingId) {
           await tractorService.update(editingId, tractorPayload);
@@ -151,7 +154,7 @@ const FleetPage = () => {
         numberAxles: '2',
         tipo: 'carreta',
         typeFuel: 'DIESEL',
-        kmPerLiter: '2.5',
+        costPerKilometer: '',
         maximumVolume: '100',
         companyId: companies.length > 0 ? companies[0].id : ''
       });
@@ -187,7 +190,7 @@ const FleetPage = () => {
       numberAxles: row.raw.numberAxles?.toString() || '2',
       tipo: row.isTrailer ? 'carreta' : 'truck',
       typeFuel: row.raw.typeFuel || 'DIESEL',
-      kmPerLiter: row.raw.kmPerLiter?.toString() || '2.5',
+      costPerKilometer: row.raw.costPerKilometer?.toString() || '',
       maximumVolume: row.raw.maximumVolume?.toString() || '100',
       companyId: row.raw.company?.id || row.raw.companyId || ''
     });
@@ -249,6 +252,7 @@ const FleetPage = () => {
     { label: 'Renavam', key: 'renavam' },
     { label: 'Marca/Modelo', key: 'marca' },
     { label: 'Capacid.', key: 'capacidade' },
+    { label: 'Custo/Km', key: 'custoKm' },
     { label: 'Tipo', key: 'tipo' },
     { label: 'Empresa Vinculada', key: 'empresa' }
   ];
@@ -430,15 +434,17 @@ const FleetPage = () => {
                         </select>
                       </div>
                       <div className="form-field">
-                        <label className="profiles-label">Consumo (Km/L)</label>
-                        <input 
-                          type="number" 
-                          step="0.01" 
-                          name="kmPerLiter" 
-                          value={formData.kmPerLiter} 
-                          onChange={handleInputChange} 
-                          className="profiles-input" 
-                          required 
+                        <label className="profiles-label">Custo por Km (R$)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name="costPerKilometer"
+                          value={formData.costPerKilometer}
+                          onChange={handleInputChange}
+                          className="profiles-input"
+                          placeholder="0.00"
+                          required
                         />
                       </div>
                     </>
