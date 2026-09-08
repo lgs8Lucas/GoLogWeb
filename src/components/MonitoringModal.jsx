@@ -4,6 +4,20 @@ import { X, Truck, Package, MapPin, AlertTriangle, User } from 'lucide-react';
 import '../styles/MonitoringModal.css';
 import MapComponent from './MapComponent';
 
+// Backend retorna distância em metros e tempo em segundos
+const formatDistance = (meters) => {
+  if (meters == null) return '-';
+  return `${(meters / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`;
+};
+
+const formatDuration = (seconds) => {
+  if (seconds == null) return '-';
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.round((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}min`;
+  return `${minutes}min`;
+};
+
 const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   if (!isOpen || !vehicle) return null;
 
@@ -74,6 +88,9 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
               <p>Placa: <strong>{vehicle.plate}</strong></p>
               <p>Total de remessas: <strong>{totalShipments}</strong></p>
               <p>Remessas pendentes: <strong>{pendingShipments}</strong></p>
+              <p>Distância calculada: <strong>{formatDistance(vehicle.calculedDistance)}</strong></p>
+              <p>Tempo calculado: <strong>{formatDuration(vehicle.totalTimeCalculed)}</strong></p>
+              <p>Custo total calculado: <strong>{vehicle.totalCostCalculed != null ? vehicle.totalCostCalculed.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}</strong></p>
             </div>
 
             <div className="route-section">

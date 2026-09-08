@@ -228,7 +228,10 @@ const TransportPage = () => {
       plate: item.equipments,
       routePlannedCoords: coords,
       shipments: shipments,
-      occurrences: item.occurrences || []
+      occurrences: item.occurrences || [],
+      calculedDistance: rawT?.calculedDistance,
+      totalTimeCalculed: rawT?.totalTimeCalculed,
+      totalCostCalculed: rawT?.totalCostCalculed
     };
 
     setSelectedMonitoringVehicle(vehicleData);
