@@ -33,6 +33,9 @@ const MonitoringPage = () => {
               driver: s.transport.driver?.user?.name || 'Sem motorista',
               routePlanned: s.transport.routePlanned,
               routeCompleted: s.transport.routeCompleted,
+              calculedDistance: s.transport.calculedDistance,
+              totalTimeCalculed: s.transport.totalTimeCalculed,
+              totalCostCalculed: s.transport.totalCostCalculed,
               shipments: []
             };
           }
