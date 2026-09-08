@@ -231,7 +231,10 @@ const TransportPage = () => {
       occurrences: item.occurrences || [],
       calculedDistance: rawT?.calculedDistance,
       totalTimeCalculed: rawT?.totalTimeCalculed,
-      totalCostCalculed: rawT?.totalCostCalculed
+      totalCostCalculed: rawT?.totalCostCalculed,
+      costKmCalculed: rawT?.costKmCalculed,
+      costHourCalculed: rawT?.costHourCalculed,
+      travelDuration: rawT?.travelDuration
     };
 
     setSelectedMonitoringVehicle(vehicleData);

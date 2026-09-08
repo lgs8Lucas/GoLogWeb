@@ -18,6 +18,8 @@ const formatDuration = (seconds) => {
   return `${minutes}min`;
 };
 
+const formatCurrency = (value) => value != null ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
+
 const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   if (!isOpen || !vehicle) return null;
 
@@ -89,8 +91,11 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
               <p>Total de remessas: <strong>{totalShipments}</strong></p>
               <p>Remessas pendentes: <strong>{pendingShipments}</strong></p>
               <p>Distância calculada: <strong>{formatDistance(vehicle.calculedDistance)}</strong></p>
-              <p>Tempo calculado: <strong>{formatDuration(vehicle.totalTimeCalculed)}</strong></p>
-              <p>Custo total calculado: <strong>{vehicle.totalCostCalculed != null ? vehicle.totalCostCalculed.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}</strong></p>
+              <p>Duração total da operação: <strong>{formatDuration(vehicle.totalTimeCalculed)}</strong></p>
+              <p>Duração em trânsito: <strong>{formatDuration(vehicle.travelDuration)}</strong></p>
+              <p>Custo total calculado: <strong>{formatCurrency(vehicle.totalCostCalculed)}</strong></p>
+              <p>Custo total em distância: <strong>{formatCurrency(vehicle.costKmCalculed)}</strong></p>
+              <p>Custo total em horas: <strong>{formatCurrency(vehicle.costHourCalculed)}</strong></p>
             </div>
 
             <div className="route-section">

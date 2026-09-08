@@ -36,6 +36,9 @@ const MonitoringPage = () => {
               calculedDistance: s.transport.calculedDistance,
               totalTimeCalculed: s.transport.totalTimeCalculed,
               totalCostCalculed: s.transport.totalCostCalculed,
+              costKmCalculed: s.transport.costKmCalculed,
+              costHourCalculed: s.transport.costHourCalculed,
+              travelDuration: s.transport.travelDuration,
               shipments: []
             };
           }
