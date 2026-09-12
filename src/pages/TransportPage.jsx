@@ -25,11 +25,9 @@ const TransportPage = () => {
   const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
 
   // Tabs and Shipments state
-  const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas' | 'remessas'
-  const [shipments, setShipments] = useState([]); // backlog: /shipment/list-personalized
-  const [allShipments, setAllShipments] = useState([]); // remessas não otimizadas: /shipment/list-by-status?status=PENDENTE
+  const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas'
+  const [backlogShipments, setBacklogShipments] = useState([]); // aba Remessas (Backlog): /shipment/list-by-status?status=PENDENTE
   const [shipmentSearchTerm, setShipmentSearchTerm] = useState('');
-  const [allSearchTerm, setAllSearchTerm] = useState('');
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
   const [editingShipment, setEditingShipment] = useState(null);
   const [shipmentToDelete, setShipmentToDelete] = useState(null);
@@ -43,7 +41,7 @@ const TransportPage = () => {
 
   const fetchTransports = async () => {
     try {
-      const [transportsData, shipmentsData, allShipmentsData, occurrencesData] = await Promise.all([
+      const [transportsData, shipmentsData, backlogShipmentsData, occurrencesData] = await Promise.all([
         transportService.getAll(),
         deliveryService.getAllPersonalized(),
         deliveryService.getByStatus('PENDENTE'),
@@ -142,8 +140,7 @@ const TransportPage = () => {
       });
 
       setTransports(mapped);
-      setShipments(shipmentsData); // backlog (list-personalized)
-      setAllShipments(allShipmentsData || []); // remessas pendentes (não otimizadas)
+      setBacklogShipments(backlogShipmentsData || []);
       if (mapped.length > 0) {
         setExpandedRow(mapped[0].id); // Expand first row by default
       }
@@ -407,16 +404,6 @@ const TransportPage = () => {
         >
           Remessas (Backlog)
         </button>
-        <button
-          onClick={() => setActiveTab('remessas')}
-          style={{
-            background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
-            color: activeTab === 'remessas' ? 'var(--primary-color)' : 'var(--text-light)',
-            borderBottom: activeTab === 'remessas' ? '2px solid var(--primary-color)' : '2px solid transparent'
-          }}
-        >
-          Remessas Não Otimizadas
-        </button>
       </div>
 
       {activeTab === 'transportes' ? (
@@ -511,20 +498,12 @@ const TransportPage = () => {
             </div>
           </div>
         </>
-      ) : activeTab === 'entregas' ? (
-        renderShipmentsPanel(
-          'entregas',
-          shipments,
-          shipmentSearchTerm, setShipmentSearchTerm,
-          'Nenhuma entrega no backlog.'
-        )
       ) : (
         renderShipmentsPanel(
-          'remessas',
-          allShipments,
-          allSearchTerm, setAllSearchTerm,
-          'Nenhuma remessa pendente.',
-          'PENDENTE'
+          'entregas',
+          backlogShipments,
+          shipmentSearchTerm, setShipmentSearchTerm,
+          'Nenhuma remessa pendente.'
         )
       )}
 
