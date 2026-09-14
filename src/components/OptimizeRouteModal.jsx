@@ -32,7 +32,6 @@ const checkboxItemStyle = {
 
 const ROUTE_PRIORITY_OPTIONS = [
   { value: 'ECONOMIA', label: 'Economia', description: 'Prioriza o menor custo de viagem' },
-  { value: 'EQUILIBRIO', label: 'Equilíbrio', description: 'Balanceia custo e tempo de viagem' },
   { value: 'TEMPO', label: 'Tempo', description: 'Prioriza a rota mais rápida' }
 ];
 
@@ -41,7 +40,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
   const [workSchedules, setWorkSchedules] = useState([]);
   const [selectedShipmentIds, setSelectedShipmentIds] = useState([]);
   const [selectedScheduleIds, setSelectedScheduleIds] = useState([]);
-  const [routePriority, setRoutePriority] = useState('EQUILIBRIO');
+  const [routePriority, setRoutePriority] = useState('ECONOMIA');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
@@ -51,7 +50,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
 
     setSelectedShipmentIds([]);
     setSelectedScheduleIds([]);
-    setRoutePriority('EQUILIBRIO');
+    setRoutePriority('ECONOMIA');
     setLoading(true);
 
     const loadData = async () => {
