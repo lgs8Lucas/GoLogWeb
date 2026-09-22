@@ -24,7 +24,7 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       const data = await deliveryService.getAll();
       // Filtrar as entregas que não têm transporte atrelado
-      const filtered = (data || []).filter(s => !s.transport && (!s.status || s.status.toUpperCase() === 'PENDING' || s.status === ''));
+      const filtered = (data || []).filter(s => !s.transport && (!s.status || s.status.toUpperCase() === 'PENDENTE' || s.status === ''));
       setPendingDeliveries(filtered);
     } catch (err) {
       console.error("Erro ao carregar entregas pendentes:", err);

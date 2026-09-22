@@ -34,7 +34,8 @@ const ProfilesPage = () => {
     userProfile: '',
     companyId: 'd9d7b435-c256-405b-877c-848f4a22e22a', // Padrão inicial
     cnhNumber: '',
-    cnhExpiration: ''
+    cnhExpiration: '',
+    costPerHour: ''
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -109,6 +110,7 @@ const ProfilesPage = () => {
         await driverService.createDriver({
           cnhNumber: formData.cnhNumber,
           cnhExpiration: formData.cnhExpiration,
+          costPerHour: parseFloat(formData.costPerHour || 0),
           userId: savedUserId
         });
       }
@@ -175,7 +177,8 @@ const ProfilesPage = () => {
       userProfile: profile.userProfile || '',
       companyId: profile.companyId || '',
       cnhNumber: '',
-      cnhExpiration: ''
+      cnhExpiration: '',
+      costPerHour: ''
     });
   };
 
@@ -295,6 +298,11 @@ const ProfilesPage = () => {
                     <div className="form-field fade-in">
                       <label className="profiles-label">Vencimento CNH</label>
                       <input type="date" name="cnhExpiration" value={formData.cnhExpiration} onChange={handleInputChange} className="profiles-input" />
+                    </div>
+
+                    <div className="form-field fade-in">
+                      <label className="profiles-label">Custo por Hora (R$)</label>
+                      <input type="number" step="0.01" min="0" name="costPerHour" value={formData.costPerHour} onChange={handleInputChange} className="profiles-input" placeholder="0.00" />
                     </div>
                   </>
                 )}

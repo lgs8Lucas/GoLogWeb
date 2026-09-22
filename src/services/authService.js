@@ -45,6 +45,21 @@ export const authService = {
   },
 
   isAuthenticated: () => {
-    return !!localStorage.getItem('golog_token');
+    let token = localStorage.getItem('golog_token');
+    if (!token) return false;
+
+    token = token.replace(/"/g, '').replace(/^Bearer\s+/i, '').trim();
+
+    try {
+      const payload = jwtDecode(token);
+      if (!payload.exp || Date.now() >= payload.exp * 1000) {
+        localStorage.removeItem('golog_token');
+        return false;
+      }
+      return true;
+    } catch {
+      localStorage.removeItem('golog_token');
+      return false;
+    }
   }
 };

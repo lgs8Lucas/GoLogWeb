@@ -51,7 +51,7 @@ const ShipmentPage = () => {
     { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
     { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
     { label: 'Agendamento', key: 'schedulind', render: (row) => row.schedulind ? new Date(row.schedulind).toLocaleString('pt-BR') : '-' },
-    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDING' },
+    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDENTE' },
     { 
       label: 'Ações', 
       key: 'actions', 

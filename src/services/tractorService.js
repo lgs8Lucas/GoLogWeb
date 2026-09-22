@@ -11,8 +11,10 @@ export const tractorService = {
     return response.data;
   },
 
+  // PUT (not PATCH): the backend's CORS config doesn't allow PATCH on /tractor/{id},
+  // and PUT expects the full TractorCreateRequest payload (status, plate, renavam, etc. all required).
   updateTractor: async (id, payload) => {
-    const response = await apiClient.patch(`/tractor/${id}`, payload);
+    const response = await apiClient.put(`/tractor/${id}`, payload);
     return response.data;
   },
 

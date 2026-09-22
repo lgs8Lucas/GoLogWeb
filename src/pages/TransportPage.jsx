@@ -13,6 +13,8 @@ import MonitoringModal from '../components/MonitoringModal';
 import { useToast } from '../components/ToastContext';
 import DataTable from '../components/DataTable';
 import DeliveryModal from '../components/DeliveryModal';
+import ConfirmModal from '../components/ConfirmModal';
+import OptimizeRouteModal from '../components/OptimizeRouteModal';
 
 const TransportPage = () => {
   const navigate = useNavigate();
@@ -20,13 +22,15 @@ const TransportPage = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [optimizing, setOptimizing] = useState(false);
+  const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
 
   // Tabs and Shipments state
   const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas'
-  const [shipments, setShipments] = useState([]);
+  const [backlogShipments, setBacklogShipments] = useState([]); // aba Remessas (Backlog): /shipment/list-by-status?status=PENDENTE
   const [shipmentSearchTerm, setShipmentSearchTerm] = useState('');
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
+  const [editingShipment, setEditingShipment] = useState(null);
+  const [shipmentToDelete, setShipmentToDelete] = useState(null);
 
   // Modals for map and occurrences
   const [isMonitoringModalOpen, setIsMonitoringModalOpen] = useState(false);
@@ -37,9 +41,10 @@ const TransportPage = () => {
 
   const fetchTransports = async () => {
     try {
-      const [transportsData, shipmentsData, occurrencesData] = await Promise.all([
+      const [transportsData, shipmentsData, backlogShipmentsData, occurrencesData] = await Promise.all([
         transportService.getAll(),
         deliveryService.getAllPersonalized(),
+        deliveryService.getByStatus('PENDENTE'),
         occurrenceService.getAll()
       ]);
 
@@ -70,11 +75,11 @@ const TransportPage = () => {
           steps = shipments.map((s, index) => {
             const isColeta = s.typeOperation === 'COLETA';
             const label = `${isColeta ? 'Coleta' : 'Entrega'}: ${s.customer?.legalName || 'Cliente'} (${s.address?.city || s.customer?.address?.city || 'Araras'})`;
-            
+
             let status = 'pending';
-            if (s.status === 'DELIVERED' || s.status === 'COMPLETED') {
+            if (s.status === 'FINALIZADO') {
               status = 'completed';
-            } else if (s.status === 'IN_TRANSIT' || s.status === 'ACTIVE') {
+            } else if (s.status === 'INICIADO') {
               status = 'active';
             } else {
               if (index === 0) status = 'completed';
@@ -115,7 +120,7 @@ const TransportPage = () => {
           equipmentsList.push(t.equipamentGroup.equipament3.plate);
         }
         const equipments = equipmentsList.length > 0 ? equipmentsList.join(', ') : '-';
-        
+
         return {
           id: `#${t.codeTransport || (t.id ? t.id.substring(0, 8) : 'N/A')}`,
           origin: origin,
@@ -135,7 +140,7 @@ const TransportPage = () => {
       });
 
       setTransports(mapped);
-      setShipments(shipmentsData);
+      setBacklogShipments(backlogShipmentsData || []);
       if (mapped.length > 0) {
         setExpandedRow(mapped[0].id); // Expand first row by default
       }
@@ -152,29 +157,55 @@ const TransportPage = () => {
 
   const { showToast } = useToast();
 
-  const handleOptimizeRoutes = async () => {
-    setOptimizing(true);
+  const handleSaveShipment = async (formData, id) => {
     try {
-      await transportService.optimizeRoutes();
-      showToast('Rotas otimizadas com sucesso!', 'success');
-      await fetchTransports();
+      if (id) {
+        await deliveryService.update(id, formData);
+        showToast('Registro atualizado com sucesso!', 'success');
+      } else {
+        await deliveryService.create(formData);
+        showToast('Remessa criada com sucesso!', 'success');
+      }
+      setIsShipmentModalOpen(false);
+      setEditingShipment(null);
+      await fetchTransports(); // This updates both transports and shipments
     } catch (error) {
-      console.error('Erro ao otimizar rotas:', error);
-      showToast('Erro ao otimizar rotas.', 'error');
-    } finally {
-      setOptimizing(false);
+      console.error('Erro ao salvar entrega:', error);
+      showToast(id ? 'Erro ao atualizar registro.' : 'Erro ao criar remessa.', 'error');
     }
   };
 
-  const handleSaveShipment = async (formData) => {
+  const handleNewShipment = () => {
+    setEditingShipment(null);
+    setIsShipmentModalOpen(true);
+  };
+
+  const handleEditShipment = async (row) => {
     try {
-      await deliveryService.create(formData);
-      showToast('Entrega criada com sucesso!', 'success');
-      setIsShipmentModalOpen(false);
-      await fetchTransports(); // This updates both transports and shipments
+      // GET /shipment/{id} está retornando 404 no backend para IDs válidos (confirmado via PUT direto);
+      // usamos a listagem completa (que já funciona) e buscamos o registro pelo ID como contorno.
+      const all = await deliveryService.getAll();
+      const full = (all || []).find(s => s.id === row.id);
+      if (!full) throw new Error('Registro não encontrado na listagem.');
+      setEditingShipment(full);
+      setIsShipmentModalOpen(true);
     } catch (error) {
-      console.error('Erro ao criar entrega:', error);
-      showToast('Erro ao criar entrega.', 'error');
+      console.error('Erro ao carregar registro:', error);
+      showToast('Erro ao carregar registro para edição.', 'error');
+    }
+  };
+
+  const confirmDeleteShipment = async () => {
+    if (!shipmentToDelete) return;
+    try {
+      await deliveryService.delete(shipmentToDelete.id);
+      showToast('Registro excluído com sucesso!', 'success');
+      await fetchTransports();
+    } catch (error) {
+      console.error('Erro ao excluir registro:', error);
+      showToast('Erro ao excluir registro.', 'error');
+    } finally {
+      setShipmentToDelete(null);
     }
   };
 
@@ -194,9 +225,15 @@ const TransportPage = () => {
       plate: item.equipments,
       routePlannedCoords: coords,
       shipments: shipments,
-      occurrences: item.occurrences || []
+      occurrences: item.occurrences || [],
+      calculedDistance: rawT?.calculedDistance,
+      totalTimeCalculed: rawT?.totalTimeCalculed,
+      totalCostCalculed: rawT?.totalCostCalculed,
+      costKmCalculed: rawT?.costKmCalculed,
+      costHourCalculed: rawT?.costHourCalculed,
+      travelDuration: rawT?.travelDuration
     };
-    
+
     setSelectedMonitoringVehicle(vehicleData);
     setIsMonitoringModalOpen(true);
   };
@@ -226,10 +263,10 @@ const TransportPage = () => {
         {steps.map((step, index) => {
           let IconComponent = Package;
           if (step.type === 'pin') IconComponent = MapPin;
-          
+
           return (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className={`timeline-item ${step.status}`}
               onClick={onItemClick}
               style={{ cursor: 'pointer' }}
@@ -258,25 +295,64 @@ const TransportPage = () => {
     );
   };
 
-  // Shipments (Entregas) Data Handling
-  const filteredShipments = shipments.filter(item => 
-    (item.id || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase()) ||
-    (item.status || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase()) ||
-    (item.typeOperation || '').toLowerCase().includes(shipmentSearchTerm.toLowerCase())
-  );
-
+  // Shipments (Entregas / Remessas) Data Handling
   const shipmentColumns = [
     { label: 'Código', key: 'id', render: (row) => row.id ? row.id.substring(0, 8) : 'N/A' },
     { label: 'Operação', key: 'typeOperation', render: (row) => row.typeOperation || 'ENTREGA' },
     { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
     { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
-    { label: 'Agendamento', key: 'schedulind', render: (row) => row.schedulind ? new Date(row.schedulind).toLocaleString('pt-BR') : '-' },
-    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDING' }
+    {
+      label: 'Agendamento', key: 'schedulind', render: (row) => {
+        const sched = row.shedulind || row.schedulind;
+        return sched ? new Date(sched).toLocaleString('pt-BR') : '-';
+      }
+    },
+    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDENTE' }
   ];
+
+  const renderShipmentsPanel = (panelKey, data, searchTerm, setSearchTerm, emptyMessage, statusFilter) => {
+    const base = statusFilter
+      ? data.filter(item => item.status === statusFilter)
+      : data;
+    const filtered = base.filter(item =>
+      (item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.status || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.typeOperation || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+      <div key={panelKey} style={{ padding: '0 2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
+            <div className="search-input-wrapper" style={{ minWidth: '300px', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Pesquisar por ID, status ou tipo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem 2.5rem 0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+              />
+            </div>
+          </div>
+          <span style={{ fontWeight: 500, color: 'var(--text-light)' }}>{filtered.length} resultados</span>
+        </div>
+
+        <DataTable
+          columns={shipmentColumns}
+          data={filtered}
+          loading={loading}
+          onEdit={handleEditShipment}
+          onDelete={(row) => setShipmentToDelete(row)}
+          emptyMessage={emptyMessage}
+          itemsPerPage={15}
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="transport-page fade-in">
-      <PageHeader 
+      <PageHeader
         title="Transporte"
         description="Acompanhe e gerencie as viagens ativas e o status das entregas."
         icon={Navigation}
@@ -285,13 +361,12 @@ const TransportPage = () => {
         <div style={{ display: 'flex', gap: '1rem' }}>
           {activeTab === 'transportes' ? (
             <>
-              <button 
-                className="btn-primary" 
-                style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }} 
-                onClick={handleOptimizeRoutes}
-                disabled={optimizing}
+              <button
+                className="btn-primary"
+                style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }}
+                onClick={() => setIsOptimizeModalOpen(true)}
               >
-                {optimizing ? 'Otimizando...' : 'Otimizar Rotas'}
+                Otimizar Rotas
               </button>
               <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
                 <Plus size={20} />
@@ -299,9 +374,9 @@ const TransportPage = () => {
               </button>
             </>
           ) : (
-            <button className="btn-primary" onClick={() => setIsShipmentModalOpen(true)}>
+            <button className="btn-primary" onClick={handleNewShipment}>
               <Plus size={20} />
-              Nova Entrega
+              Nova Remessa
             </button>
           )}
         </div>
@@ -309,9 +384,9 @@ const TransportPage = () => {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', padding: '0 2rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-        <button 
+        <button
           onClick={() => setActiveTab('transportes')}
-          style={{ 
+          style={{
             background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
             color: activeTab === 'transportes' ? 'var(--primary-color)' : 'var(--text-light)',
             borderBottom: activeTab === 'transportes' ? '2px solid var(--primary-color)' : '2px solid transparent'
@@ -319,15 +394,15 @@ const TransportPage = () => {
         >
           Transportes
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('entregas')}
-          style={{ 
+          style={{
             background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
             color: activeTab === 'entregas' ? 'var(--primary-color)' : 'var(--text-light)',
             borderBottom: activeTab === 'entregas' ? '2px solid var(--primary-color)' : '2px solid transparent'
           }}
         >
-          Entregas (Backlog)
+          Remessas (Backlog)
         </button>
       </div>
 
@@ -335,147 +410,149 @@ const TransportPage = () => {
         <>
           {/* Main List */}
           <div className="transport-list">
-        {/* Columns Header */}
-        <div className="transport-list-header">
-          <div className="col-id">Transporte</div>
-          <div className="col-origin">Origem</div>
-          <div className="col-dest">Destino Atual</div>
-          <div className="col-eq-all">Equipamentos</div>
-          <div className="col-driver">Motorista</div>
-          <div className="col-status">Status</div>
-          <div className="col-action"></div>
-        </div>
+            {/* Columns Header */}
+            <div className="transport-list-header">
+              <div className="col-id">Transporte</div>
+              <div className="col-origin">Origem</div>
+              <div className="col-dest">Destino Atual</div>
+              <div className="col-eq-all">Equipamentos</div>
+              <div className="col-driver">Motorista</div>
+              <div className="col-status">Status</div>
+              <div className="col-action"></div>
+            </div>
 
-        {/* Rows */}
-        <div className="transport-rows">
-          {loading ? (
-             <div style={{padding:'2rem', textAlign:'center'}}>Carregando transportes...</div>
-          ) : transports.map((item) => {
-            const isExpanded = expandedRow === item.id;
-            
-            return (
-              <div key={item.id} className={`transport-card ${isExpanded ? 'expanded' : ''}`}>
-                <div className="transport-card-main" onClick={() => toggleRow(item.id)}>
-                  <div className="col-id font-semibold">{item.id}</div>
-                  <div className="col-origin font-bold">{item.origin}</div>
-                  <div className="col-dest font-bold">{item.currentDest}</div>
-                  <div className="col-eq-all font-bold">{item.equipments}</div>
-                  <div className="col-driver font-bold">{item.driver}</div>
-                  <div className="col-status">{renderStatusBadge(item.status)}</div>
-                  <div className="col-action">
-                    <button className="expand-btn">
-                      {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
-                  </div>
-                </div>
+            {/* Rows */}
+            <div className="transport-rows">
+              {loading ? (
+                <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando transportes...</div>
+              ) : transports.map((item) => {
+                const isExpanded = expandedRow === item.id;
 
-                {isExpanded && item.steps && (
-                  <div className="transport-card-details fade-in">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-color)' }}>Entregas e Coletas</h4>
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', backgroundColor: 'var(--bg-light)', padding: '0.25rem 0.75rem', borderRadius: '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Route size={16} color="var(--primary-color)" />
-                            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{((item.rawTransport?.calculedDistance || 0) / 1000).toFixed(2)} km</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Clock size={16} color="var(--warning-color)" />
-                            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                              {Math.floor((item.rawTransport?.totalTimeCalculed || 0) / 3600)}h {Math.floor(((item.rawTransport?.totalTimeCalculed || 0) % 3600) / 60)}m
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Leaf size={16} color="var(--success-color)" />
-                            <span style={{ fontSize: '0.85rem', color: 'var(--success-color)', fontWeight: 'bold' }}>
-                              {(item.rawTransport?.totalCostCalculed || 0).toFixed(2)} kg CO₂
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button 
-                          className="btn-primary" 
-                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
-                          onClick={() => handleOpenMap(item)}
-                        >
-                          Acompanhar Rota no Mapa
-                        </button>
-                        <button 
-                          className="btn-primary" 
-                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--danger-color, #c92a2a)' }}
-                          onClick={() => handleOpenOccurrences(item)}
-                        >
-                          Ver Ocorrências ({item.occurrences?.length || 0})
+                return (
+                  <div key={item.id} className={`transport-card ${isExpanded ? 'expanded' : ''}`}>
+                    <div className="transport-card-main" onClick={() => toggleRow(item.id)}>
+                      <div className="col-id font-semibold">{item.id}</div>
+                      <div className="col-origin font-bold">{item.origin}</div>
+                      <div className="col-dest font-bold">{item.currentDest}</div>
+                      <div className="col-eq-all font-bold">{item.equipments}</div>
+                      <div className="col-driver font-bold">{item.driver}</div>
+                      <div className="col-status">{renderStatusBadge(item.status)}</div>
+                      <div className="col-action">
+                        <button className="expand-btn">
+                          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </button>
                       </div>
                     </div>
-                    {renderStepper(item.steps, () => handleOpenMap(item))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Footer Summary */}
-      <div className="transport-footer-summary">
-        <div className="summary-item">
-          <span>Total de transportes:</span>
-          <strong>{transports.length}</strong>
-        </div>
-        <div className="summary-item">
-          <span>Total de entregas:</span>
-          <strong>{transports.reduce((sum, t) => sum + (t.shipmentQuantity || 0), 0)}</strong>
-        </div>
-        <div className="summary-item">
-          <span>Equipamentos em atividade:</span>
-          <strong>{transports.length}</strong>
-        </div>
-        <div className="summary-item">
-          <span>Equipamentos parados:</span>
-          <strong>0</strong>
-        </div>
-        <div className="summary-item">
-          <span>Atrasos:</span>
-          <strong>{transports.filter(t => t.status === 'Atrasado').length}</strong>
-        </div>
-      </div>
+                    {isExpanded && item.steps && (
+                      <div className="transport-card-details fade-in">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-color)' }}>Entregas e Coletas</h4>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', backgroundColor: 'var(--bg-light)', padding: '0.25rem 0.75rem', borderRadius: '12px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Route size={16} color="var(--primary-color)" />
+                                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{((item.rawTransport?.calculedDistance || 0) / 1000).toFixed(2)} km</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Clock size={16} color="var(--warning-color)" />
+                                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                  {Math.floor((item.rawTransport?.totalTimeCalculed || 0) / 3600)}h {Math.floor(((item.rawTransport?.totalTimeCalculed || 0) % 3600) / 60)}m
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Leaf size={16} color="var(--success-color)" />
+                                <span style={{ fontSize: '0.85rem', color: 'var(--success-color)', fontWeight: 'bold' }}>
+                                  {(item.rawTransport?.totalCostCalculed || 0).toFixed(2)} kg CO₂
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button 
+                              className="btn-primary" 
+                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                              onClick={() => handleOpenMap(item)}
+                            >
+                              Acompanhar Rota no Mapa
+                            </button>
+                            <button 
+                              className="btn-primary" 
+                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--danger-color, #c92a2a)' }}
+                              onClick={() => handleOpenOccurrences(item)}
+                            >
+                              Ver Ocorrências ({item.occurrences?.length || 0})
+                            </button>
+                          </div>
+                        </div>
+                        {renderStepper(item.steps, () => handleOpenMap(item))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Footer Summary */}
+          <div className="transport-footer-summary">
+            <div className="summary-item">
+              <span>Total de transportes:</span>
+              <strong>{transports.length}</strong>
+            </div>
+            <div className="summary-item">
+              <span>Total de entregas:</span>
+              <strong>{transports.reduce((sum, t) => sum + (t.shipmentQuantity || 0), 0)}</strong>
+            </div>
+            <div className="summary-item">
+              <span>Equipamentos em atividade:</span>
+              <strong>{transports.length}</strong>
+            </div>
+            <div className="summary-item">
+              <span>Equipamentos parados:</span>
+              <strong>0</strong>
+            </div>
+            <div className="summary-item">
+              <span>Atrasos:</span>
+              <strong>{transports.filter(t => t.status === 'Atrasado').length}</strong>
+            </div>
+          </div>
         </>
       ) : (
-        <div style={{ padding: '0 2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
-            <div className="search-input-wrapper" style={{ minWidth: '300px', position: 'relative' }}>
-              <input
-                type="text"
-                placeholder="Pesquisar por ID, status ou tipo..."
-                value={shipmentSearchTerm}
-                onChange={(e) => setShipmentSearchTerm(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem 2.5rem 0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}
-              />
-            </div>
-            <span style={{ fontWeight: 500, color: 'var(--text-light)' }}>{filteredShipments.length} resultados</span>
-          </div>
-          
-          <DataTable 
-            columns={shipmentColumns} 
-            data={filteredShipments} 
-            loading={loading}
-            emptyMessage="Nenhuma entrega registrada."
-            itemsPerPage={15}
-          />
-        </div>
+        renderShipmentsPanel(
+          'entregas',
+          backlogShipments,
+          shipmentSearchTerm, setShipmentSearchTerm,
+          'Nenhuma remessa pendente.'
+        )
       )}
 
       {/* Modal */}
       <TransportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchTransports} />
 
-      {/* Modal Nova Entrega */}
-      <DeliveryModal 
-        isOpen={isShipmentModalOpen} 
-        onClose={() => setIsShipmentModalOpen(false)} 
-        onSave={handleSaveShipment} 
+      {/* Modal de Otimização de Rotas */}
+      <OptimizeRouteModal
+        isOpen={isOptimizeModalOpen}
+        onClose={() => setIsOptimizeModalOpen(false)}
+        onSuccess={fetchTransports}
+      />
+
+      {/* Modal Nova Remessa / Edição */}
+      <DeliveryModal
+        isOpen={isShipmentModalOpen}
+        onClose={() => { setIsShipmentModalOpen(false); setEditingShipment(null); }}
+        onSave={handleSaveShipment}
+        initialData={editingShipment}
+      />
+
+      {/* Confirmação de exclusão de entrega/coleta */}
+      <ConfirmModal
+        isOpen={!!shipmentToDelete}
+        onClose={() => setShipmentToDelete(null)}
+        onConfirm={confirmDeleteShipment}
+        title="Excluir registro"
+        message={`Tem certeza que deseja excluir ${shipmentToDelete?.typeOperation === 'COLETA' ? 'esta coleta' : 'esta entrega'}${shipmentToDelete?.id ? ` (#${shipmentToDelete.id.substring(0, 8)})` : ''}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
       />
 
       {/* Modal de Ocorrências */}
@@ -515,13 +592,13 @@ const TransportPage = () => {
 
       {/* Monitoring Modal */}
       {selectedMonitoringVehicle && (
-        <MonitoringModal 
-          isOpen={isMonitoringModalOpen} 
+        <MonitoringModal
+          isOpen={isMonitoringModalOpen}
           onClose={() => {
             setIsMonitoringModalOpen(false);
             setSelectedMonitoringVehicle(null);
-          }} 
-          vehicle={selectedMonitoringVehicle} 
+          }}
+          vehicle={selectedMonitoringVehicle}
         />
       )}
 

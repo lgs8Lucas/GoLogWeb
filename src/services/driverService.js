@@ -26,10 +26,16 @@ export const driverService = {
     return response.data;
   },
 
+  patchDriver: async (id, driverData) => {
+    const response = await apiClient.patch(`/driver/${id}`, driverData);
+    return response.data;
+  },
+
   // Standard generic REST aliases for compatibility
   getAll: async () => driverService.getAllDrivers(),
   getById: async (id) => driverService.getDriverById(id),
   create: async (payload) => driverService.createDriver(payload),
   update: async (id, payload) => driverService.updateDriver(id, payload),
+  patch: async (id, payload) => driverService.patchDriver(id, payload),
   delete: async (id) => driverService.deleteDriver(id)
 };

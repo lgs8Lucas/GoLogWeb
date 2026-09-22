@@ -4,11 +4,27 @@ import { X, Truck, Package, MapPin, AlertTriangle, User, Clock, Route, Leaf } fr
 import '../styles/MonitoringModal.css';
 import MapComponent from './MapComponent';
 
+// Backend retorna distância em metros e tempo em segundos
+const formatDistance = (meters) => {
+  if (meters == null) return '-';
+  return `${(meters / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`;
+};
+
+const formatDuration = (seconds) => {
+  if (seconds == null) return '-';
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.round((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}min`;
+  return `${minutes}min`;
+};
+
+const formatCurrency = (value) => value != null ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
+
 const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   if (!isOpen || !vehicle) return null;
 
   const totalShipments = vehicle.shipments?.length || 0;
-  const pendingShipments = vehicle.shipments?.filter(s => !s.status || s.status.toUpperCase() === 'PENDING').length || 0;
+  const pendingShipments = vehicle.shipments?.filter(s => !s.status || s.status.toUpperCase() === 'PENDENTE').length || 0;
 
   // Render polyline list
   const polylines = [
@@ -38,9 +54,9 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   };
 
   const getStepStatus = (s, index) => {
-    if (s.status === 'DELIVERED' || s.status === 'COMPLETED') {
+    if (s.status === 'FINALIZADO') {
       return 'completed';
-    } else if (s.status === 'IN_TRANSIT' || s.status === 'ACTIVE') {
+    } else if (s.status === 'INICIADO') {
       return 'active';
     } else {
       if (index === 0) return 'completed';
@@ -76,7 +92,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
           {/* Left Column: Specific Map Route */}
           <div className="monitoring-modal-left">
             <div className="route-map-container" style={{ position: 'relative', height: '100%', width: '100%', overflow: 'hidden', borderRadius: '12px' }}>
-              <MapComponent 
+              <MapComponent
                 zoom={14}
                 polylines={polylines}
               />
@@ -85,26 +101,18 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
 
           {/* Right Column: Route Details */}
           <div className="monitoring-modal-right">
-            
+
             <div className="route-info-block">
               <p>Motorista: <strong>{vehicle.driver}</strong></p>
               <p>Placa: <strong>{vehicle.plate}</strong></p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Route size={16} color="var(--primary-color)" />
-                  <span>{((vehicle.calculedDistance || 0) / 1000).toFixed(2)} km</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Clock size={16} color="var(--warning-color)" />
-                  <span>{formatTime(vehicle.totalTimeCalculed)}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', gridColumn: 'span 2' }}>
-                  <Leaf size={16} color="var(--success-color)" />
-                  <span style={{ color: 'var(--success-color)', fontWeight: 'bold' }}>
-                    Emissão Est.: {(vehicle.totalCostCalculed || 0).toFixed(2)} kg CO₂
-                  </span>
-                </div>
-              </div>
+              <p>Total de remessas: <strong>{totalShipments}</strong></p>
+              <p>Remessas pendentes: <strong>{pendingShipments}</strong></p>
+              <p>Distância calculada: <strong>{formatDistance(vehicle.calculedDistance)}</strong></p>
+              <p>Duração total da operação: <strong>{formatDuration(vehicle.totalTimeCalculed)}</strong></p>
+              <p>Duração em trânsito: <strong>{formatDuration(vehicle.travelDuration)}</strong></p>
+              <p>Custo total calculado: <strong>{formatCurrency(vehicle.totalCostCalculed)}</strong></p>
+              <p>Custo total em distância: <strong>{formatCurrency(vehicle.costKmCalculed)}</strong></p>
+              <p>Custo total em horas: <strong>{formatCurrency(vehicle.costHourCalculed)}</strong></p>
             </div>
 
             <div className="route-section">
@@ -115,7 +123,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                     const isColeta = s.typeOperation === 'COLETA';
                     const stepStatus = getStepStatus(s, index);
                     const IconComponent = isColeta ? Package : MapPin;
-                    
+
                     return (
                       <div key={s.id || index} className={`modal-timeline-item ${stepStatus}`}>
                         <div className="modal-timeline-badge">
@@ -135,7 +143,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                           </div>
                           <p className="modal-timeline-addr">{s.address?.street}, {s.address?.number} - {s.address?.city} ({s.address?.state})</p>
                           <p className="modal-timeline-metrics">
-                            Peso: <strong>{s.weight || 0} kg</strong> | Volume: <strong>{s.volume || 0} m³</strong>
+                            Peso: <strong>{s.routeStop?.weight || 0} kg</strong> | Volume: <strong>{s.routeStop?.volume || 0} m³</strong>
                           </p>
                         </div>
                         {index < vehicle.shipments.length - 1 && (

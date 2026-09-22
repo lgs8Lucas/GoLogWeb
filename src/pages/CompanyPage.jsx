@@ -211,8 +211,8 @@ const CompanyPage = () => {
 
   const filteredCompanies = displayedCompanies.filter(c => {
     const q = searchTerm.toLowerCase();
-    return (c.legalName && c.legalName.toLowerCase().includes(q)) || 
-           (c.cnpjCpf && c.cnpjCpf.toLowerCase().includes(q));
+    return (c.legalName && c.legalName.toLowerCase().includes(q)) ||
+      (c.cnpjCpf && c.cnpjCpf.toLowerCase().includes(q));
   });
 
   const companyColumns = [
@@ -220,9 +220,9 @@ const CompanyPage = () => {
     { label: 'CNPJ/CPF', key: 'cnpjCpf' },
     { label: 'E-mail', key: 'email' },
     { label: 'Telefone', key: 'phoneNumber' },
-    { 
-      label: 'Tipo', 
-      key: 'isCliente', 
+    {
+      label: 'Tipo',
+      key: 'isCliente',
       render: (row) => (
         <span className={`status-badge ${row.isCliente ? 'ativo' : 'status-transportando'}`} style={{
           padding: '4px 12px',
@@ -240,7 +240,7 @@ const CompanyPage = () => {
 
   return (
     <div className="company-page fade-in">
-      <PageHeader 
+      <PageHeader
         title={isOperator ? "Clientes" : "Empresas"}
         description={isOperator ? "Gerencie os clientes do sistema." : "Gerencie os clientes e fornecedores do sistema."}
         icon={Building2}
@@ -258,8 +258,8 @@ const CompanyPage = () => {
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Building2 size={24} color="var(--primary-color)" />
-                {editingId 
-                  ? (isOperator ? 'Editar Cliente' : 'Editar Empresa') 
+                {editingId
+                  ? (isOperator ? 'Editar Cliente' : 'Editar Empresa')
                   : (isOperator ? 'Novo Cliente' : 'Nova Empresa')
                 }
               </h2>
@@ -275,81 +275,81 @@ const CompanyPage = () => {
                 </div>
               )}
 
-          <form onSubmit={handleSave} className="company-form">
-            <div className="form-section-title">Dados Gerais</div>
-            <div className="form-grid">
-              <div className="form-field">
-                <label className="company-label">Razão Social / Nome</label>
-                <input type="text" name="legalName" value={formData.legalName} onChange={handleInputChange} className="company-input" required />
-              </div>
-              <div className="form-field">
-                <label className="company-label">CNPJ / CPF</label>
-                <input type="text" name="cnpjCpf" value={formData.cnpjCpf} onChange={handleInputChange} className="company-input" required />
-              </div>
-              <div className="form-field">
-                <label className="company-label">E-mail</label>
-                <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="company-input" required />
-              </div>
-              <div className="form-field">
-                <label className="company-label">Telefone</label>
-                <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className="company-input" placeholder="(00) 00000-0000" required />
-              </div>
-              <div className="form-field checkbox-field">
-                <label className="company-label">Tipo de Relação</label>
-                <select name="isCliente" value={formData.isCliente} onChange={handleInputChange} className="company-input" disabled={isOperator}>
-                  <option value={true}>Cliente</option>
-                  <option value={false}>Fornecedor / Parceiro</option>
-                </select>
-              </div>
-            </div>
+              <form onSubmit={handleSave} className="company-form">
+                <div className="form-section-title">Dados Gerais</div>
+                <div className="form-grid">
+                  <div className="form-field">
+                    <label className="company-label">Razão Social / Nome</label>
+                    <input type="text" name="legalName" value={formData.legalName} onChange={handleInputChange} className="company-input" required />
+                  </div>
+                  <div className="form-field">
+                    <label className="company-label">CNPJ / CPF</label>
+                    <input type="text" name="cnpjCpf" value={formData.cnpjCpf} onChange={handleInputChange} className="company-input" required />
+                  </div>
+                  <div className="form-field">
+                    <label className="company-label">E-mail</label>
+                    <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="company-input" required />
+                  </div>
+                  <div className="form-field">
+                    <label className="company-label">Telefone</label>
+                    <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className="company-input" placeholder="(00) 00000-0000" required />
+                  </div>
+                  <div className="form-field checkbox-field">
+                    <label className="company-label">Tipo de Relação</label>
+                    <select name="isCliente" value={formData.isCliente} onChange={handleInputChange} className="company-input" disabled={isOperator}>
+                      <option value={true}>Cliente</option>
+                      <option value={false}>Fornecedor / Parceiro</option>
+                    </select>
+                  </div>
+                </div>
 
-            <div className="form-section-title" style={{ marginTop: '2rem' }}>
-              <MapPin size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-              Endereço
-            </div>
-            <div className="form-grid">
-              <div className="form-field">
-                <label className="company-label">CEP</label>
-                <input type="text" name="cep" value={formData.cep} onChange={handleInputChange} onBlur={handleCepBlur} className="company-input" placeholder="00000-000" required />
-              </div>
-              <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                <label className="company-label">Logradouro / Rua</label>
-                <input type="text" name="street" value={formData.street} onChange={handleInputChange} className="company-input" required />
-              </div>
-              <div className="form-field">
-                <label className="company-label">Número</label>
-                <input type="text" name="number" value={formData.number} onChange={handleInputChange} className="company-input" required />
-              </div>
-              <div className="form-field">
-                <label className="company-label">Bairro</label>
-                <input type="text" name="district" value={formData.district} onChange={handleInputChange} className="company-input" required />
-              </div>
-              <div className="form-field">
-                <label className="company-label">Cidade</label>
-                <input type="text" name="city" value={formData.city} onChange={handleInputChange} className="company-input" required />
-              </div>
-              <div className="form-field">
-                <label className="company-label">Estado (UF)</label>
-                <input type="text" name="state" value={formData.state} onChange={handleInputChange} className="company-input" maxLength="2" required />
-              </div>
-              <div className="form-field">
-                <label className="company-label">Complemento</label>
-                <input type="text" name="complement" value={formData.complement} onChange={handleInputChange} className="company-input" />
-              </div>
-            </div>
+                <div className="form-section-title" style={{ marginTop: '2rem' }}>
+                  <MapPin size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                  Endereço
+                </div>
+                <div className="form-grid">
+                  <div className="form-field">
+                    <label className="company-label">CEP</label>
+                    <input type="text" name="cep" value={formData.cep} onChange={handleInputChange} onBlur={handleCepBlur} className="company-input" placeholder="00000-000" required />
+                  </div>
+                  <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                    <label className="company-label">Logradouro / Rua</label>
+                    <input type="text" name="street" value={formData.street} onChange={handleInputChange} className="company-input" required />
+                  </div>
+                  <div className="form-field">
+                    <label className="company-label">Número</label>
+                    <input type="text" name="number" value={formData.number} onChange={handleInputChange} className="company-input" required />
+                  </div>
+                  <div className="form-field">
+                    <label className="company-label">Bairro</label>
+                    <input type="text" name="district" value={formData.district} onChange={handleInputChange} className="company-input" required />
+                  </div>
+                  <div className="form-field">
+                    <label className="company-label">Cidade</label>
+                    <input type="text" name="city" value={formData.city} onChange={handleInputChange} className="company-input" required />
+                  </div>
+                  <div className="form-field">
+                    <label className="company-label">Estado (UF)</label>
+                    <input type="text" name="state" value={formData.state} onChange={handleInputChange} className="company-input" maxLength="2" required />
+                  </div>
+                  <div className="form-field">
+                    <label className="company-label">Complemento</label>
+                    <input type="text" name="complement" value={formData.complement} onChange={handleInputChange} className="company-input" />
+                  </div>
+                </div>
 
-            <div className="modal-action-buttons" style={{ justifyContent: 'flex-end', marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
-              <button type="button" className="btn-cancel" onClick={() => { setFormData(initialFormState); setEditingId(null); setIsModalOpen(false); }} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
-                <XOctagon size={16} style={{ display: 'inline', marginRight: '4px' }}/> Cancelar
-              </button>
-              <button type="submit" className="btn-primary">
-                <Save size={16} /> {editingId 
-                  ? (isOperator ? 'Atualizar Cliente' : 'Atualizar Empresa') 
-                  : (isOperator ? 'Cadastrar Cliente' : 'Cadastrar Empresa')
-                }
-              </button>
-            </div>
-          </form>
+                <div className="modal-action-buttons" style={{ justifyContent: 'flex-end', marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
+                  <button type="button" className="btn-cancel" onClick={() => { setFormData(initialFormState); setEditingId(null); setIsModalOpen(false); }} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
+                    <XOctagon size={16} style={{ display: 'inline', marginRight: '4px' }} /> Cancelar
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    <Save size={16} /> {editingId
+                      ? (isOperator ? 'Atualizar Cliente' : 'Atualizar Empresa')
+                      : (isOperator ? 'Cadastrar Cliente' : 'Cadastrar Empresa')
+                    }
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>,
@@ -360,34 +360,34 @@ const CompanyPage = () => {
         <div className="list-header">
           <div className="search-wrapper">
             <Search size={18} className="search-icon" />
-            <input 
-              type="text" 
-              placeholder={isOperator ? "Pesquisar cliente..." : "Pesquisar empresa..."} 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
+            <input
+              type="text"
+              placeholder={isOperator ? "Pesquisar cliente..." : "Pesquisar empresa..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="list-search-input"
             />
           </div>
           <span className="list-count">
-            {isOperator 
-              ? `${displayedCompanies.length} clientes` 
+            {isOperator
+              ? `${displayedCompanies.length} clientes`
               : `${companies.length} empresas`
             }
           </span>
         </div>
 
         <div className="list-container">
-          <DataTable 
-            columns={companyColumns} 
-            data={filteredCompanies} 
-            loading={loading} 
-            onEdit={handleEditClick} 
-            onDelete={handleDelete} 
-            itemsPerPage={10} 
+          <DataTable
+            columns={companyColumns}
+            data={filteredCompanies}
+            loading={loading}
+            onEdit={handleEditClick}
+            onDelete={handleDelete}
+            itemsPerPage={10}
           />
         </div>
       </div>
-      
+
       <ConfirmModal
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
