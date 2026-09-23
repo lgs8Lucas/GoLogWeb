@@ -27,83 +27,171 @@
   border-bottom-color: var(--secondary-color);
 }
 
-/* Accordion TMS Table */
-.tms-transport-accordion-list {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.tms-accordion-header {
-  display: grid;
-  grid-template-columns: 120px 1fr 1fr 1fr 1fr 120px 80px;
-  gap: 1rem;
-  background-color: var(--bg-hover);
-  padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-@media (max-width: 900px) {
-  .tms-accordion-header {
-    display: none;
-  }
-}
-
-.tms-accordion-item {
-  border-bottom: 1px solid var(--border-light);
-  transition: var(--transition);
-}
-
-.tms-accordion-item:hover {
-  background-color: var(--bg-hover);
-}
-
-.tms-accordion-summary {
-  display: grid;
-  grid-template-columns: 120px 1fr 1fr 1fr 1fr 120px 80px;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  align-items: center;
-  cursor: pointer;
-}
-
-@media (max-width: 900px) {
-  .tms-accordion-summary {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-}
-
-.tms-code-badge {
-  font-size: 0.875rem;
-  font-weight: 800;
-  color: var(--primary-color);
-}
-
-.tms-cell-bold {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.tms-cell-muted {
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-}
-
-.tms-accordion-body {
-  padding: 1.25rem 1.5rem;
-  background-color: var(--bg-subtle);
-  border-top: 1px solid var(--border-color);
+/* Modern TMS Transport Card Layout */
+.tms-transport-cards-grid {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  width: 100%;
+}
+
+.tms-transport-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.tms-transport-card:hover {
+  border-color: var(--border-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.tms-transport-card.expanded {
+  border-color: rgba(42, 178, 155, 0.4);
+  box-shadow: 0 8px 24px -4px rgba(31, 48, 76, 0.08);
+}
+
+/* Card Header Banner */
+.tms-card-header {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  cursor: pointer;
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg-hover) 100%);
+  border-bottom: 1px solid transparent;
+  transition: var(--transition);
+}
+
+.tms-transport-card.expanded .tms-card-header {
+  border-bottom-color: var(--border-color);
+}
+
+.tms-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tms-card-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tms-code-chip {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  background-color: var(--primary-glow);
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.02em;
+}
+
+.tms-stops-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+}
+
+/* Card Main Route Info */
+.tms-card-route-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .tms-card-route-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .tms-card-route-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+.tms-route-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tms-route-point {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.tms-route-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tms-route-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.tms-route-arrow {
+  color: var(--secondary-color);
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+}
+
+.tms-card-entity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tms-entity-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tms-entity-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+/* Card Details Body */
+.tms-accordion-body {
+  padding: 1.5rem;
+  background-color: var(--bg-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .tms-accordion-toolbar {
@@ -112,22 +200,26 @@
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-md);
 }
 
 .tms-metrics-pill-group {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.85rem;
   flex-wrap: wrap;
 }
 
 .tms-metric-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  background-color: var(--bg-surface);
+  gap: 0.45rem;
+  background-color: var(--bg-hover);
   border: 1px solid var(--border-color);
-  padding: 0.35rem 0.75rem;
+  padding: 0.45rem 0.85rem;
   border-radius: var(--radius-full);
   font-size: 0.8125rem;
   font-weight: 600;
@@ -140,46 +232,146 @@
   color: var(--status-active-text);
 }
 
-/* Horizontal Stepper */
-.tms-horizontal-stepper {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  overflow-x: auto;
-  padding: 0.5rem 0;
+/* Steps Timeline Enhanced */
+.tms-stepper-card-wrapper {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
 }
 
-.stepper-step {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
-}
-
-.stepper-dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: var(--border-dark);
-  color: #ffffff;
-  font-size: 0.75rem;
+.tms-stepper-header {
+  font-size: 0.875rem;
   font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vertical-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.timeline-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--bg-hover);
+  border: 2px solid var(--border-color);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  transition: var(--transition);
 }
 
-.stepper-step.completed .stepper-dot {
+.timeline-item.completed .timeline-badge {
+  background-color: var(--status-active-bg);
+  border-color: var(--status-active-text);
+  color: var(--status-active-text);
+}
+
+.timeline-item.active .timeline-badge {
+  background-color: rgba(42, 178, 155, 0.15);
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
+}
+
+.active-ping {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--secondary-color);
+  opacity: 0.4;
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.timeline-content {
+  flex: 1;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  transition: var(--transition);
+}
+
+.timeline-item:hover .timeline-content {
+  border-color: var(--border-dark);
+  background-color: var(--bg-active);
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.timeline-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.status-badge-small {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.status-badge-small.completed {
+  background-color: var(--status-active-bg);
+  color: var(--status-active-text);
+}
+
+.status-badge-small.active {
+  background-color: rgba(42, 178, 155, 0.15);
+  color: var(--secondary-color);
+}
+
+.status-badge-small.pending {
+  background-color: var(--bg-subtle);
+  color: var(--text-muted);
+}
+
+.timeline-connector {
+  position: absolute;
+  top: 36px;
+  left: 17px;
+  width: 2px;
+  height: calc(100% - 36px);
+  background-color: var(--border-color);
+  z-index: 1;
+}
+
+.timeline-connector.completed {
   background-color: var(--status-active-text);
 }
 
-.stepper-step.active .stepper-dot {
-  background-color: var(--secondary-color);
-  box-shadow: 0 0 8px rgba(42, 178, 155, 0.4);
-}
-
-.stepper-label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-body);
-}

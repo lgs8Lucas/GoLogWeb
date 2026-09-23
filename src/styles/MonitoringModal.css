@@ -1,214 +1,352 @@
 .monitoring-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(6px);
-  z-index: 1000;
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 1050;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
 .monitoring-modal-content {
   background-color: var(--bg-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl, 16px);
   width: 100%;
-  max-width: 1100px;
-  max-height: 90vh;
+  max-width: 1280px;
+  height: 90vh;
+  max-height: 880px;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
   border: 1px solid var(--border-color);
   overflow: hidden;
+  animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Modal Header */
 .monitoring-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.75rem;
+  padding: 1.15rem 1.75rem;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-hover);
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg-hover) 100%);
 }
 
-.monitoring-modal-header h2 {
-  font-size: 1.25rem;
+.monitoring-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.monitoring-header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--primary-glow);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.monitoring-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.monitoring-header-titles h2 {
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--primary-color);
+  margin: 0;
+  letter-spacing: -0.01em;
 }
 
+.monitoring-header-sub {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Modal 2-Column Split Body */
 .monitoring-modal-body {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1.35fr 1fr;
   flex: 1;
-  overflow-y: auto;
+  min-height: 0; /* Crucial for internal scroll */
+  overflow: hidden;
 }
 
-@media (min-width: 850px) {
+@media (max-width: 980px) {
   .monitoring-modal-body {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    overflow-y: auto;
   }
 }
 
+/* Left Map Section */
 .monitoring-modal-left {
-  padding: 1.5rem;
-  min-height: 380px;
+  position: relative;
+  height: 100%;
+  width: 100%;
   background-color: var(--bg-app);
-}
-
-.monitoring-modal-right {
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  overflow: hidden;
 }
 
-.route-info-block {
+.monitoring-map-wrapper {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.monitoring-map-legend {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 400;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+}
+
+.monitoring-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.monitoring-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Right Panel: Tabs, Metrics, Timeline & Incidents */
+.monitoring-modal-right {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-surface);
+  min-height: 0;
+}
+
+/* Quick Metrics Header Bar in Right Panel */
+.monitoring-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.monitoring-strip-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.monitoring-strip-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.monitoring-strip-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.monitoring-strip-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.monitoring-strip-val {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+/* Internal Nav Tabs */
+.monitoring-right-tabs {
+  display: flex;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  gap: 0.5rem;
+}
+
+.monitoring-tab-button {
+  background: none;
+  border: none;
+  padding: 0.75rem 1rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: var(--transition);
+}
+
+.monitoring-tab-button:hover {
+  color: var(--primary-color);
+}
+
+.monitoring-tab-button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--secondary-color);
+}
+
+/* Scrollable Panel Area */
+.monitoring-tab-scroll {
+  flex: 1;
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Key-Value Information Grid for Overview Tab */
+.monitoring-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.monitoring-kv-card {
   background-color: var(--bg-hover);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 1rem;
-  font-size: 0.875rem;
-}
-
-.route-section h3 {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  margin-bottom: 0.85rem;
-}
-
-.modal-vertical-timeline {
+  padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  position: relative;
+  gap: 0.2rem;
 }
 
+.monitoring-kv-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.monitoring-kv-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* Timeline Cards in Monitoring Modal */
 .modal-timeline-item {
   display: flex;
+  align-items: flex-start;
   gap: 0.85rem;
   position: relative;
+  padding-bottom: 0.85rem;
 }
 
 .modal-timeline-badge {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: var(--border-color);
+  background-color: var(--bg-hover);
+  border: 2px solid var(--border-color);
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   z-index: 2;
-}
-
-.modal-timeline-item.active .modal-timeline-badge {
-  background-color: var(--secondary-color);
-  color: #ffffff;
-  box-shadow: 0 0 10px rgba(42, 178, 155, 0.4);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  position: relative;
 }
 
 .modal-timeline-item.completed .modal-timeline-badge {
-  background-color: var(--status-active-text);
-  color: #ffffff;
+  background-color: var(--status-active-bg);
+  border-color: var(--status-active-text);
+  color: var(--status-active-text);
+}
+
+.modal-timeline-item.active .modal-timeline-badge {
+  background-color: rgba(42, 178, 155, 0.15);
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
 }
 
 .modal-timeline-content {
   flex: 1;
   background-color: var(--bg-hover);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.4rem;
+  transition: var(--transition);
 }
 
-.modal-timeline-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.modal-timeline-item:hover .modal-timeline-content {
+  border-color: var(--border-dark);
+  background-color: var(--bg-active);
 }
 
-.modal-timeline-title {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--text-main);
+.modal-timeline-connector {
+  position: absolute;
+  top: 32px;
+  left: 15px;
+  width: 2px;
+  height: calc(100% - 32px);
+  background-color: var(--border-color);
+  z-index: 1;
 }
 
-.status-badge-small {
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-full);
-}
-
-.status-badge-small.completed {
-  background-color: var(--status-active-bg);
-  color: var(--status-active-text);
-}
-
-.status-badge-small.active {
-  background-color: var(--status-info-bg);
-  color: var(--status-info-text);
-}
-
-.status-badge-small.pending {
-  background-color: var(--status-warning-bg);
-  color: var(--status-warning-text);
-}
-
-.modal-timeline-addr {
-  font-size: 0.8125rem;
-  color: var(--text-body);
-}
-
-.modal-timeline-metrics {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.route-occurrences {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.route-occ-card {
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.8125rem;
-}
-
-.route-occ-card.occ-danger {
-  background-color: var(--status-danger-bg);
-  border-color: var(--status-danger-border);
-  color: var(--status-danger-text);
-}
-
-.route-occ-card.occ-warning {
-  background-color: var(--status-warning-bg);
-  border-color: var(--status-warning-border);
-  color: var(--status-warning-text);
-}
-
-.route-occ-card.occ-info {
-  background-color: var(--status-info-bg);
-  border-color: var(--status-info-border);
-  color: var(--status-info-text);
-}
-
-.occ-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 700;
+.modal-timeline-connector.completed {
+  background-color: var(--status-active-text);
 }

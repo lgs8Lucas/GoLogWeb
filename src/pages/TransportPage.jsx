@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, Navigation, AlertTriangle, X, Route, Clock, Leaf, Sparkles } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, Navigation, AlertTriangle, X, Route, Clock, Leaf, Sparkles, User, ArrowRight, Eye, ShieldAlert, Calendar, CheckCircle2, Box } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
@@ -78,7 +78,11 @@ const TransportPage = () => {
         if (tShipments.length > 0) {
           steps = tShipments.map((s, index) => {
             const isColeta = s.typeOperation === 'COLETA';
-            const label = `${isColeta ? 'Coleta' : 'Entrega'}: ${s.customer?.legalName || 'Cliente'} (${s.address?.city || s.customer?.address?.city || 'Araras'})`;
+            const customerName = s.customer?.legalName || 'Cliente';
+            const city = s.address?.city || s.customer?.address?.city || 'Araras';
+            const state = s.address?.state || s.customer?.address?.state || 'SP';
+            const street = s.address?.street ? `${s.address.street}, ${s.address.number || 'S/N'}` : null;
+            const sched = s.shedulind || s.schedulind;
 
             let status = 'pending';
             if (s.status === 'FINALIZADO') {
@@ -91,10 +95,37 @@ const TransportPage = () => {
               else status = 'pending';
             }
 
-            return { label, status, type: isColeta ? 'package' : 'pin' };
+            return {
+              id: s.id,
+              sequence: s.routeStop?.sequenceOrder ?? (index + 1),
+              isColeta,
+              operation: isColeta ? 'Coleta' : 'Entrega',
+              customerName,
+              city,
+              state,
+              street,
+              weight: s.weight || 0,
+              volume: s.volume || 0,
+              scheduledAt: sched ? new Date(sched).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : null,
+              status,
+              rawShipment: s
+            };
           });
         } else {
-          steps = [{ label: 'Viagem planejada', status: 'active', type: 'package' }];
+          steps = [{
+            id: 'planned',
+            sequence: 1,
+            isColeta: false,
+            operation: 'Viagem',
+            customerName: 'Viagem planejada sem remessas vinculadas',
+            city: origin,
+            state: '',
+            street: null,
+            weight: 0,
+            volume: 0,
+            scheduledAt: null,
+            status: 'active'
+          }];
         }
 
         const locations = tShipments.map(s => {
@@ -250,32 +281,67 @@ const TransportPage = () => {
     return (
       <div className="vertical-timeline">
         {steps.map((step, index) => {
-          let IconComponent = Package;
-          if (step.type === 'pin') IconComponent = MapPin;
+          const isCompleted = step.status === 'completed';
+          const isActive = step.status === 'active';
 
           return (
             <div
-              key={index}
+              key={step.id || index}
               className={`timeline-item ${step.status}`}
               onClick={onItemClick}
-              style={{ cursor: 'pointer' }}
             >
               <div className="timeline-badge">
-                <IconComponent size={18} />
-                {step.status === 'active' && (
-                  <span className="active-ping"></span>
+                {isCompleted ? (
+                  <CheckCircle2 size={18} color="var(--status-active-text)" />
+                ) : (
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>
+                    {step.sequence}
+                  </span>
                 )}
+                {isActive && <span className="active-ping"></span>}
               </div>
+
               <div className="timeline-content">
                 <div className="timeline-header">
-                  <span className="timeline-title">{step.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span className={`status-chip ${step.isColeta ? 'warning' : 'info'}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem' }}>
+                      {step.operation}
+                    </span>
+                    <span className="timeline-title">{step.customerName}</span>
+                  </div>
+
                   <span className={`status-badge-small ${step.status}`}>
-                    {step.status === 'completed' ? 'Concluído' : step.status === 'active' ? 'Em andamento' : 'Pendente'}
+                    {isCompleted ? '✓ Concluído' : isActive ? '● Em andamento' : '○ Pendente'}
                   </span>
                 </div>
+
+                <div className="timeline-details-grid">
+                  <div className="timeline-detail-item">
+                    <MapPin size={14} color="var(--primary-color)" />
+                    <span>
+                      {step.city} {step.state ? `- ${step.state}` : ''}
+                      {step.street && <small style={{ color: 'var(--text-muted)', display: 'block' }}>{step.street}</small>}
+                    </span>
+                  </div>
+
+                  {step.scheduledAt && (
+                    <div className="timeline-detail-item">
+                      <Calendar size={14} color="var(--text-muted)" />
+                      <span>Agendado: {step.scheduledAt}</span>
+                    </div>
+                  )}
+
+                  {(step.weight > 0 || step.volume > 0) && (
+                    <div className="timeline-detail-item">
+                      <Box size={14} color="var(--text-muted)" />
+                      <span>{step.weight} kg &bull; {step.volume} m³</span>
+                    </div>
+                  )}
+                </div>
               </div>
+
               {index < steps.length - 1 && (
-                <div className={`timeline-connector ${step.status === 'completed' ? 'completed' : ''}`}></div>
+                <div className={`timeline-connector ${isCompleted ? 'completed' : ''}`}></div>
               )}
             </div>
           );
@@ -405,96 +471,172 @@ const TransportPage = () => {
             onClear={() => setTransportFilters({})}
           />
 
-          <div className="table-container">
-            <div className="tms-transport-accordion-list">
-              <div className="tms-accordion-header">
-                <div>Código / ID</div>
-                <div>Origem</div>
-                <div>Destino Atual</div>
-                <div>Equipamento(s)</div>
-                <div>Motorista</div>
-                <div>Status</div>
-                <div style={{ textAlign: 'center' }}>Detalhes</div>
+          <div className="tms-transport-cards-grid">
+            {loading ? (
+              <div className="card" style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '32px', height: '32px', border: '3px solid var(--border-color)', borderTopColor: 'var(--secondary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <span style={{ fontWeight: 600 }}>Carregando viagens ativas...</span>
+                </div>
               </div>
+            ) : filteredTransports.length === 0 ? (
+              <div className="card" style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Truck size={36} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
+                <h4 style={{ margin: '0 0 0.25rem', color: 'var(--text-main)' }}>Nenhuma viagem ativa encontrada</h4>
+                <p style={{ margin: 0, fontSize: '0.875rem' }}>Ajuste os filtros selecionados ou crie um novo transporte.</p>
+              </div>
+            ) : filteredTransports.map((item) => {
+              const isExpanded = expandedRow === item.id;
+              const hasOccurrences = (item.occurrences?.length || 0) > 0;
+              const stepsCount = item.steps?.length || 0;
+              const completedCount = item.steps ? item.steps.filter(s => s.status === 'completed').length : 0;
+              
+              return (
+                <div key={item.id} className={`tms-transport-card ${isExpanded ? 'expanded' : ''}`}>
+                  {/* Card Main Summary Header */}
+                  <div className="tms-card-header" onClick={() => toggleRow(item.id)}>
+                    <div className="tms-card-top-row">
+                      <div className="tms-card-id-badge">
+                        <span className="tms-code-chip">{item.id}</span>
+                        <span className="tms-stops-count-badge">
+                          <Package size={14} color="var(--primary-color)" />
+                          <span>{completedCount} de {stepsCount} paradas concluídas</span>
+                        </span>
+                        {hasOccurrences && (
+                          <span className="status-chip danger" style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem' }}>
+                            <ShieldAlert size={13} />
+                            {item.occurrences.length} Ocorrência{item.occurrences.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
 
-              {loading ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Carregando transportes ativos...
-                </div>
-              ) : filteredTransports.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Nenhum transporte encontrado com os filtros selecionados.
-                </div>
-              ) : filteredTransports.map((item) => {
-                const isExpanded = expandedRow === item.id;
-                
-                return (
-                  <div key={item.id} className={`tms-accordion-item ${isExpanded ? 'expanded' : ''}`}>
-                    <div className="tms-accordion-summary" onClick={() => toggleRow(item.id)}>
-                      <div className="tms-code-badge">{item.id}</div>
-                      <div className="tms-cell-bold">{item.origin}</div>
-                      <div className="tms-cell-bold">{item.currentDest}</div>
-                      <div className="tms-cell-muted">{item.equipments}</div>
-                      <div className="tms-cell-bold">{item.driver}</div>
-                      <div>
-                        <span className={`status-chip ${item.status === 'Atrasado' ? 'atrasado' : 'info'}`}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span className={`status-chip ${item.status === 'Atrasado' ? 'danger' : 'active'}`}>
                           {item.status}
                         </span>
-                      </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <button className="btn-icon">
+                        <button className="btn-icon" style={{ backgroundColor: 'var(--bg-hover)' }}>
                           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                         </button>
                       </div>
                     </div>
 
-                    {isExpanded && item.steps && (
-                      <div className="tms-accordion-body fade-in">
-                        <div className="tms-accordion-toolbar">
-                          <div className="tms-metrics-pill-group">
-                            <div className="tms-metric-pill">
-                              <Route size={16} color="var(--primary-color)" />
-                              <span>{((item.rawTransport?.calculedDistance || 0) / 1000).toFixed(2)} km</span>
-                            </div>
-                            <div className="tms-metric-pill">
-                              <Clock size={16} color="var(--status-warning-text)" />
-                              <span>
-                                {Math.floor((item.rawTransport?.totalTimeCalculed || 0) / 3600)}h {Math.floor(((item.rawTransport?.totalTimeCalculed || 0) % 3600) / 60)}m
-                              </span>
-                            </div>
-                            <div className="tms-metric-pill green">
-                              <Leaf size={16} color="var(--status-active-text)" />
-                              <span>
-                                {(item.rawTransport?.totalCostCalculed || 0).toFixed(2)} kg CO₂
-                              </span>
-                            </div>
-                          </div>
+                    <div className="tms-card-route-row">
+                      {/* Origem e Destino */}
+                      <div className="tms-route-display">
+                        <div className="tms-route-point">
+                          <span className="tms-route-label">Origem</span>
+                          <span className="tms-route-value">{item.origin}</span>
+                        </div>
+                        <div className="tms-route-arrow">
+                          <ArrowRight size={18} />
+                        </div>
+                        <div className="tms-route-point">
+                          <span className="tms-route-label">Destino</span>
+                          <span className="tms-route-value">{item.currentDest}</span>
+                        </div>
+                      </div>
 
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button 
-                              className="btn btn-outline" 
-                              style={{ padding: '0.4rem 0.85rem', fontSize: '0.8125rem' }}
-                              onClick={() => handleOpenMap(item)}
-                            >
-                              Acompanhar Rota no Mapa
-                            </button>
-                            <button 
-                              className="btn btn-danger" 
-                              style={{ padding: '0.4rem 0.85rem', fontSize: '0.8125rem' }}
-                              onClick={() => handleOpenOccurrences(item)}
-                            >
-                              Ocorrências ({item.occurrences?.length || 0})
-                            </button>
+                      {/* Motorista */}
+                      <div className="tms-card-entity">
+                        <span className="tms-entity-label">
+                          <User size={13} />
+                          Motorista
+                        </span>
+                        <span className="tms-entity-value">{item.driver}</span>
+                      </div>
+
+                      {/* Equipamento */}
+                      <div className="tms-card-entity">
+                        <span className="tms-entity-label">
+                          <Truck size={13} />
+                          Frota / Placa
+                        </span>
+                        <span className="tms-entity-value">{item.equipments}</span>
+                      </div>
+
+                      {/* Quick action button */}
+                      <div>
+                        <button 
+                          type="button"
+                          className="btn btn-outline" 
+                          style={{ padding: '0.45rem 0.85rem', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenMap(item);
+                          }}
+                        >
+                          <Eye size={15} color="var(--primary-color)" />
+                          Ver Mapa
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Body: Telemetry Metrics & Enhanced Stepper */}
+                  {isExpanded && item.steps && (
+                    <div className="tms-accordion-body fade-in">
+                      <div className="tms-accordion-toolbar">
+                        <div className="tms-metrics-pill-group">
+                          <div className="tms-metric-pill">
+                            <Route size={16} color="var(--primary-color)" />
+                            <span>Distância Planejada: <strong>{((item.rawTransport?.calculedDistance || 0) / 1000).toFixed(2)} km</strong></span>
+                          </div>
+                          <div className="tms-metric-pill">
+                            <Clock size={16} color="var(--status-warning-text)" />
+                            <span>Tempo Estimado: <strong>{Math.floor((item.rawTransport?.totalTimeCalculed || 0) / 3600)}h {Math.floor(((item.rawTransport?.totalTimeCalculed || 0) % 3600) / 60)}m</strong></span>
+                          </div>
+                          <div className="tms-metric-pill green">
+                            <Leaf size={16} color="var(--status-active-text)" />
+                            <span>Emissão CO₂: <strong>{(item.rawTransport?.totalCostCalculed || 0).toFixed(2)} kg</strong></span>
                           </div>
                         </div>
 
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button 
+                            type="button"
+                            className="btn btn-secondary" 
+                            style={{ padding: '0.45rem 1rem', fontSize: '0.8125rem' }}
+                            onClick={() => handleOpenMap(item)}
+                          >
+                            <MapPin size={15} />
+                            Acompanhar em Tempo Real
+                          </button>
+                          <button 
+                            type="button"
+                            className="btn btn-outline" 
+                            style={{ 
+                              padding: '0.45rem 0.85rem', 
+                              fontSize: '0.8125rem',
+                              borderColor: hasOccurrences ? 'var(--status-danger-border)' : 'var(--border-color)',
+                              color: hasOccurrences ? 'var(--status-danger-text)' : 'var(--text-main)',
+                              backgroundColor: hasOccurrences ? 'var(--status-danger-bg)' : 'transparent'
+                            }}
+                            onClick={() => handleOpenOccurrences(item)}
+                          >
+                            <AlertTriangle size={15} />
+                            Ocorrências ({item.occurrences?.length || 0})
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Timeline Card */}
+                      <div className="tms-stepper-card-wrapper">
+                        <div className="tms-stepper-header">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Navigation size={16} color="var(--secondary-color)" />
+                            <span>Roteiro de Paradas & Entregas</span>
+                          </div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Clique em uma parada para focar no mapa
+                          </span>
+                        </div>
                         {renderStepper(item.steps, () => handleOpenMap(item))}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (
