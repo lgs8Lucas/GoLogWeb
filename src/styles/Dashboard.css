@@ -4,12 +4,17 @@
   grid-template-columns: 1fr;
   gap: 1.5rem;
   width: 100%;
+  transition: all 0.3s ease;
 }
 
 @media (min-width: 1200px) {
   .dashboard-grid-container {
-    grid-template-columns: 1.5fr 1fr;
+    grid-template-columns: 1.6fr 1fr;
     align-items: start;
+  }
+
+  .dashboard-grid-container.map-fullwidth {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -18,7 +23,13 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  min-height: 520px;
+  min-height: 580px;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+}
+
+.dashboard-map-card.expanded {
+  min-height: 720px;
 }
 
 .dashboard-card-header {
@@ -35,9 +46,69 @@
   gap: 0.85rem;
 }
 
+.dashboard-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.live-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: var(--status-active-bg);
+  border: 1px solid var(--status-active-border);
+  color: var(--status-active-text);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-full);
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  background-color: var(--status-active-text);
+  border-radius: 50%;
+  animation: pulseGlow 1.5s infinite ease-in-out;
+}
+
+.dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.active-routes-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0.25rem 0.75rem;
+  background: var(--bg-app);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.active-routes-counter .count-num {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  line-height: 1;
+}
+
+.active-routes-counter .count-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .icon-badge {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   background-color: var(--primary-glow);
   display: flex;
@@ -47,7 +118,7 @@
 }
 
 .dashboard-card-title h2 {
-  font-size: 1.125rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--primary-color);
   letter-spacing: -0.01em;
@@ -60,11 +131,15 @@
 
 .map-view-wrapper {
   flex: 1;
-  min-height: 420px;
+  min-height: 480px;
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border-color);
   position: relative;
+}
+
+.dashboard-map-card.expanded .map-view-wrapper {
+  min-height: 620px;
 }
 
 /* Stats Column */

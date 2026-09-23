@@ -20,12 +20,56 @@
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  padding: 1.25rem 0.85rem;
+  padding: 1rem 0.75rem;
   box-shadow: 2px 0 10px rgba(15, 23, 42, 0.03);
   overflow-y: auto;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-x: hidden;
+  height: 100%;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 160;
   flex-shrink: 0;
+}
+
+/* Collapsed Sidebar Style (Icon only) */
+.sidebar-container.collapsed {
+  width: 72px;
+  padding: 1rem 0.5rem;
+}
+
+.sidebar-collapse-bar {
+  display: none;
+  justify-content: flex-end;
+  padding: 0 0.25rem 0.5rem 0.25rem;
+}
+
+@media (min-width: 1024px) {
+  .sidebar-collapse-bar {
+    display: flex;
+  }
+}
+
+.sidebar-collapse-btn {
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sidebar-collapse-btn:hover {
+  color: var(--primary-color);
+  border-color: var(--border-dark);
+  background-color: var(--bg-active);
+}
+
+.sidebar-container.collapsed .sidebar-collapse-bar {
+  justify-content: center;
 }
 
 /* Mobile drawer behavior */
@@ -89,6 +133,19 @@
   letter-spacing: 0.08em;
   margin: 1.25rem 0 0.4rem 0.75rem;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s ease, margin 0.2s ease;
+}
+
+/* Hide section titles and labels when collapsed */
+.sidebar-container.collapsed .sidebar-section-title {
+  opacity: 0;
+  height: 0;
+  margin: 0.4rem 0 0.2rem 0;
+  border-top: 1px solid var(--border-light);
+  overflow: hidden;
 }
 
 .sidebar-link {
@@ -102,11 +159,13 @@
   font-size: 0.875rem;
   font-weight: 600;
   transition: var(--transition);
+  white-space: nowrap;
 }
 
 .sidebar-link svg {
   color: var(--text-muted);
   transition: var(--transition);
+  flex-shrink: 0;
 }
 
 .sidebar-link:hover {
@@ -130,4 +189,20 @@
 
 .sidebar-link.active svg {
   color: var(--secondary-color);
+}
+
+/* Collapsed link styling */
+.sidebar-container.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 0.75rem 0;
+  gap: 0;
+}
+
+.sidebar-container.collapsed .sidebar-link span {
+  display: none;
+}
+
+.sidebar-container.collapsed .sidebar-link:hover {
+  transform: none;
+  background-color: var(--bg-active);
 }

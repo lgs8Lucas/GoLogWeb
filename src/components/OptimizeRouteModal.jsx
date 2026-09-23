@@ -103,27 +103,27 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   return createPortal(
-    <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
-      <div className="modal-content" style={{ maxWidth: '700px' }}>
+    <div className="modal-overlay fade-in">
+      <div className="modal-content" style={{ maxWidth: '720px' }}>
         <div className="modal-header">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FastForward size={24} color="var(--primary-color)" />
-            Otimizar Rotas
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <FastForward size={22} color="var(--primary-color)" />
+            Otimizar e Planejar Rotas
           </h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">
-            <X size={24} />
+          <button className="modal-close-btn" onClick={onClose} aria-label="Fechar">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="modal-body" style={{ gap: '1.5rem' }}>
+        <div className="modal-body">
           {loading ? (
-            <p style={{ textAlign: 'center', color: 'var(--text-light)' }}>Carregando remessas e escalas...</p>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>Carregando remessas e escalas...</p>
           ) : (
             <>
               <div className="form-group">
-                <label>Prioridade da Otimização</label>
+                <label className="form-label">Prioridade da Otimização</label>
                 <select
-                  className="modal-input"
+                  className="form-select"
                   value={routePriority}
                   onChange={(e) => setRoutePriority(e.target.value)}
                 >
@@ -134,14 +134,14 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
               </div>
 
               <div className="form-group">
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Remessas Pendentes ({selectedShipmentIds.length}/{shipments.length})</span>
-                  <button type="button" className="btn-cancel" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }} onClick={() => toggleAll(shipments, selectedShipmentIds, setSelectedShipmentIds)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label className="form-label" style={{ margin: 0 }}>Remessas Pendentes ({selectedShipmentIds.length}/{shipments.length})</label>
+                  <button type="button" className="btn btn-outline" style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }} onClick={() => toggleAll(shipments, selectedShipmentIds, setSelectedShipmentIds)}>
                     {selectedShipmentIds.length === shipments.length && shipments.length > 0 ? 'Desmarcar todas' : 'Selecionar todas'}
                   </button>
-                </label>
+                </div>
                 <div style={checkboxListStyle}>
-                  {shipments.length === 0 && <p style={{ padding: '0.5rem', color: 'var(--text-light)' }}>Nenhuma remessa pendente.</p>}
+                  {shipments.length === 0 && <p style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Nenhuma remessa pendente encontrada.</p>}
                   {shipments.map(s => (
                     <label key={s.id} style={checkboxItemStyle}>
                       <input
@@ -152,7 +152,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
                       <span>
                         <strong>#{s.id.substring(0, 8)}</strong> — {s.typeOperation || 'ENTREGA'} — {s.customer?.legalName || 'Sem cliente'}
                         <br />
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                           {s.weight || 0} kg | {s.volume || 0} m³ | {s.address?.city || s.customer?.address?.city || 'Araras'}
                         </span>
                       </span>
@@ -162,14 +162,14 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
               </div>
 
               <div className="form-group">
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Escalas de Trabalho Ativas ({selectedScheduleIds.length}/{workSchedules.length})</span>
-                  <button type="button" className="btn-cancel" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }} onClick={() => toggleAll(workSchedules, selectedScheduleIds, setSelectedScheduleIds)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <label className="form-label" style={{ margin: 0 }}>Escalas de Trabalho Ativas ({selectedScheduleIds.length}/{workSchedules.length})</label>
+                  <button type="button" className="btn btn-outline" style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }} onClick={() => toggleAll(workSchedules, selectedScheduleIds, setSelectedScheduleIds)}>
                     {selectedScheduleIds.length === workSchedules.length && workSchedules.length > 0 ? 'Desmarcar todas' : 'Selecionar todas'}
                   </button>
-                </label>
+                </div>
                 <div style={checkboxListStyle}>
-                  {workSchedules.length === 0 && <p style={{ padding: '0.5rem', color: 'var(--text-light)' }}>Nenhuma escala de trabalho ativa.</p>}
+                  {workSchedules.length === 0 && <p style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>Nenhuma escala de trabalho ativa.</p>}
                   {workSchedules.map(w => (
                     <label key={w.id} style={checkboxItemStyle}>
                       <input
@@ -180,7 +180,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
                       <span>
                         <strong>{driverLabel(w.driver)}</strong> — {groupLabel(w.equipamentGroup)}
                         <br />
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                           {w.scheduleDate ? new Date(`${w.scheduleDate}T00:00:00`).toLocaleDateString('pt-BR') : '-'}
                         </span>
                       </span>
@@ -190,21 +190,20 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
               </div>
             </>
           )}
+        </div>
 
-          <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-            <button type="button" className="btn-cancel" onClick={onClose} style={{ padding: '0.75rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn-save"
-              onClick={handleSubmit}
-              disabled={loading || submitting || selectedShipmentIds.length === 0 || selectedScheduleIds.length === 0}
-              style={{ padding: '0.75rem 1.5rem', color: 'white', backgroundColor: 'var(--success-color, #2f9e44)', borderRadius: '8px', border: 'none', cursor: 'pointer', opacity: (loading || submitting || selectedShipmentIds.length === 0 || selectedScheduleIds.length === 0) ? 0.6 : 1 }}
-            >
-              {submitting ? 'Otimizando...' : 'Otimizar Rotas'}
-            </button>
-          </div>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-outline" onClick={onClose}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleSubmit}
+            disabled={loading || submitting || selectedShipmentIds.length === 0 || selectedScheduleIds.length === 0}
+          >
+            {submitting ? 'Otimizando Rotas...' : 'Otimizar Rotas'}
+          </button>
         </div>
       </div>
     </div>,

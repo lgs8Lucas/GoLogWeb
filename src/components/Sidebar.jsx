@@ -12,12 +12,14 @@ import {
   Layers,
   AlertTriangle,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
   X
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import '../styles/Sidebar.css';
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const userRole = authService.getUserRole();
 
   const handleLinkClick = () => {
@@ -34,11 +36,21 @@ const Sidebar = ({ isOpen, onClose }) => {
         onClick={onClose}
       />
 
-      <aside className={`sidebar-container ${isOpen ? 'open' : ''}`}>
+      <aside className={`sidebar-container ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-mobile-header">
           <span className="sidebar-mobile-title">Menu GoLog</span>
           <button className="sidebar-close-btn" onClick={onClose}>
             <X size={20} />
+          </button>
+        </div>
+
+        <div className="sidebar-collapse-bar">
+          <button 
+            className="sidebar-collapse-btn" 
+            onClick={onToggleCollapse} 
+            title={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+          >
+            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
 
@@ -50,8 +62,9 @@ const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"} 
             end
             onClick={handleLinkClick}
+            title="Dashboard"
           >
-            <LayoutDashboard size={18} />
+            <LayoutDashboard size={20} />
             <span>Dashboard</span>
           </NavLink>
 
@@ -61,8 +74,9 @@ const Sidebar = ({ isOpen, onClose }) => {
             to="/frota" 
             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
             onClick={handleLinkClick}
+            title="Frota de Veículos"
           >
-            <Truck size={18} />
+            <Truck size={20} />
             <span>Frota de Veículos</span>
           </NavLink>
 
@@ -70,8 +84,9 @@ const Sidebar = ({ isOpen, onClose }) => {
             to="/transporte" 
             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
             onClick={handleLinkClick}
+            title="Transportes & Cargas"
           >
-            <Package size={18} />
+            <Package size={20} />
             <span>Transportes & Cargas</span>
           </NavLink>
 
@@ -79,8 +94,9 @@ const Sidebar = ({ isOpen, onClose }) => {
             to="/monitoramento" 
             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
             onClick={handleLinkClick}
+            title="Telemetria & Mapa"
           >
-            <MapPin size={18} />
+            <MapPin size={20} />
             <span>Telemetria & Mapa</span>
           </NavLink>
 
@@ -93,8 +109,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                   to="/perfis" 
                   className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                   onClick={handleLinkClick}
+                  title="Usuários & Perfis"
                 >
-                  <Users size={18} />
+                  <Users size={20} />
                   <span>Usuários & Perfis</span>
                 </NavLink>
               )}
@@ -103,8 +120,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to="/empresas" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
+                title={userRole === 'OPERATOR' ? 'Clientes' : 'Empresas & Parceiros'}
               >
-                <Building2 size={18} />
+                <Building2 size={20} />
                 <span>{userRole === 'OPERATOR' ? 'Clientes' : 'Empresas & Parceiros'}</span>
               </NavLink>
 
@@ -112,8 +130,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to="/enderecos" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
+                title="Endereços"
               >
-                <Map size={18} />
+                <Map size={20} />
                 <span>Endereços</span>
               </NavLink>
 
@@ -121,8 +140,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to="/tipos-transporte" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
+                title="Tipos de Transporte"
               >
-                <Tags size={18} />
+                <Tags size={20} />
                 <span>Tipos de Transporte</span>
               </NavLink>
 
@@ -130,8 +150,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to="/conjuntos" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
+                title="Conjuntos de Equipamentos"
               >
-                <Layers size={18} />
+                <Layers size={20} />
                 <span>Conjuntos de Equipamentos</span>
               </NavLink>
 
@@ -139,8 +160,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to="/tipos-carga" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
+                title="Tipos de Carga"
               >
-                <Package size={18} />
+                <Package size={20} />
                 <span>Tipos de Carga</span>
               </NavLink>
 
@@ -148,8 +170,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to="/escalas" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
+                title="Escala de Trabalho"
               >
-                <CalendarClock size={18} />
+                <CalendarClock size={20} />
                 <span>Escala de Trabalho</span>
               </NavLink>
 
@@ -157,8 +180,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to="/ocorrencias" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
+                title="Ocorrências"
               >
-                <AlertTriangle size={18} />
+                <AlertTriangle size={20} />
                 <span>Ocorrências</span>
               </NavLink>
             </>

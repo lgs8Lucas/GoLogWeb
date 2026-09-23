@@ -48,7 +48,13 @@
 }
 
 /* Button Component System */
-.btn {
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-outline,
+.btn-danger,
+.btn-save,
+.btn-cancel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -62,10 +68,30 @@
   transition: var(--transition);
   user-select: none;
   white-space: nowrap;
+  font-family: inherit;
 }
 
-.btn:active {
+.btn:active,
+.btn-primary:active,
+.btn-secondary:active,
+.btn-outline:active,
+.btn-danger:active,
+.btn-save:active,
+.btn-cancel:active {
   transform: scale(0.98);
+}
+
+.btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-outline:disabled,
+.btn-danger:disabled,
+.btn-save:disabled,
+.btn-cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .btn-primary {
@@ -74,7 +100,7 @@
   box-shadow: 0 4px 10px rgba(31, 48, 76, 0.2);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background-color: var(--primary-light);
   box-shadow: 0 6px 14px rgba(31, 48, 76, 0.3);
 }
@@ -85,19 +111,21 @@
   box-shadow: 0 4px 10px rgba(42, 178, 155, 0.25);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background-color: var(--secondary-light);
   box-shadow: 0 6px 14px rgba(42, 178, 155, 0.35);
 }
 
-.btn-outline {
+.btn-outline,
+.btn-cancel {
   background-color: var(--bg-surface);
   color: var(--text-body);
   border-color: var(--border-color);
   box-shadow: var(--shadow-sm);
 }
 
-.btn-outline:hover {
+.btn-outline:hover:not(:disabled),
+.btn-cancel:hover:not(:disabled) {
   background-color: var(--bg-hover);
   border-color: var(--border-dark);
   color: var(--primary-color);
@@ -109,8 +137,18 @@
   box-shadow: 0 4px 10px rgba(220, 38, 38, 0.2);
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled) {
   background-color: #b91c1c;
+}
+
+.btn-save {
+  background-color: var(--secondary-color);
+  color: var(--text-white);
+  box-shadow: 0 4px 10px rgba(42, 178, 155, 0.25);
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: var(--secondary-light);
 }
 
 .btn-icon {
@@ -118,7 +156,7 @@
   border-radius: var(--radius-md);
   color: var(--text-muted);
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -129,6 +167,7 @@
 .btn-icon:hover {
   background-color: var(--bg-hover);
   color: var(--primary-color);
+  border-color: var(--border-color);
 }
 
 /* Global Cards */

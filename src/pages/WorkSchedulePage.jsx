@@ -206,13 +206,13 @@ const WorkSchedulePage = () => {
   return (
     <div className="profiles-container fade-in">
       <PageHeader
-        title="Escala de Trabalho"
+        title="Escalas de Trabalho"
         description="Defina qual motorista opera qual conjunto de veículos em cada data."
         icon={CalendarClock}
         onBack={true}
       >
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
+        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} />
           Nova Escala
         </button>
       </PageHeader>
@@ -230,26 +230,26 @@ const WorkSchedulePage = () => {
       </div>
 
       {isModalOpen && createPortal(
-        <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
+        <div className="modal-overlay fade-in">
           <div className="modal-content" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <CalendarClock size={24} color="var(--primary-color)" />
-                {editingId ? 'Editar Escala' : 'Nova Escala'}
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <CalendarClock size={22} color="var(--primary-color)" />
+                {editingId ? 'Editar Escala' : 'Nova Escala de Trabalho'}
               </h2>
-              <button className="modal-close-btn" onClick={handleCloseModal}>
-                <X size={24} />
+              <button className="modal-close-btn" onClick={handleCloseModal} aria-label="Fechar">
+                <X size={20} />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="modal-body" style={{ gap: '1.5rem' }}>
+              <div className="modal-body">
                 <div className="form-group">
-                  <label>Motorista</label>
+                  <label className="form-label">Motorista Alocado</label>
                   <select
                     name="driverId"
                     value={formData.driverId}
                     onChange={handleInputChange}
-                    className="modal-input"
+                    className="form-select"
                     required
                   >
                     <option value="">Selecione o motorista...</option>
@@ -260,12 +260,12 @@ const WorkSchedulePage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Conjunto (Veículos)</label>
+                  <label className="form-label">Conjunto de Equipamentos</label>
                   <select
                     name="equipamentGroupId"
                     value={formData.equipamentGroupId}
                     onChange={handleInputChange}
-                    className="modal-input"
+                    className="form-select"
                     required
                   >
                     <option value="">Selecione o conjunto...</option>
@@ -276,64 +276,64 @@ const WorkSchedulePage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Válida até</label>
+                  <label className="form-label">Data da Escala</label>
                   <input
                     type="date"
                     name="scheduleDate"
                     value={formData.scheduleDate}
                     onChange={handleInputChange}
-                    className="modal-input"
+                    className="form-input"
                     required
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Início do Turno</label>
+                <div className="form-grid form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Início do Turno</label>
                     <input
                       type="time"
                       name="startWorkday"
                       value={formData.startWorkday}
                       onChange={handleInputChange}
-                      className="modal-input"
+                      className="form-input"
                       required
                     />
                   </div>
 
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Final do Turno</label>
+                  <div className="form-group">
+                    <label className="form-label">Final do Turno</label>
                     <input
                       type="time"
                       name="endWorkday"
                       value={formData.endWorkday}
                       onChange={handleInputChange}
-                      className="modal-input"
+                      className="form-input"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Status</label>
+                  <label className="form-label">Status da Escala</label>
                   <select
                     name="status"
                     value={formData.status}
                     onChange={handleInputChange}
-                    className="modal-input"
+                    className="form-select"
                   >
                     <option value="ATIVO">Ativo</option>
                     <option value="DESATIVADO">Desativado</option>
                   </select>
                 </div>
+              </div>
 
-                <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                  <button type="button" className="btn-cancel" onClick={handleCloseModal} style={{ padding: '0.75rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn-save" style={{ padding: '0.75rem 1.5rem', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
-                    {editingId ? 'Atualizar' : 'Salvar'}
-                  </button>
-                </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={handleCloseModal}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  {editingId ? 'Atualizar Escala' : 'Salvar Escala'}
+                </button>
               </div>
             </form>
           </div>

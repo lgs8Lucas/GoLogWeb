@@ -104,40 +104,71 @@ const MonitoringPage = () => {
     };
   });
 
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL', 'IN_TRANSIT'
+
   return (
     <div className="monitoring-page fullscreen-map fade-in">
-      
-      {/* Real OpenStreetMap Integration as Background */}
+      {/* Background Map */}
       <div className="monitoring-map-bg-wrapper">
          {loading ? (
-           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-color)' }}>
-             Carregando rotas de transporte...
+           <div className="monitoring-loading-box">
+             Carregando malha logística de transporte...
            </div>
          ) : (
            <MapComponent 
              polylines={mapPolylines}
+             interactive={true}
            />
          )}
       </div>
 
       {/* Floating Header (Top Left) */}
       <div className="floating-header-panel">
-        <button className="back-button glass-btn" onClick={() => navigate('/')}>
-          <ChevronLeft size={18} /> Voltar à Dashboard
-        </button>
+        <div className="header-controls-row">
+          <button className="back-button glass-btn" onClick={() => navigate('/')}>
+            <ChevronLeft size={18} /> Dashboard
+          </button>
+
+          <button 
+            className="panel-toggle-btn glass-btn" 
+            onClick={() => setIsPanelOpen(!isPanelOpen)}
+            title={isPanelOpen ? "Recolher painel lateral" : "Expandir painel de frotas"}
+          >
+            {isPanelOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            <span>{isPanelOpen ? 'Ocultar Painel' : 'Ver Veículos'}</span>
+          </button>
+        </div>
+
         <div className="monitoring-header">
-          <h2>Monitoramento de veículos em transporte</h2>
+          <div className="header-badge-live">
+            <span className="live-dot"></span>
+            <span>TELEMETRIA GLOBAL</span>
+          </div>
+          <h2>{trips.length} Veículos em Monitoramento</h2>
         </div>
       </div>
 
-      {/* Floating Panel (Right) */}
-      <div className="floating-panel">
-        <h3>Buscar Motorista / Caminhão</h3>
+      {/* Floating Collapsible Panel (Right) */}
+      <div className={`floating-panel ${!isPanelOpen ? 'collapsed' : ''}`}>
+        <div className="floating-panel-header">
+          <div>
+            <h3>Frotas em Rota</h3>
+            <span className="panel-subtitle">{filteredTrips.length} viagens disponíveis</span>
+          </div>
+          <button 
+            className="panel-close-trigger" 
+            onClick={() => setIsPanelOpen(false)}
+            title="Minimizar painel"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
         
         <div className="search-input-wrapper">
           <input 
             type="text" 
-            placeholder="Digite o motorista ou placa..." 
+            placeholder="Buscar por placa, motorista ou nº..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="monitoring-search-input"
@@ -155,10 +186,21 @@ const MonitoringPage = () => {
               onClick={() => setSelectedVehicle(trip)}
             >
               <div className="vehicle-item-left">
-                <Truck size={16} color="var(--text-color)" />
-                <span>#{trip.code} | {trip.plate} - {trip.driver}</span>
+                <div className="vehicle-icon-box">
+                  <Truck size={18} />
+                </div>
+                <div className="vehicle-meta">
+                  <span className="vehicle-primary-text">#{trip.code} • {trip.plate}</span>
+                  <span className="vehicle-driver-text">{trip.driver}</span>
+                  <div className="vehicle-sub-badges">
+                    <span className="badge-stops-count">{trip.shipments.length} paradas</span>
+                    {trip.calculedDistance > 0 && (
+                      <span className="badge-distance-km">{trip.calculedDistance.toFixed(0)} km</span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <ChevronRight size={16} color="var(--text-light)" />
+              <ChevronRight size={18} className="vehicle-arrow-icon" />
             </div>
           ))}
           {!loading && filteredTrips.length === 0 && (

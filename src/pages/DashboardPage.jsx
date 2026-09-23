@@ -92,23 +92,47 @@ const DashboardPage = () => {
     fetchMapRoutes();
   }, []);
 
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+
   return (
-    <div className="dashboard-grid-container fade-in">
+    <div className={`dashboard-grid-container fade-in ${isMapExpanded ? 'map-fullwidth' : ''}`}>
       {/* Map Section (Main Interactive View) */}
-      <div className="dashboard-map-card card">
+      <div className={`dashboard-map-card card ${isMapExpanded ? 'expanded' : ''}`}>
         <div className="dashboard-card-header">
           <div className="dashboard-card-title">
             <div className="icon-badge">
-              <MapPin size={20} color="var(--primary-color)" />
+              <MapPin size={22} color="var(--secondary-color)" />
             </div>
             <div>
-              <h2>Monitoramento Global de Operações</h2>
-              <p>Visualização em tempo real das rotas ativas e paradas de entrega</p>
+              <div className="dashboard-title-row">
+                <h2>Monitoramento de Frotas em Tempo Real</h2>
+                <span className="live-pill-badge">
+                  <span className="live-dot"></span> AO VIVO
+                </span>
+              </div>
+              <p>Rastreamento operacional de rotas planejadas, coletas e entregas na malha logística</p>
             </div>
           </div>
-          <button className="btn btn-outline" onClick={() => navigate('/monitoramento')}>
-            Ver no Telemetria
-          </button>
+          
+          <div className="dashboard-header-actions">
+            <div className="active-routes-counter">
+              <span className="count-num">{polylines.length}</span>
+              <span className="count-label">rotas no mapa</span>
+            </div>
+
+            <button 
+              className="btn btn-icon btn-secondary" 
+              onClick={() => setIsMapExpanded(!isMapExpanded)}
+              title={isMapExpanded ? "Restaurar layout padrão" : "Expandir visualização do mapa"}
+            >
+              <TrendingUp size={16} style={{ transform: isMapExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              <span>{isMapExpanded ? 'Reduzir' : 'Expandir'}</span>
+            </button>
+
+            <button className="btn btn-primary" onClick={() => navigate('/monitoramento')}>
+              Central Telemetria
+            </button>
+          </div>
         </div>
 
         <div className="map-view-wrapper">

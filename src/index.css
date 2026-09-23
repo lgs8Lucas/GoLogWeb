@@ -121,32 +121,38 @@ a {
 
 /* Global Container & Layout */
 .dashboard-layout {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-app);
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .dashboard-body {
   display: flex;
   flex: 1;
   width: 100%;
+  height: calc(100vh - 63px);
   position: relative;
+  overflow: hidden;
 }
 
 .dashboard-main {
   flex: 1;
   padding: 1.5rem;
   width: 100%;
-  max-width: 1600px;
+  max-width: 1700px;
   margin: 0 auto;
   overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  transition: padding 0.25s ease;
 }
 
 @media (min-width: 1024px) {
   .dashboard-main {
-    padding: 2rem;
+    padding: 1.75rem 2rem;
   }
 }
 

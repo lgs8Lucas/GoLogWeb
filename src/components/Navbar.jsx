@@ -5,7 +5,7 @@ import '../styles/Navbar.css';
 import Logo from '../assets/logo.png';
 import { authService } from '../services/authService';
 
-const Navbar = ({ onToggleMobileMenu, isMobileOpen }) => {
+const Navbar = ({ onToggleMobileMenu, isMobileOpen, isCollapsed, onToggleCollapse }) => {
   const navigate = useNavigate();
   const userRole = authService.getUserRole();
 
@@ -22,11 +22,20 @@ const Navbar = ({ onToggleMobileMenu, isMobileOpen }) => {
           <button 
             className="mobile-menu-toggle" 
             onClick={onToggleMobileMenu} 
-            aria-label="Toggle Menu"
+            aria-label="Toggle Menu Mobile"
           >
             {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
           
+          <button 
+            className="desktop-menu-toggle"
+            onClick={onToggleCollapse}
+            title={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            aria-label="Toggle Sidebar"
+          >
+            <Menu size={20} />
+          </button>
+
           <div className="navbar-logo" onClick={() => navigate('/')}>
             <img src={Logo} alt="GoLog TMS" />
             <span className="brand-badge">TMS</span>
