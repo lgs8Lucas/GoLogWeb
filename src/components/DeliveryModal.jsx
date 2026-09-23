@@ -7,6 +7,7 @@ import { typeTransportService } from '../services/typeTransportService';
 import { companyService } from '../services/companyService';
 import { addressService } from '../services/addressService';
 import { deliveryService } from '../services/deliveryService';
+import { authService } from '../services/authService';
 
 const DEFAULT_FORM_DATA = {
   typeOperation: 'ENTREGA',
@@ -67,7 +68,7 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
     if (!isOpen) return;
     // Populate the form: edit mode fills from initialData, create mode resets to defaults
     const loadSelectData = async () => {
-      setFormData(initialData ? mapShipmentToForm(initialData) : DEFAULT_FORM_DATA);
+      let initialForm = initialData ? mapShipmentToForm(initialData) : DEFAULT_FORM_DATA;
       try {
         const [usersData, typesData, transData, compsData, addrsData, shipmentsData] = await Promise.all([
           userService.getAllUsers(),
@@ -77,14 +78,26 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
           addressService.getAll(),
           deliveryService.getAll()
         ]);
-        setUsers(usersData || []);
+        const userList = usersData || [];
+        setUsers(userList);
         setShipmentTypes(typesData || []);
         setTypeTransports(transData || []);
         setCompanies(compsData || []);
         setAddresses(addrsData || []);
         setCollections((shipmentsData || []).filter(s => s.typeOperation === 'COLETA'));
+
+        // Auto-detect logged-in user if userId is not already set
+        if (!initialForm.userId && userList.length > 0) {
+          const loggedEmail = authService.getCurrentUserEmail();
+          const matchedUser = userList.find(u => u.email === loggedEmail) || userList[0];
+          if (matchedUser) {
+            initialForm = { ...initialForm, userId: matchedUser.id };
+          }
+        }
+        setFormData(initialForm);
       } catch (e) {
         console.error("Erro ao carregar dados em DeliveryModal:", e);
+        setFormData(initialForm);
       }
     };
     loadSelectData();
@@ -189,15 +202,7 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                 </div>
               )}
 
-              <div className="form-group">
-                <label className="form-label">Operador Responsável</label>
-                <select name="userId" value={formData.userId} onChange={handleInputChange} className="form-select" required>
-                  <option value="">Selecione o operador...</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.userProfile})</option>
-                  ))}
-                </select>
-              </div>
+
 
               <div className="form-group">
                 <label className="form-label">Tipo de Carga / Entrega</label>

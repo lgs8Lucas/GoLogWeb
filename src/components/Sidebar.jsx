@@ -159,7 +159,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 onClick={handleLinkClick}
               >
                 <AlertTriangle size={18} />
-                <span>Tipos de Ocorrência</span>
+                <span>Ocorrências</span>
               </NavLink>
             </>
           )}

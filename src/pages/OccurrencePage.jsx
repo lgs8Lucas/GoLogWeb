@@ -7,6 +7,7 @@ import { occurrenceService } from '../services/occurrenceService';
 import { transportService } from '../services/transportService';
 import { deliveryService } from '../services/deliveryService';
 import { userService } from '../services/userService';
+import { authService } from '../services/authService';
 import { useToast } from '../components/ToastContext';
 
 const OccurrencePage = () => {
@@ -54,9 +55,18 @@ const OccurrencePage = () => {
           deliveryService.getAllPersonalized(),
           userService.getAllUsers()
         ]);
+        const users = usersData || [];
         setTransportsList(transportsData || []);
         setShipmentsList(shipmentsData || []);
-        setUsersList(usersData || []);
+        setUsersList(users);
+
+        if (users.length > 0) {
+          const loggedEmail = authService.getCurrentUserEmail();
+          const matchedUser = users.find(u => u.email === loggedEmail) || users[0];
+          if (matchedUser) {
+            setFormData(prev => ({ ...prev, senderId: matchedUser.id }));
+          }
+        }
       } catch (err) {
         console.error("Erro ao carregar seletores de ocorrência:", err);
       }
@@ -195,23 +205,7 @@ const OccurrencePage = () => {
                     </select>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Relator / Emissor</label>
-                    <select 
-                      name="senderId" 
-                      value={formData.senderId} 
-                      onChange={handleInputChange} 
-                      className="form-select"
-                      required
-                    >
-                      <option value="">Selecione o relator...</option>
-                      {usersList.map(u => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.userProfile || 'USER'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+
 
                   <div className="form-group">
                     <label className="form-label">Viagem / Transporte (Opcional)</label>

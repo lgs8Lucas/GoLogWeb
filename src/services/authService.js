@@ -61,5 +61,21 @@ export const authService = {
       localStorage.removeItem('golog_token');
       return false;
     }
+  },
+
+  getDecodedToken: () => {
+    let token = localStorage.getItem('golog_token');
+    if (!token) return null;
+    token = token.replace(/"/g, '').replace(/^Bearer\s+/i, '').trim();
+    try {
+      return jwtDecode(token);
+    } catch {
+      return null;
+    }
+  },
+
+  getCurrentUserEmail: () => {
+    const payload = authService.getDecodedToken();
+    return payload ? (payload.sub || payload.email || null) : null;
   }
 };
