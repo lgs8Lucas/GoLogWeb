@@ -23,4 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# Variáveis de ambientes
 *.env
+
+# AI
+.agents
