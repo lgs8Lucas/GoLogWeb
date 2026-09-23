@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, ChevronLeft, Navigation, AlertTriangle, X, Route, Clock, Leaf } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, Navigation, AlertTriangle, X, Route, Clock, Leaf, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
@@ -39,7 +39,10 @@ const TransportPage = () => {
   const [selectedOccs, setSelectedOccs] = useState([]);
   const [selectedOccsTransportId, setSelectedOccsTransportId] = useState('');
 
+  const { showToast } = useToast();
+
   const fetchTransports = async () => {
+    setLoading(true);
     try {
       const [transportsData, shipmentsData, backlogShipmentsData, occurrencesData] = await Promise.all([
         transportService.getAll(),
@@ -48,7 +51,6 @@ const TransportPage = () => {
         occurrenceService.getAll()
       ]);
 
-      // Group shipments by transport ID
       const shipmentsByTransport = {};
       shipmentsData.forEach(s => {
         if (s.transport) {
@@ -61,18 +63,16 @@ const TransportPage = () => {
       });
 
       const mapped = transportsData.map(t => {
-        // Get shipments for this transport and sort by sequenceOrder
-        const shipments = shipmentsByTransport[t.id] || [];
-        shipments.sort((a, b) => {
+        const tShipments = shipmentsByTransport[t.id] || [];
+        tShipments.sort((a, b) => {
           const seqA = a.routeStop?.sequenceOrder ?? 999;
           const seqB = b.routeStop?.sequenceOrder ?? 999;
           return seqA - seqB;
         });
 
-        // Build dynamic steps from database shipments
         let steps = [];
-        if (shipments.length > 0) {
-          steps = shipments.map((s, index) => {
+        if (tShipments.length > 0) {
+          steps = tShipments.map((s, index) => {
             const isColeta = s.typeOperation === 'COLETA';
             const label = `${isColeta ? 'Coleta' : 'Entrega'}: ${s.customer?.legalName || 'Cliente'} (${s.address?.city || s.customer?.address?.city || 'Araras'})`;
 
@@ -87,20 +87,13 @@ const TransportPage = () => {
               else status = 'pending';
             }
 
-            return {
-              label,
-              status,
-              type: isColeta ? 'package' : 'pin'
-            };
+            return { label, status, type: isColeta ? 'package' : 'pin' };
           });
         } else {
-          steps = [
-            { label: 'Viagem planejada', status: 'active', type: 'package' }
-          ];
+          steps = [{ label: 'Viagem planejada', status: 'active', type: 'package' }];
         }
 
-        // Determine origin and destination names based on shipments (city + state combo)
-        const locations = shipments.map(s => {
+        const locations = tShipments.map(s => {
           const city = s.address?.city || s.customer?.address?.city || 'Araras';
           const state = s.address?.state || s.customer?.address?.state || 'SP';
           return `${city} - ${state}`;
@@ -108,30 +101,24 @@ const TransportPage = () => {
         const origin = locations[0] || 'Origem';
         const destination = locations[locations.length - 1] || 'Destino';
 
-        // Compile all equipments associated with this transport
         const equipmentsList = [];
-        if (t.equipamentGroup?.equipament1?.plate) {
-          equipmentsList.push(t.equipamentGroup.equipament1.plate);
-        }
-        if (t.equipamentGroup?.equipament2?.plate) {
-          equipmentsList.push(t.equipamentGroup.equipament2.plate);
-        }
-        if (t.equipamentGroup?.equipament3?.plate) {
-          equipmentsList.push(t.equipamentGroup.equipament3.plate);
-        }
+        if (t.equipamentGroup?.equipament1?.plate) equipmentsList.push(t.equipamentGroup.equipament1.plate);
+        if (t.equipamentGroup?.equipament2?.plate) equipmentsList.push(t.equipamentGroup.equipament2.plate);
+        if (t.equipamentGroup?.equipament3?.plate) equipmentsList.push(t.equipamentGroup.equipament3.plate);
         const equipments = equipmentsList.length > 0 ? equipmentsList.join(', ') : '-';
 
         return {
           id: `#${t.codeTransport || (t.id ? t.id.substring(0, 8) : 'N/A')}`,
+          rawId: t.id,
           origin: origin,
           currentDest: destination,
           equipments: equipments,
           driver: t.driver?.user?.name || 'Sem motorista',
           status: t.timeStopped > 0 ? 'Atrasado' : 'Em viagem',
-          shipmentQuantity: t.shipmentQuantity || shipments.length,
+          shipmentQuantity: t.shipmentQuantity || tShipments.length,
           steps: steps,
           rawTransport: t,
-          rawShipments: shipments,
+          rawShipments: tShipments,
           occurrences: occurrencesData ? occurrencesData.filter(occ => {
             const occTid = occ.transport?.id || occ.transportId;
             return occTid === t.id;
@@ -154,8 +141,6 @@ const TransportPage = () => {
   useEffect(() => {
     fetchTransports();
   }, []);
-
-  const { showToast } = useToast();
 
   const handleSaveShipment = async (formData, id) => {
     try {
@@ -215,7 +200,7 @@ const TransportPage = () => {
 
   const handleOpenMap = (item) => {
     const rawT = item.rawTransport;
-    const shipments = item.rawShipments || [];
+    const shipmentsList = item.rawShipments || [];
     const coords = rawT?.routePlanned ? decodePolyline(rawT.routePlanned) : [];
 
     const vehicleData = {
@@ -224,7 +209,7 @@ const TransportPage = () => {
       driver: rawT?.driver?.user?.name || 'Sem motorista',
       plate: item.equipments,
       routePlannedCoords: coords,
-      shipments: shipments,
+      shipments: shipmentsList,
       occurrences: item.occurrences || [],
       calculedDistance: rawT?.calculedDistance,
       totalTimeCalculed: rawT?.totalTimeCalculed,
@@ -307,7 +292,15 @@ const TransportPage = () => {
         return sched ? new Date(sched).toLocaleString('pt-BR') : '-';
       }
     },
-    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDENTE' }
+    { 
+      label: 'Status', 
+      key: 'status', 
+      render: (row) => (
+        <span className={`status-chip ${row.status === 'FINALIZADO' || row.status === 'DELIVERED' ? 'active' : 'info'}`}>
+          {row.status || 'PENDENTE'}
+        </span>
+      )
+    }
   ];
 
   const renderShipmentsPanel = (panelKey, data, searchTerm, setSearchTerm, emptyMessage, statusFilter) => {
@@ -351,140 +344,132 @@ const TransportPage = () => {
   };
 
   return (
-    <div className="transport-page fade-in">
-      <PageHeader
-        title="Transporte"
-        description="Acompanhe e gerencie as viagens ativas e o status das entregas."
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <PageHeader 
+        title="Transportes & Operações Logísticas"
+        description="Controle avançado de roteirização, rastreamento de entregas e otimização de frotas."
         icon={Navigation}
         onBack={true}
       >
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           {activeTab === 'transportes' ? (
             <>
-              <button
-                className="btn-primary"
-                style={{ backgroundColor: 'var(--warning-color, #f59e0b)' }}
+              <button 
+                className="btn btn-secondary" 
                 onClick={() => setIsOptimizeModalOpen(true)}
               >
+                <Sparkles size={18} />
                 Otimizar Rotas
               </button>
-              <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-                <Plus size={20} />
-                Criar Transporte
+              <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+                <Plus size={18} /> Novo Transporte
               </button>
             </>
           ) : (
-            <button className="btn-primary" onClick={handleNewShipment}>
-              <Plus size={20} />
-              Nova Remessa
+            <button className="btn btn-primary" onClick={handleNewShipment}>
+              <Plus size={18} /> Nova Remessa
             </button>
           )}
         </div>
       </PageHeader>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', padding: '0 2rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-        <button
+      {/* Navigation Tabs */}
+      <div className="transport-nav-tabs">
+        <button 
+          className={`transport-tab-btn ${activeTab === 'transportes' ? 'active' : ''}`}
           onClick={() => setActiveTab('transportes')}
-          style={{
-            background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
-            color: activeTab === 'transportes' ? 'var(--primary-color)' : 'var(--text-light)',
-            borderBottom: activeTab === 'transportes' ? '2px solid var(--primary-color)' : '2px solid transparent'
-          }}
         >
-          Transportes
+          Viagens Ativas ({transports.length})
         </button>
-        <button
+        <button 
+          className={`transport-tab-btn ${activeTab === 'entregas' ? 'active' : ''}`}
           onClick={() => setActiveTab('entregas')}
-          style={{
-            background: 'none', border: 'none', padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
-            color: activeTab === 'entregas' ? 'var(--primary-color)' : 'var(--text-light)',
-            borderBottom: activeTab === 'entregas' ? '2px solid var(--primary-color)' : '2px solid transparent'
-          }}
         >
-          Remessas (Backlog)
+          Remessas (Backlog) ({backlogShipments.length})
         </button>
       </div>
 
       {activeTab === 'transportes' ? (
-        <>
-          {/* Main List */}
-          <div className="transport-list">
-            {/* Columns Header */}
-            <div className="transport-list-header">
-              <div className="col-id">Transporte</div>
-              <div className="col-origin">Origem</div>
-              <div className="col-dest">Destino Atual</div>
-              <div className="col-eq-all">Equipamentos</div>
-              <div className="col-driver">Motorista</div>
-              <div className="col-status">Status</div>
-              <div className="col-action"></div>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="table-container">
+            <div className="tms-transport-accordion-list">
+              <div className="tms-accordion-header">
+                <div>Código / ID</div>
+                <div>Origem</div>
+                <div>Destino Atual</div>
+                <div>Equipamento(s)</div>
+                <div>Motorista</div>
+                <div>Status</div>
+                <div style={{ textAlign: 'center' }}>Detalhes</div>
+              </div>
 
-            {/* Rows */}
-            <div className="transport-rows">
               {loading ? (
-                <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando transportes...</div>
+                <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Carregando transportes ativos...
+                </div>
               ) : transports.map((item) => {
                 const isExpanded = expandedRow === item.id;
-
+                
                 return (
-                  <div key={item.id} className={`transport-card ${isExpanded ? 'expanded' : ''}`}>
-                    <div className="transport-card-main" onClick={() => toggleRow(item.id)}>
-                      <div className="col-id font-semibold">{item.id}</div>
-                      <div className="col-origin font-bold">{item.origin}</div>
-                      <div className="col-dest font-bold">{item.currentDest}</div>
-                      <div className="col-eq-all font-bold">{item.equipments}</div>
-                      <div className="col-driver font-bold">{item.driver}</div>
-                      <div className="col-status">{renderStatusBadge(item.status)}</div>
-                      <div className="col-action">
-                        <button className="expand-btn">
-                          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  <div key={item.id} className={`tms-accordion-item ${isExpanded ? 'expanded' : ''}`}>
+                    <div className="tms-accordion-summary" onClick={() => toggleRow(item.id)}>
+                      <div className="tms-code-badge">{item.id}</div>
+                      <div className="tms-cell-bold">{item.origin}</div>
+                      <div className="tms-cell-bold">{item.currentDest}</div>
+                      <div className="tms-cell-muted">{item.equipments}</div>
+                      <div className="tms-cell-bold">{item.driver}</div>
+                      <div>
+                        <span className={`status-chip ${item.status === 'Atrasado' ? 'atrasado' : 'info'}`}>
+                          {item.status}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <button className="btn-icon">
+                          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                         </button>
                       </div>
                     </div>
 
                     {isExpanded && item.steps && (
-                      <div className="transport-card-details fade-in">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-color)' }}>Entregas e Coletas</h4>
-                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', backgroundColor: 'var(--bg-light)', padding: '0.25rem 0.75rem', borderRadius: '12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Route size={16} color="var(--primary-color)" />
-                                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{((item.rawTransport?.calculedDistance || 0) / 1000).toFixed(2)} km</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Clock size={16} color="var(--warning-color)" />
-                                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                                  {Math.floor((item.rawTransport?.totalTimeCalculed || 0) / 3600)}h {Math.floor(((item.rawTransport?.totalTimeCalculed || 0) % 3600) / 60)}m
-                                </span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Leaf size={16} color="var(--success-color)" />
-                                <span style={{ fontSize: '0.85rem', color: 'var(--success-color)', fontWeight: 'bold' }}>
-                                  {(item.rawTransport?.totalCostCalculed || 0).toFixed(2)} kg CO₂
-                                </span>
-                              </div>
+                      <div className="tms-accordion-body fade-in">
+                        <div className="tms-accordion-toolbar">
+                          <div className="tms-metrics-pill-group">
+                            <div className="tms-metric-pill">
+                              <Route size={16} color="var(--primary-color)" />
+                              <span>{((item.rawTransport?.calculedDistance || 0) / 1000).toFixed(2)} km</span>
+                            </div>
+                            <div className="tms-metric-pill">
+                              <Clock size={16} color="var(--status-warning-text)" />
+                              <span>
+                                {Math.floor((item.rawTransport?.totalTimeCalculed || 0) / 3600)}h {Math.floor(((item.rawTransport?.totalTimeCalculed || 0) % 3600) / 60)}m
+                              </span>
+                            </div>
+                            <div className="tms-metric-pill green">
+                              <Leaf size={16} color="var(--status-active-text)" />
+                              <span>
+                                {(item.rawTransport?.totalCostCalculed || 0).toFixed(2)} kg CO₂
+                              </span>
                             </div>
                           </div>
+
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button 
-                              className="btn-primary" 
-                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                              className="btn btn-outline" 
+                              style={{ padding: '0.4rem 0.85rem', fontSize: '0.8125rem' }}
                               onClick={() => handleOpenMap(item)}
                             >
                               Acompanhar Rota no Mapa
                             </button>
                             <button 
-                              className="btn-primary" 
-                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--danger-color, #c92a2a)' }}
+                              className="btn btn-danger" 
+                              style={{ padding: '0.4rem 0.85rem', fontSize: '0.8125rem' }}
                               onClick={() => handleOpenOccurrences(item)}
                             >
-                              Ver Ocorrências ({item.occurrences?.length || 0})
+                              Ocorrências ({item.occurrences?.length || 0})
                             </button>
                           </div>
                         </div>
+
                         {renderStepper(item.steps, () => handleOpenMap(item))}
                       </div>
                     )}
@@ -493,31 +478,7 @@ const TransportPage = () => {
               })}
             </div>
           </div>
-
-          {/* Footer Summary */}
-          <div className="transport-footer-summary">
-            <div className="summary-item">
-              <span>Total de transportes:</span>
-              <strong>{transports.length}</strong>
-            </div>
-            <div className="summary-item">
-              <span>Total de entregas:</span>
-              <strong>{transports.reduce((sum, t) => sum + (t.shipmentQuantity || 0), 0)}</strong>
-            </div>
-            <div className="summary-item">
-              <span>Equipamentos em atividade:</span>
-              <strong>{transports.length}</strong>
-            </div>
-            <div className="summary-item">
-              <span>Equipamentos parados:</span>
-              <strong>0</strong>
-            </div>
-            <div className="summary-item">
-              <span>Atrasos:</span>
-              <strong>{transports.filter(t => t.status === 'Atrasado').length}</strong>
-            </div>
-          </div>
-        </>
+        </div>
       ) : (
         renderShipmentsPanel(
           'entregas',
@@ -527,7 +488,6 @@ const TransportPage = () => {
         )
       )}
 
-      {/* Modal */}
       <TransportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchTransports} />
 
       {/* Modal de Otimização de Rotas */}
@@ -555,34 +515,28 @@ const TransportPage = () => {
         confirmText="Excluir"
       />
 
-      {/* Modal de Ocorrências */}
       {isOccModalOpen && createPortal(
-        <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
-          <div className="modal-content" style={{ maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
+        <div className="modal-overlay fade-in">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
               <h2>Ocorrências do Transporte {selectedOccsTransportId}</h2>
               <button className="modal-close-btn" onClick={() => setIsOccModalOpen(false)}>
-                <X size={24} />
+                <X size={20} />
               </button>
             </div>
-            <div className="modal-body" style={{ gap: '1rem' }}>
+            <div className="modal-body" style={{ gap: '0.85rem' }}>
               {selectedOccs.length > 0 ? (
                 selectedOccs.map((occ, idx) => (
-                  <div key={occ.id || idx} style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem', backgroundColor: '#fff', textAlign: 'left' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <strong style={{ color: 'var(--danger-color, #c92a2a)' }}>{occ.type}</strong>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Criador: {occ.sender?.name || 'Sistema'}</span>
+                  <div key={occ.id || idx} className="route-occ-card occ-danger">
+                    <div className="occ-card-header">
+                      <span>{occ.type}</span>
+                      <span>Criador: {occ.sender?.name || 'Sistema'}</span>
                     </div>
-                    <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>{occ.description}</p>
-                    {occ.attachment && occ.attachment !== 'Sem anexo' && (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>
-                        Anexo: <a href={occ.attachment} target="_blank" rel="noopener noreferrer">{occ.attachment}</a>
-                      </div>
-                    )}
+                    <p style={{ margin: 0 }}>{occ.description}</p>
                   </div>
                 ))
               ) : (
-                <p style={{ textAlign: 'center', color: '#64748b' }}>Nenhuma ocorrência registrada para este transporte.</p>
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Nenhuma ocorrência registrada para este transporte.</p>
               )}
             </div>
           </div>
@@ -590,7 +544,6 @@ const TransportPage = () => {
         document.body
       )}
 
-      {/* Monitoring Modal */}
       {selectedMonitoringVehicle && (
         <MonitoringModal
           isOpen={isMonitoringModalOpen}
@@ -601,7 +554,6 @@ const TransportPage = () => {
           vehicle={selectedMonitoringVehicle}
         />
       )}
-
     </div>
   );
 };

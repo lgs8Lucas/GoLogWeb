@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Save, XOctagon, UserCircle, ChevronLeft, Plus, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import '../styles/Profiles.css';
+import { Users, Plus, Save, X } from 'lucide-react';
 import { userService } from '../services/userService';
 import { driverService } from '../services/driverService';
 import { companyService } from '../services/companyService';
@@ -12,18 +10,13 @@ import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const ProfilesPage = () => {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [companies, setCompanies] = useState([]);
-  const [feedback, setFeedback] = useState({ type: '', message: '' }); // 'error' ou 'success'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { showToast } = useToast();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
-
-  // Edit Mode Controllers
   const [editingId, setEditingId] = useState(null);
 
   const initialFormState = {
@@ -31,8 +24,8 @@ const ProfilesPage = () => {
     email: '',
     cpf: '',
     password: '',
-    userProfile: '',
-    companyId: 'd9d7b435-c256-405b-877c-848f4a22e22a', // Padrão inicial
+    userProfile: 'OPERATOR',
+    companyId: '',
     cnhNumber: '',
     cnhExpiration: '',
     costPerHour: ''
@@ -46,6 +39,7 @@ const ProfilesPage = () => {
       setProfiles(data);
     } catch (err) {
       console.error("Erro ao puxar perfis: ", err);
+      showToast('Erro ao carregar lista de usuários.', 'error');
     } finally {
       setLoading(false);
     }
@@ -54,7 +48,10 @@ const ProfilesPage = () => {
   const fetchCompanies = async () => {
     try {
       const data = await companyService.getAllCompanies();
-      setCompanies(data);
+      setCompanies(data || []);
+      if (data && data.length > 0) {
+        setFormData(prev => ({ ...prev, companyId: data[0].id }));
+      }
     } catch (err) {
       console.error("Erro ao puxar empresas: ", err);
     }
@@ -70,17 +67,17 @@ const ProfilesPage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    e.preventDefault();
     try {
       let savedUserId;
 
       if (editingId) {
-        // Modo UPDATE
         const payload = {
           name: formData.name,
           email: formData.email,
           cpf: formData.cpf,
-          password: formData.password || 'Senha@123', // Senha obrigatória pela API
+          password: formData.password || 'Senha@123',
           "User Profile": formData.userProfile,
           userProfile: formData.userProfile,
           companyId: formData.companyId
@@ -89,23 +86,20 @@ const ProfilesPage = () => {
         savedUserId = editingId;
         showToast("Usuário atualizado com sucesso!", "success");
       } else {
-        // Modo CREATE
         const payload = {
           name: formData.name,
           email: formData.email,
           password: formData.password,
           cpf: formData.cpf,
           "User Profile": formData.userProfile,
-          userProfile: formData.userProfile, // Essa é a chave que o Spring efetivamente precisa
+          userProfile: formData.userProfile,
           companyId: formData.companyId
         };
         const newUserResponse = await userService.createUser(payload);
-        // O swagger do CREATE reponde com o Objeto final incluindo UUID
         savedUserId = newUserResponse?.id;
-        showToast("Cadastro realizado com sucesso.", "success");
+        showToast("Usuário cadastrado com sucesso!", "success");
       }
 
-      // Chain function: Se for DRIVER, deve criar via driverService tbm.
       if (formData.userProfile === 'DRIVER' && savedUserId && !editingId) {
         await driverService.createDriver({
           cnhNumber: formData.cnhNumber,
@@ -115,28 +109,27 @@ const ProfilesPage = () => {
         });
       }
 
-      setFormData(initialFormState);
-      setEditingId(null);
-      setIsModalOpen(false);
-      setFeedback({ type: 'success', message: 'Operação concluída com sucesso.' });
+      handleCloseModal();
       fetchProfiles();
     } catch (error) {
       console.error("Erro ao salvar:", error);
-
-      let mensagens = "Erro na operação do usuário.";
-      if (Array.isArray(error.response?.data)) {
-        mensagens = error.response.data.join('\n');
-      } else if (error.response?.data?.errors) {
-        mensagens = error.response.data.errors.map(err => err.defaultMessage || err.message).join('\n');
-      } else if (error.response?.data?.message) {
-        mensagens = error.response.data.message;
-      } else if (typeof error.response?.data === 'string') {
-        mensagens = error.response.data;
-      }
-
-      setFeedback({ type: 'error', message: mensagens });
-      showToast(mensagens, "error");
+      showToast(error.response?.data?.message || 'Erro ao processar usuário.', "error");
     }
+  };
+
+  const handleEditClick = (row) => {
+    setEditingId(row.id);
+    setFormData({
+      name: row.name || '',
+      email: row.email || '',
+      cpf: row.cpf || '',
+      password: '',
+      userProfile: row.userProfile || row["User Profile"] || 'OPERATOR',
+      companyId: row.company?.id || row.companyId || (companies.length > 0 ? companies[0].id : ''),
+      cnhNumber: '',
+      cnhExpiration: ''
+    });
+    setIsModalOpen(true);
   };
 
   const handleDelete = (row) => {
@@ -148,219 +141,244 @@ const ProfilesPage = () => {
     if (!userToDelete) return;
     try {
       await userService.deleteUser(userToDelete.id);
+      showToast("Usuário removido com sucesso!", "success");
       fetchProfiles();
-      // Garantir reset de form e página atual se deletar o que ta editando
-      if (editingId === userToDelete.id) {
-        setEditingId(null);
-        setFormData(initialFormState);
-      }
-      showToast("Usuário removido com sucesso.", "success");
     } catch (error) {
-      const msg = error.response?.data?.message || "Erro ao excluir usuário. Ele pode estar vinculado a motoristas ou operações.";
-      showToast(msg, "error");
+      console.error("Erro ao deletar:", error);
+      showToast("Erro ao excluir usuário.", "error");
     } finally {
       setDeleteConfirmOpen(false);
       setUserToDelete(null);
     }
   };
 
-  const handleEditClick = (profile) => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setFeedback({ type: '', message: '' });
-    setEditingId(profile.id);
-    setIsModalOpen(true);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
     setFormData({
-      name: profile.name || '',
-      email: profile.email || '',
-      cpf: profile.cpf || '',
-      password: '',
-      userProfile: profile.userProfile || '',
-      companyId: profile.companyId || '',
-      cnhNumber: '',
-      cnhExpiration: '',
-      costPerHour: ''
+      ...initialFormState,
+      companyId: companies.length > 0 ? companies[0].id : ''
     });
   };
 
-  const filteredProfiles = profiles.filter(p => {
-    const q = searchTerm.toLowerCase();
-    return (p.name && p.name.toLowerCase().includes(q)) ||
-      (p.cpf && p.cpf.toLowerCase().includes(q));
-  });
-
   const profileColumns = [
-    { label: 'Nome', key: 'name' },
-    { label: 'Email', key: 'email' },
-    {
-      label: 'Perfil', key: 'userProfile', render: (row) => (
-        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: row.userProfile === 'ADMIN' ? 'red' : 'blue' }}>
-          {row.userProfile}
-        </span>
-      )
+    { label: 'Nome Completo', key: 'name' },
+    { label: 'E-mail', key: 'email' },
+    { label: 'CPF', key: 'cpf' },
+    { 
+      label: 'Perfil / Nível', 
+      key: 'userProfile',
+      render: (row) => {
+        const role = row.userProfile || row["User Profile"] || 'USER';
+        let chipClass = 'info';
+        if (role === 'ADMIN') chipClass = 'danger';
+        if (role === 'OPERATOR') chipClass = 'active';
+        if (role === 'DRIVER') chipClass = 'warning';
+
+        return (
+          <span className={`status-chip ${chipClass}`}>
+            {role}
+          </span>
+        );
+      }
     },
-    { label: 'CPF', key: 'cpf', render: (row) => row.cpf || 'Não Informado' }
+    { 
+      label: 'Empresa Vinculada', 
+      key: 'company',
+      render: (row) => row.company?.legalName || '-'
+    }
   ];
 
   return (
-    <div className="profiles-page fade-in">
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
-        title="Perfis de Usuários"
-        description="Gerencie os operadores, motoristas e administradores do sistema."
-        icon={UserCircle}
+        title="Usuários & Perfis de Acesso"
+        description="Gestão de administradores, operadores logísticos e motoristas cadastrados."
+        icon={Users}
         onBack={true}
       >
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          Novo Perfil
+        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} /> Novo Usuário
         </button>
       </PageHeader>
 
+      <div className="card">
+        <DataTable 
+          columns={profileColumns}
+          data={profiles}
+          loading={loading}
+          onEdit={handleEditClick}
+          onDelete={handleDelete}
+          itemsPerPage={12}
+          searchPlaceholder="Pesquisar por nome, e-mail, CPF ou perfil..."
+        />
+      </div>
+
       {isModalOpen && createPortal(
-        <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
-          <div className="modal-content" style={{ maxWidth: '800px' }}>
+        <div className="modal-overlay fade-in">
+          <div className="modal-content" style={{ maxWidth: '720px' }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <UserCircle size={24} color="var(--primary-color)" />
-                {editingId ? 'Editar Perfil' : 'Novo Perfil'}
+                <Users size={22} color="var(--primary-color)" />
+                {editingId ? 'Editar Usuário' : 'Novo Usuário no Sistema'}
               </h2>
-              <button className="modal-close-btn" onClick={() => { setIsModalOpen(false); setFormData(initialFormState); setEditingId(null); }}>
-                <X size={24} />
+              <button className="modal-close-btn" onClick={handleCloseModal} aria-label="Fechar">
+                <X size={20} />
               </button>
             </div>
 
-            <div className="modal-body">
-              {feedback.message && (
-                <div className={`form-feedback ${feedback.type} fade-in`} style={{ gridColumn: '1 / -1', padding: '1rem', borderRadius: '4px', background: feedback.type === 'error' ? '#fee2e2' : '#dcfce3', color: feedback.type === 'error' ? '#991b1b' : '#166534', border: `1px solid ${feedback.type === 'error' ? '#f87171' : '#86efac'}`, marginBottom: '1rem', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
-                  {feedback.message}
-                </div>
-              )}
+            <form onSubmit={handleSave}>
+              <div className="modal-body">
+                <div className="form-grid form-grid-2">
+                  
+                  <div className="form-group">
+                    <label className="form-label">Nome Completo</label>
+                    <input 
+                      type="text" 
+                      name="name" 
+                      value={formData.name} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      placeholder="Ex: João da Silva"
+                      required 
+                    />
+                  </div>
 
-              <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">E-mail Corporativo</label>
+                    <input 
+                      type="email" 
+                      name="email" 
+                      value={formData.email} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      placeholder="joao@golog.com.br"
+                      required 
+                    />
+                  </div>
 
-                <div className="form-field">
-                  <label className="profiles-label">Nome Completo</label>
-                  <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="profiles-input" />
-                </div>
+                  <div className="form-group">
+                    <label className="form-label">CPF</label>
+                    <input 
+                      type="text" 
+                      name="cpf" 
+                      value={formData.cpf} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      placeholder="000.000.000-00"
+                      required 
+                    />
+                  </div>
 
-                <div className="form-field">
-                  <label className="profiles-label">Email</label>
-                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="profiles-input" placeholder="exemplo@gmail.com" />
-                </div>
+                  <div className="form-group">
+                    <label className="form-label">{editingId ? 'Nova Senha (Opcional)' : 'Senha de Acesso'}</label>
+                    <input 
+                      type="password" 
+                      name="password" 
+                      value={formData.password} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      placeholder="••••••••"
+                      required={!editingId} 
+                    />
+                  </div>
 
-                <div className="form-field">
-                  <label className="profiles-label">CPF</label>
-                  <input type="text" name="cpf" value={formData.cpf} onChange={handleInputChange} className="profiles-input" placeholder="000.000.000-00" />
-                </div>
-
-                <div className="form-field">
-                  <label className="profiles-label" ttle="Pelo menos 8 caracteres, contendo 1 Número, 1 Maiúscula, 1 Minúscula e 1 Especial">
-                    Senha
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className="profiles-input"
-                    placeholder="***"
-                    pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
-                    title="A senha deve conter pelo menos 8 caracteres, uma letra maiúscula, uma minúscula, um número e um caractere especial."
-                  />
-                </div>
-
-                  <div className="form-field">
-                    <label className="profiles-label">Cargo (Role)</label>
-                    <select name="userProfile" value={formData.userProfile} onChange={handleInputChange} className="profiles-input">
-                      <option value="">Selecione</option>
+                  <div className="form-group">
+                    <label className="form-label">Perfil de Acesso</label>
+                    <select 
+                      name="userProfile" 
+                      value={formData.userProfile} 
+                      onChange={handleInputChange} 
+                      className="form-select"
+                      required
+                    >
+                      <option value="OPERATOR">Operador Logístico</option>
+                      <option value="ADMIN">Administrador (Master)</option>
                       <option value="DRIVER">Motorista</option>
-                      <option value="OPERATOR">Apoio Logístico / Operador</option>
-                      <option value="ADMIN">Administrador</option>
                     </select>
                   </div>
 
-                  <div className="form-field">
-                    <label className="profiles-label">Empresa</label>
-                    <select name="companyId" value={formData.companyId} onChange={handleInputChange} className="profiles-input">
-                      <option value="">Selecione a empresa</option>
+                  <div className="form-group">
+                    <label className="form-label">Empresa Vinculada</label>
+                    <select 
+                      name="companyId" 
+                      value={formData.companyId} 
+                      onChange={handleInputChange} 
+                      className="form-select"
+                      required
+                    >
+                      <option value="">Selecione a empresa...</option>
                       {companies.map(c => (
-                        <option key={c.id} value={c.id}>{c.legalName}</option>
+                        <option key={c.id} value={c.id}>
+                          {c.legalName}
+                        </option>
                       ))}
                     </select>
                   </div>
 
-                {formData.userProfile === 'DRIVER' && (
-                  <>
-                    <div className="form-field fade-in">
-                      <label className="profiles-label">Nº CNH (Ex: +11111111111)</label>
-                      <input type="text" name="cnhNumber" value={formData.cnhNumber} onChange={handleInputChange} className="profiles-input" placeholder="+00000000000" />
-                    </div>
-
-                    <div className="form-field fade-in">
-                      <label className="profiles-label">Vencimento CNH</label>
-                      <input type="date" name="cnhExpiration" value={formData.cnhExpiration} onChange={handleInputChange} className="profiles-input" />
-                    </div>
-
-                    <div className="form-field fade-in">
-                      <label className="profiles-label">Custo por Hora (R$)</label>
-                      <input type="number" step="0.01" min="0" name="costPerHour" value={formData.costPerHour} onChange={handleInputChange} className="profiles-input" placeholder="0.00" />
-                    </div>
-                  </>
-                )}
-
-                <div className="modal-action-buttons" style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                  <button className="btn-cancel" onClick={() => { setFormData(initialFormState); setEditingId(null); setIsModalOpen(false); }} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
-                    <XOctagon size={16} /> Cancelar
-                  </button>
-                  <button className="btn-primary" onClick={handleSave}>
-                    <Save size={16} /> {editingId ? 'Atualizar Perfil' : 'Salvar Novo Perfil'}
-                  </button>
+                  {formData.userProfile === 'DRIVER' && !editingId && (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label">Número da CNH</label>
+                        <input 
+                          type="text" 
+                          name="cnhNumber" 
+                          value={formData.cnhNumber} 
+                          onChange={handleInputChange} 
+                          className="form-input" 
+                          required 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Validade da CNH</label>
+                        <input 
+                          type="date" 
+                          name="cnhExpiration" 
+                          value={formData.cnhExpiration} 
+                          onChange={handleInputChange} 
+                          className="form-input" 
+                          required 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Custo por Hora (R$)</label>
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          min="0" 
+                          name="costPerHour" 
+                          value={formData.costPerHour} 
+                          onChange={handleInputChange} 
+                          className="form-input" 
+                          placeholder="0.00" 
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
-
               </div>
-            </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={handleCloseModal}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  <Save size={16} /> {editingId ? 'Atualizar Usuário' : 'Salvar Usuário'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body
       )}
 
-      {/* Tabela agora ocupa a tela inteira com seu filtro acima dela */}
-      <div className="profiles-table-container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
-          <div className="search-input-wrapper" style={{ minWidth: '300px' }}>
-            <input
-              type="text"
-              placeholder="Pesquisar por Nome ou CPF..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="profiles-input"
-              style={{ width: '100%', paddingRight: '2.5rem' }}
-            />
-            <Search className="search-icon" size={18} style={{ position: 'absolute', right: '12px' }} />
-          </div>
-          <span className="profiles-count" style={{ margin: 0 }}>{filteredProfiles.length} resultados</span>
-        </div>
-
-      {/* Table Section */}
-      <div className="profiles-actions-panel fade-in">
-        <DataTable
-          columns={profileColumns}
-          data={filteredProfiles}
-          loading={loading}
-          onEdit={handleEditClick}
-          onDelete={handleDelete}
-          itemsPerPage={15}
-        />
-      </div>
-      </div>
-      
       <ConfirmModal
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
         title="Excluir Usuário"
-        message={`Tem certeza que deseja excluir o usuário ${userToDelete?.name}? Esta ação não poderá ser desfeita.`}
+        message={`Deseja realmente excluir o acesso de ${userToDelete?.name}?`}
       />
-
     </div>
   );
 };

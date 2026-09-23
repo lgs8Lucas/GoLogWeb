@@ -1,53 +1,51 @@
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const PageHeader = ({ title, description, icon: Icon, onBack, children }) => {
   const navigate = useNavigate();
 
+  const handleBackClick = () => {
+    if (typeof onBack === 'string') navigate(onBack);
+    else if (typeof onBack === 'function') onBack();
+    else navigate(-1);
+  };
+
   return (
-    <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {onBack && (
-          <button 
-            onClick={() => {
-              if (typeof onBack === 'string') navigate(onBack);
-              else if (typeof onBack === 'function') onBack();
-              else navigate(-1);
-            }}
-            className="back-button"
-            style={{ 
-              background: 'transparent', 
-              border: '1px solid var(--border-color)', 
-              borderRadius: '8px', 
-              padding: '0.5rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
+    <div className="page-header-container fade-in">
+      <div className="page-header-left">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {onBack && (
+            <button 
+              onClick={handleBackClick}
+              className="btn btn-outline"
+              style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}
+              aria-label="Voltar"
+              title="Voltar"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
+
+          {Icon && (
+            <div style={{ 
+              width: '42px', 
+              height: '42px', 
+              borderRadius: 'var(--radius-md)', 
+              backgroundColor: 'var(--primary-glow)', 
+              display: 'flex', 
+              alignItems: 'center', 
               justifyContent: 'center',
-              color: 'var(--text-color)',
-              marginRight: '0.5rem'
-            }}
-            aria-label="Voltar"
-          >
-            <ChevronLeft size={20} />
-          </button>
-        )}
-        
-        {Icon && (
-          <div style={{ 
-            width: '48px', height: '48px', 
-            borderRadius: '8px', 
-            backgroundColor: 'var(--border-color)', 
-            display: 'flex', alignItems: 'center', justifyContent: 'center' 
-          }}>
-            <Icon size={24} color="var(--primary-color)" />
+              flexShrink: 0
+            }}>
+              <Icon size={22} color="var(--primary-color)" />
+            </div>
+          )}
+          
+          <div>
+            <h1 className="page-header-title">{title}</h1>
+            {description && <p className="page-header-subtitle">{description}</p>}
           </div>
-        )}
-        
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-color)', margin: 0 }}>{title}</h1>
-          {description && <p style={{ fontSize: '0.875rem', color: 'var(--text-light)', margin: 0 }}>{description}</p>}
         </div>
       </div>
       

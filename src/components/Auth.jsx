@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Lock, Mail, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { authService } from '../services/authService';
-import { userService } from '../services/userService';
 import '../styles/Auth.css';
 import LogoBranco from '../assets/LogoBranco.png';
 
@@ -24,93 +24,105 @@ const Auth = () => {
       navigate('/');
     } catch (error) {
       console.error("Erro na autenticação:", error);
-      setErrorMsg(error.response?.data?.message || 'Falha na autenticação. Verifique suas credenciais.');
+      setErrorMsg(error.response?.data?.message || 'Credenciais inválidas. Verifique seu e-mail e senha.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      {/* Painél esquerdo - Ilustrativo */}
-      <div className="auth-image-panel">
-        {/* TODO: Colocar imagem ilustrativa */}
-        <div className="auth-brand-content fade-in">
-          <img src={LogoBranco} alt="GoLog" className="auth-brand-logo" />
-          <p className="brand-subtitle">
-            Sistema multiplataforma para otimização logística e monitoramento de frotas com integração IoT.
+    <div className="auth-page-wrapper">
+      <div className="auth-left-brand">
+        <div className="brand-glow-effect"></div>
+        <div className="brand-content-box fade-in">
+          <img src={LogoBranco} alt="GoLog TMS" className="brand-main-logo" />
+          <h1 className="brand-headline">Plataforma Inteligente de Gestão de Transportes</h1>
+          <p className="brand-description">
+            Monitoramento em tempo real, roteirização avançada e controle sustentável de emissões de CO₂ para a sua frota.
           </p>
+          <div className="brand-features-list">
+            <div className="feature-item">
+              <Truck size={18} color="var(--secondary-color)" />
+              <span>Gestão Integrada de Frotas & Motoristas</span>
+            </div>
+            <div className="feature-item">
+              <ShieldCheck size={18} color="var(--secondary-color)" />
+              <span>Telemetria em Tempo Real & Alertas IoT</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Painél direito - Formulário */}
-      <div className="auth-form-panel">
-        <div className="auth-card fade-in">
-          <div className="form-header">
-            <div className="user-avatar-placeholder">
-              {/* Ícone padrão de usuário SVG */}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </div>
-            <h2>Acesso ao Painel</h2>
+      <div className="auth-right-form">
+        <div className="auth-card-box fade-in">
+          <div className="auth-header">
+            <div className="brand-badge-small">GoLog TMS</div>
+            <h2>Acesse sua conta</h2>
+            <p>Insira suas credenciais corporativas para prosseguir</p>
           </div>
 
-          <form className="auth-form" onSubmit={handleSubmit}>
+          <form className="auth-form-body" onSubmit={handleSubmit}>
             {errorMsg && (
-              <div
-                className="form-group fade-in"
-                style={{
-                  color: errorMsg.includes('sucesso') ? '#28a745' : '#ff4d4d',
-                  fontSize: '0.9rem',
-                  marginBottom: '1rem',
-                  textAlign: 'center'
-                }}
-              >
+              <div className="auth-error-banner fade-in">
                 {errorMsg}
               </div>
             )}
 
             <div className="form-group">
-              <label className="form-label" htmlFor="email">Email</label>
-              <input
-                type="email"
-                id="email"
-                className="form-input"
-                placeholder="exemplo@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              <label className="form-label" htmlFor="email">E-mail corporativo</label>
+              <div className="input-with-icon">
+                <Mail size={18} className="input-icon" />
+                <input
+                  type="email"
+                  id="email"
+                  className="form-input"
+                  placeholder="usuario@golog.com.br"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="password">Senha</label>
-              <input
-                type="password"
-                id="password"
-                className="form-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <label className="form-label" htmlFor="password">Senha de acesso</label>
+              <div className="input-with-icon">
+                <Lock size={18} className="input-icon" />
+                <input
+                  type="password"
+                  id="password"
+                  className="form-input"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-options fade-in">
-              <label className="checkbox-group">
+            <div className="auth-options">
+              <label className="checkbox-label">
                 <input type="checkbox" defaultChecked />
-                <span>Manter conectado.</span>
+                <span>Manter sessão ativa</span>
               </label>
-              <a href="#forgot" className="forgot-link">Esqueci minha senha.</a>
+              <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('Contate o administrador do sistema para redefinir sua senha.'); }} className="forgot-link">Esqueceu a senha?</a>
             </div>
 
-            <button type="submit" className="submit-btn fade-in" disabled={isLoading}>
-              {isLoading ? 'Aguarde...' : "Entrar"}
+            <button type="submit" className="btn btn-primary auth-submit-btn" disabled={isLoading}>
+              {isLoading ? (
+                <span>Autenticando...</span>
+              ) : (
+                <>
+                  <span>Entrar no Sistema</span>
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
           </form>
 
+          <div className="auth-footer-info">
+            &copy; {new Date().getFullYear()} GoLog TMS. Todos os direitos reservados.
+          </div>
         </div>
       </div>
     </div>

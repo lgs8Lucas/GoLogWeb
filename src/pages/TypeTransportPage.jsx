@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Tags, Plus, X } from 'lucide-react';
+import { Tags, Plus, Save, X } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { typeTransportService } from '../services/typeTransportService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
-import '../styles/Profiles.css'; // Reusing standard page layout
 
 const TypeTransportPage = () => {
   const [types, setTypes] = useState([]);
@@ -31,6 +30,7 @@ const TypeTransportPage = () => {
       setTypes(data);
     } catch (error) {
       console.error('Erro ao carregar tipos:', error);
+      showToast('Erro ao carregar tipos de transporte.', 'error');
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,6 @@ const TypeTransportPage = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === 'name') {
-      // API schema demands ^[A-Z ]+$
       setFormData({ ...formData, [name]: value.toUpperCase().replace(/[^A-Z ]/g, '') });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -60,9 +59,7 @@ const TypeTransportPage = () => {
         await typeTransportService.create(formData);
         showToast('Tipo de transporte salvo com sucesso!', 'success');
       }
-      setIsModalOpen(false);
-      setEditingId(null);
-      setFormData(initialFormState);
+      handleCloseModal();
       fetchTypes();
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -100,102 +97,122 @@ const TypeTransportPage = () => {
     }
   };
 
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData(initialFormState);
+  };
+
   const columns = [
-    { label: 'Nome', key: 'name' },
-    { label: 'Descrição', key: 'description' },
-    { label: 'Cuidados Especiais', key: 'care' }
+    { label: 'Nome da Categoria', key: 'name' },
+    { label: 'Descrição Operacional', key: 'description' },
+    { label: 'Cuidados Especiais / Regras', key: 'care' }
   ];
 
   return (
-    <div className="profiles-container fade-in">
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
         title="Tipos de Transporte"
-        description="Gerencie as categorias de transporte e seus cuidados."
+        description="Categorização de modais, restrições e requisitos de manuseio."
         icon={Tags}
         onBack={true}
       >
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          Novo Tipo
+        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} /> Novo Tipo de Transporte
         </button>
       </PageHeader>
 
-      <div className="profiles-content">
+      <div className="card">
         <DataTable 
           columns={columns} 
           data={types} 
           loading={loading}
           onEdit={handleEditClick}
           onDelete={handleDelete}
-          emptyMessage="Nenhum tipo encontrado. Crie um novo ou aguarde a API disponibilizar a listagem."
+          itemsPerPage={12}
+          searchPlaceholder="Pesquisar por nome, descrição ou cuidados..."
         />
       </div>
 
       {isModalOpen && createPortal(
-        <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
-          <div className="modal-content" style={{ maxWidth: '500px' }}>
+        <div className="modal-overlay fade-in">
+          <div className="modal-content" style={{ maxWidth: '560px' }}>
             <div className="modal-header">
-              <h2>{editingId ? 'Editar Tipo de Transporte' : 'Novo Tipo de Transporte'}</h2>
-              <button className="modal-close-btn" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData(initialFormState); }}>
-                <X size={24} />
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Tags size={22} color="var(--primary-color)" />
+                {editingId ? 'Editar Tipo de Transporte' : 'Novo Tipo de Transporte'}
+              </h2>
+              <button className="modal-close-btn" onClick={handleCloseModal} aria-label="Fechar">
+                <X size={20} />
               </button>
             </div>
+
             <form onSubmit={handleSubmit}>
-              <div className="modal-body" style={{ gap: '1rem' }}>
-                <div className="form-group">
-                  <label>Nome (Apenas letras maiúsculas)</label>
-                  <input 
-                    type="text" 
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="modal-input" 
-                    required 
-                    placeholder="EX: TRANSPORTE SECO"
-                  />
+              <div className="modal-body">
+                <div className="form-grid">
+                  
+                  <div className="form-group">
+                    <label className="form-label">Nome da Categoria (APENAS MAIÚSCULAS)</label>
+                    <input 
+                      type="text" 
+                      name="name" 
+                      value={formData.name} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      placeholder="EX: FRAGIL / REFRIGERADO"
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Descrição da Categoria</label>
+                    <input 
+                      type="text" 
+                      name="description" 
+                      value={formData.description} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      placeholder="Transporte com temperatura controlada"
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Cuidados Especiais & Instruções</label>
+                    <textarea 
+                      name="care" 
+                      value={formData.care} 
+                      onChange={handleInputChange} 
+                      className="form-textarea" 
+                      rows="3"
+                      placeholder="Manter em temperatura entre 2°C e 8°C."
+                      required 
+                    />
+                  </div>
+
                 </div>
-                <div className="form-group">
-                  <label>Descrição</label>
-                  <textarea 
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="modal-input" 
-                    rows="3"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Cuidados Especiais</label>
-                  <textarea 
-                    name="care"
-                    value={formData.care}
-                    onChange={handleInputChange}
-                    className="modal-input" 
-                    rows="3"
-                    placeholder="Ex: Cuidado frágil, manter seco..."
-                  />
-                </div>
-                
-                <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                  <button type="button" className="btn-cancel" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData(initialFormState); }} style={{ padding: '0.75rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn-save" style={{ padding: '0.75rem 1.5rem', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
-                    {editingId ? 'Atualizar' : 'Salvar'}
-                  </button>
-                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={handleCloseModal}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  <Save size={16} /> Salvar Tipo
+                </button>
               </div>
             </form>
           </div>
         </div>,
         document.body
       )}
+
       <ConfirmModal
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
         title="Excluir Tipo de Transporte"
-        message={`Tem certeza que deseja excluir o tipo de transporte ${typeToDelete?.name}?`}
+        message={`Deseja realmente remover o tipo de transporte ${typeToDelete?.name}?`}
       />
     </div>
   );

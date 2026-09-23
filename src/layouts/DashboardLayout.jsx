@@ -1,15 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import '../styles/Dashboard.css';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
+import '../styles/Dashboard.css';
 
 const DashboardLayout = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(prev => !prev);
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="dashboard-layout fade-in">
-      <Navbar />
+      <Navbar onToggleMobileMenu={toggleMobileMenu} isMobileOpen={mobileMenuOpen} />
       <div className="dashboard-body">
-        <Sidebar />
+        <Sidebar isOpen={mobileMenuOpen} onClose={closeMobileMenu} />
         <main className="dashboard-main">
           <div className="dashboard-content">
             <Outlet />
@@ -21,3 +31,4 @@ const DashboardLayout = () => {
 };
 
 export default DashboardLayout;
+

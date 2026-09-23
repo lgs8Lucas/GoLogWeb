@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Map, Plus, Edit, Trash2, Save, X, Search } from 'lucide-react';
+import { MapPin, Plus, Save, X, Search, Map } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { addressService } from '../services/addressService';
 import { createPortal } from 'react-dom';
-import '../styles/Profiles.css'; // Reusing standard UI table styles
+import { useToast } from '../components/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 const AddressModal = ({ isOpen, onClose, onSave, address }) => {
   const [formData, setFormData] = useState({
@@ -84,14 +85,10 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Clean payload for API validation constraints
     const payload = { ...formData };
     if (!payload.complement || payload.complement.trim() === '') {
       delete payload.complement;
     }
-    
-    // Ensure coords are strings
     if (payload.latitude) payload.latitude = String(payload.latitude);
     if (payload.longitude) payload.longitude = String(payload.longitude);
 
@@ -99,74 +96,82 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
   };
 
   return createPortal(
-    <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
-      <div className="modal-content" style={{ maxWidth: '600px' }}>
+    <div className="modal-overlay fade-in">
+      <div className="modal-content" style={{ maxWidth: '640px' }}>
         <div className="modal-header">
-          <h2>{address ? 'Editar Endereço' : 'Novo Endereço'}</h2>
-          <button className="modal-close-btn" onClick={onClose}>
-            <X size={24} />
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MapPin size={22} color="var(--primary-color)" />
+            {address ? 'Editar Endereço' : 'Novo Endereço'}
+          </h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Fechar">
+            <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label>Logradouro (Rua/Avenida)</label>
-              <input type="text" name="street" value={formData.street} onChange={handleInputChange} required className="modal-input" />
-            </div>
-            
-            <div className="form-group">
-              <label>Número</label>
-              <input type="text" name="number" value={formData.number} onChange={handleInputChange} required className="modal-input" />
-            </div>
-            
-            <div className="form-group">
-              <label>CEP</label>
-              <input type="text" name="cep" value={formData.cep} onChange={handleInputChange} required className="modal-input" />
-            </div>
 
-            <div className="form-group">
-              <label>Bairro</label>
-              <input type="text" name="district" value={formData.district} onChange={handleInputChange} required className="modal-input" />
-            </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-grid form-grid-2">
+              
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="form-label">Logradouro (Rua / Avenida)</label>
+                <input type="text" name="street" value={formData.street} onChange={handleInputChange} required className="form-input" />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">Número</label>
+                <input type="text" name="number" value={formData.number} onChange={handleInputChange} required className="form-input" />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">CEP</label>
+                <input type="text" name="cep" value={formData.cep} onChange={handleInputChange} required className="form-input" />
+              </div>
 
-            <div className="form-group">
-              <label>Complemento</label>
-              <input type="text" name="complement" value={formData.complement} onChange={handleInputChange} className="modal-input" />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Bairro</label>
+                <input type="text" name="district" value={formData.district} onChange={handleInputChange} required className="form-input" />
+              </div>
 
-            <div className="form-group">
-              <label>Cidade</label>
-              <input type="text" name="city" value={formData.city} onChange={handleInputChange} required className="modal-input" />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Complemento</label>
+                <input type="text" name="complement" value={formData.complement} onChange={handleInputChange} className="form-input" />
+              </div>
 
-            <div className="form-group">
-              <label>Estado (UF)</label>
-              <input type="text" name="state" value={formData.state} onChange={handleInputChange} required className="modal-input" maxLength="2" placeholder="Ex: SP" />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Cidade</label>
+                <input type="text" name="city" value={formData.city} onChange={handleInputChange} required className="form-input" />
+              </div>
 
-            <div className="form-group" style={{ gridColumn: 'span 2', marginTop: '0.5rem' }}>
-              <button type="button" onClick={fetchCoordinates} disabled={loadingCoords} style={{ padding: '0.75rem', backgroundColor: 'var(--bg-light)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--primary-color)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <Map size={18} />
-                {loadingCoords ? 'Buscando nas bases de dados...' : 'Buscar Coordenadas Automaticamente'}
-              </button>
-            </div>
+              <div className="form-group">
+                <label className="form-label">Estado (UF)</label>
+                <input type="text" name="state" value={formData.state} onChange={handleInputChange} maxLength="2" required className="form-input" />
+              </div>
 
-            <div className="form-group">
-              <label>Latitude</label>
-              <input type="text" name="latitude" value={formData.latitude} onChange={handleInputChange} className="modal-input" placeholder="-23.5505" />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Latitude</label>
+                <input type="text" name="latitude" value={formData.latitude} onChange={handleInputChange} className="form-input" placeholder="-22.3659" />
+              </div>
 
-            <div className="form-group">
-              <label>Longitude</label>
-              <input type="text" name="longitude" value={formData.longitude} onChange={handleInputChange} className="modal-input" placeholder="-46.6333" />
+              <div className="form-group">
+                <label className="form-label">Longitude</label>
+                <input type="text" name="longitude" value={formData.longitude} onChange={handleInputChange} className="form-input" placeholder="-47.3809" />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-start' }}>
+                <button type="button" onClick={fetchCoordinates} disabled={loadingCoords} className="btn btn-outline" style={{ fontSize: '0.8125rem' }}>
+                  {loadingCoords ? 'Buscando GPS...' : '📍 Buscar Coordenadas via GPS'}
+                </button>
+              </div>
+
             </div>
           </div>
 
-          <div className="modal-action-buttons" style={{ marginTop: '1rem', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn-cancel" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn-confirm">
-              <Save size={18} /> Salvar
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary">
+              <Save size={16} /> Salvar Endereço
             </button>
           </div>
         </form>
@@ -179,17 +184,20 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
 const AddressPage = () => {
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
+  const { showToast } = useToast();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState(null);
 
   const fetchAddresses = async () => {
     setLoading(true);
     try {
-      const data = await addressService.getAll();
+      const data = await addressService.getAllAddresses();
       setAddresses(data);
     } catch (error) {
-      console.error('Erro ao carregar endereços:', error);
+      console.error('Erro ao buscar endereços:', error);
+      showToast('Erro ao carregar lista de endereços.', 'error');
     } finally {
       setLoading(false);
     }
@@ -199,118 +207,103 @@ const AddressPage = () => {
     fetchAddresses();
   }, []);
 
-  const handleSave = async (formData) => {
+  const handleCreate = () => {
+    setEditingAddress(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (address) => {
+    setEditingAddress(address);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (address) => {
+    setAddressToDelete(address);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!addressToDelete) return;
+    try {
+      await addressService.deleteAddress(addressToDelete.id);
+      showToast('Endereço excluído com sucesso!', 'success');
+      fetchAddresses();
+    } catch (error) {
+      console.error('Erro ao excluir endereço:', error);
+      showToast('Erro ao excluir o endereço.', 'error');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setAddressToDelete(null);
+    }
+  };
+
+  const handleSave = async (payload) => {
     try {
       if (editingAddress) {
-        await addressService.update(editingAddress.id, formData);
-        alert('Endereço atualizado com sucesso!');
+        await addressService.updateAddress(editingAddress.id, payload);
+        showToast('Endereço atualizado com sucesso!', 'success');
       } else {
-        await addressService.create(formData);
-        alert('Endereço criado com sucesso!');
+        await addressService.createAddress(payload);
+        showToast('Endereço cadastrado com sucesso!', 'success');
       }
       setIsModalOpen(false);
       fetchAddresses();
     } catch (error) {
       console.error('Erro ao salvar endereço:', error);
-      alert('Erro ao salvar endereço. Verifique os dados.');
+      showToast(error.response?.data?.message || 'Falha ao salvar o endereço.', 'error');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este endereço?')) {
-      try {
-        await addressService.delete(id);
-        alert('Endereço excluído!');
-        fetchAddresses();
-      } catch (error) {
-        console.error('Erro ao excluir:', error);
-        alert('Erro ao excluir endereço.');
-      }
-    }
-  };
-
-  const openNewModal = () => {
-    setEditingAddress(null);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (address) => {
-    setEditingAddress(address);
-    setIsModalOpen(true);
-  };
-
-  const filtered = addresses.filter(a => 
-    (a.street || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (a.city || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (a.cep || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const columns = [
-    { label: 'Logradouro', key: 'street', render: (row) => `${row.street}, ${row.number}` },
-    { label: 'Bairro', key: 'district', render: (row) => row.district || '-' },
-    { label: 'Cidade/UF', key: 'city', render: (row) => `${row.city} - ${row.state}` },
-    { label: 'CEP', key: 'cep', render: (row) => row.cep || '-' },
-    { label: 'Coordenadas', key: 'coords', render: (row) => (row.latitude && row.longitude) ? `${row.latitude}, ${row.longitude}` : '-' },
+  const addressColumns = [
     { 
-      label: 'Ações', 
-      key: 'actions', 
-      render: (row) => (
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => openEditModal(row)} className="action-btn edit" title="Editar">
-            <Edit size={18} />
-          </button>
-          <button onClick={() => handleDelete(row.id)} className="action-btn delete" title="Excluir">
-            <Trash2 size={18} />
-          </button>
-        </div>
-      ) 
-    }
+      label: 'Logradouro', 
+      key: 'street',
+      render: (row) => `${row.street || ''}, ${row.number || 'S/N'}` 
+    },
+    { label: 'Bairro', key: 'district' },
+    { label: 'Cidade / UF', key: 'city', render: (row) => `${row.city || '-'} (${row.state || '-'})` },
+    { label: 'CEP', key: 'cep' },
+    { label: 'Coordenadas GPS', key: 'latitude', render: (row) => row.latitude ? `${row.latitude}, ${row.longitude}` : '-' }
   ];
 
   return (
-    <div className="profiles-container fade-in">
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
         title="Endereços"
-        description="Gerencie os endereços de coleta, entrega e das empresas."
+        description="Gerenciamento de pontos de coleta, entrega e coordenadas GPS."
         icon={Map}
         onBack={true}
       >
-        <button className="btn-primary" onClick={openNewModal}>
-          <Plus size={20} />
-          Novo Endereço
+        <button className="btn btn-primary" onClick={handleCreate}>
+          <Plus size={18} /> Novo Endereço
         </button>
       </PageHeader>
 
-      <div className="profiles-table-container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
-          <div className="search-input-wrapper" style={{ minWidth: '300px' }}>
-            <input
-              type="text"
-              placeholder="Pesquisar por rua, cidade ou CEP..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="profiles-input"
-              style={{ width: '100%', paddingRight: '2.5rem' }}
-            />
-            <Search className="search-icon" size={18} style={{ position: 'absolute', right: '12px' }} />
-          </div>
-          <span className="profiles-count" style={{ margin: 0 }}>{filtered.length} resultados</span>
-        </div>
-        
+      <div className="card">
         <DataTable 
-          columns={columns} 
-          data={filtered} 
+          columns={addressColumns}
+          data={addresses}
           loading={loading}
-          emptyMessage="Nenhum endereço encontrado."
-          itemsPerPage={10}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          itemsPerPage={12}
+          searchPlaceholder="Pesquisar por logradouro, cidade, bairro ou CEP..."
         />
       </div>
 
       <AddressModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleSave} 
-        address={editingAddress} 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSave}
+        address={editingAddress}
+      />
+
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Excluir Endereço"
+        message={`Deseja realmente excluir o endereço ${addressToDelete?.street}, ${addressToDelete?.number}?`}
       />
     </div>
   );

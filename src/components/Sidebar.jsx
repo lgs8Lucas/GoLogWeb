@@ -1,8 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  BarChart3,
-  User,
+  LayoutDashboard,
+  Users,
   Truck,
   Package,
   MapPin,
@@ -11,88 +11,161 @@ import {
   Tags,
   Layers,
   AlertTriangle,
-  CalendarClock
+  CalendarClock,
+  X
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import '../styles/Sidebar.css';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const userRole = authService.getUserRole();
 
+  const handleLinkClick = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <aside className="sidebar-container">
-      <div className="sidebar-menu">
-        <NavLink to="/" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"} end>
-          <BarChart3 size={20} color="var(--primary-color)" />
-          <span>Dashboard</span>
-        </NavLink>
+    <>
+      {/* Backdrop for mobile drawer */}
+      <div 
+        className={`sidebar-backdrop ${isOpen ? 'show' : ''}`} 
+        onClick={onClose}
+      />
 
-        <h3 className="sidebar-title">Operacional</h3>
+      <aside className={`sidebar-container ${isOpen ? 'open' : ''}`}>
+        <div className="sidebar-mobile-header">
+          <span className="sidebar-mobile-title">Menu GoLog</span>
+          <button className="sidebar-close-btn" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
 
-        <NavLink to="/frota" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-          <Truck size={20} color="var(--primary-color)" />
-          <span>Frota</span>
-        </NavLink>
+        <nav className="sidebar-menu">
+          <div className="sidebar-section-title">Navegação Principal</div>
+          
+          <NavLink 
+            to="/" 
+            className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"} 
+            end
+            onClick={handleLinkClick}
+          >
+            <LayoutDashboard size={18} />
+            <span>Dashboard</span>
+          </NavLink>
 
-        <NavLink to="/transporte" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-          <Package size={20} color="var(--primary-color)" />
-          <span>Transportes</span>
-        </NavLink>
+          <div className="sidebar-section-title">Operação Logística</div>
 
-        <NavLink to="/monitoramento" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-          <MapPin size={20} color="var(--primary-color)" />
-          <span>Monitoramento</span>
-        </NavLink>
+          <NavLink 
+            to="/frota" 
+            className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+            onClick={handleLinkClick}
+          >
+            <Truck size={18} />
+            <span>Frota de Veículos</span>
+          </NavLink>
 
-        {(userRole === 'ADMIN' || userRole === 'OPERATOR') && (
-          <>
-            <h3 className="sidebar-title">Administração</h3>
+          <NavLink 
+            to="/transporte" 
+            className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+            onClick={handleLinkClick}
+          >
+            <Package size={18} />
+            <span>Transportes & Cargas</span>
+          </NavLink>
 
-            {userRole === 'ADMIN' && (
-              <NavLink to="/perfis" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-                <User size={20} color="var(--primary-color)" />
-                <span>Usuários</span>
+          <NavLink 
+            to="/monitoramento" 
+            className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+            onClick={handleLinkClick}
+          >
+            <MapPin size={18} />
+            <span>Telemetria & Mapa</span>
+          </NavLink>
+
+          {(userRole === 'ADMIN' || userRole === 'OPERATOR') && (
+            <>
+              <div className="sidebar-section-title">Cadastros & Regras</div>
+
+              {userRole === 'ADMIN' && (
+                <NavLink 
+                  to="/perfis" 
+                  className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                  onClick={handleLinkClick}
+                >
+                  <Users size={18} />
+                  <span>Usuários & Perfis</span>
+                </NavLink>
+              )}
+
+              <NavLink 
+                to="/empresas" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+              >
+                <Building2 size={18} />
+                <span>{userRole === 'OPERATOR' ? 'Clientes' : 'Empresas & Parceiros'}</span>
               </NavLink>
-            )}
 
-            <NavLink to="/empresas" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-              <Building2 size={20} color="var(--primary-color)" />
-              <span>{userRole === 'OPERATOR' ? 'Clientes' : 'Empresas'}</span>
-            </NavLink>
+              <NavLink 
+                to="/enderecos" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+              >
+                <Map size={18} />
+                <span>Endereços</span>
+              </NavLink>
 
-            <NavLink to="/enderecos" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-              <Map size={20} color="var(--primary-color)" />
-              <span>Endereços</span>
-            </NavLink>
+              <NavLink 
+                to="/tipos-transporte" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+              >
+                <Tags size={18} />
+                <span>Tipos de Transporte</span>
+              </NavLink>
 
-            <NavLink to="/tipos-transporte" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-              <Tags size={20} color="var(--primary-color)" />
-              <span>Tipos Transporte</span>
-            </NavLink>
+              <NavLink 
+                to="/conjuntos" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+              >
+                <Layers size={18} />
+                <span>Conjuntos de Equipamentos</span>
+              </NavLink>
 
-            <NavLink to="/conjuntos" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-              <Layers size={20} color="var(--primary-color)" />
-              <span>Conjuntos</span>
-            </NavLink>
+              <NavLink 
+                to="/tipos-carga" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+              >
+                <Package size={18} />
+                <span>Tipos de Carga</span>
+              </NavLink>
 
-            <NavLink to="/escalas" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-              <CalendarClock size={20} color="var(--primary-color)" />
-              <span>Escala de Trabalho</span>
-            </NavLink>
+              <NavLink 
+                to="/escalas" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+              >
+                <CalendarClock size={18} />
+                <span>Escala de Trabalho</span>
+              </NavLink>
 
-            <NavLink to="/tipos-carga" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-              <Package size={20} color="var(--primary-color)" />
-              <span>Tipos Carga</span>
-            </NavLink>
-
-            <NavLink to="/ocorrencias" className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}>
-              <AlertTriangle size={20} color="var(--primary-color)" />
-              <span>Ocorrências</span>
-            </NavLink>
-          </>
-        )}
-      </div>
-    </aside>
+              <NavLink 
+                to="/ocorrencias" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+              >
+                <AlertTriangle size={18} />
+                <span>Tipos de Ocorrência</span>
+              </NavLink>
+            </>
+          )}
+        </nav>
+      </aside>
+    </>
   );
 };
 

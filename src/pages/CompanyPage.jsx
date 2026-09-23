@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Save, XOctagon, Building2, MapPin, ChevronLeft, Plus, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import '../styles/Company.css';
+import { Building2, Plus, Save, X } from 'lucide-react';
 import { companyService } from '../services/companyService';
 import { addressService } from '../services/addressService';
 import { authService } from '../services/authService';
@@ -12,13 +10,10 @@ import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const CompanyPage = () => {
-  const navigate = useNavigate();
   const userRole = authService.getUserRole();
   const isOperator = userRole === 'OPERATOR';
-  const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState({ type: '', message: '' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { showToast } = useToast();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -30,7 +25,6 @@ const CompanyPage = () => {
     email: '',
     phoneNumber: '',
     isCliente: true,
-    // Address fields
     cep: '',
     street: '',
     number: '',
@@ -97,8 +91,6 @@ const CompanyPage = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setFeedback({ type: '', message: '' });
-
     try {
       let addressId = editingAddressId;
 
@@ -116,10 +108,8 @@ const CompanyPage = () => {
       };
 
       if (editingId && addressId) {
-        // Update Address
         await addressService.updateAddress(addressId, addressPayload);
       } else {
-        // Create Address
         const newAddress = await addressService.createAddress(addressPayload);
         addressId = newAddress.id;
       }
@@ -141,259 +131,293 @@ const CompanyPage = () => {
         showToast(`${isOperator ? 'Cliente' : 'Empresa'} cadastrada com sucesso.`, 'success');
       }
 
-      setFormData(initialFormState);
-      setEditingId(null);
-      setEditingAddressId(null);
-      setIsModalOpen(false);
+      handleCloseModal();
       fetchCompanies();
     } catch (error) {
-      console.error("Erro ao salvar empresa:", error);
-      let mensagens = 'Erro ao realizar operação.';
-      if (Array.isArray(error.response?.data)) {
-        mensagens = error.response.data.join('\n');
-      } else if (error.response?.data?.message) {
-        mensagens = error.response.data.message;
-      } else if (typeof error.response?.data === 'string') {
-        mensagens = error.response.data;
-      }
-      setFeedback({ type: 'error', message: mensagens });
-      showToast(mensagens, 'error');
+      console.error("Erro ao salvar:", error);
+      showToast(error.response?.data?.message || 'Falha ao salvar dados.', 'error');
     }
   };
 
-  const handleDelete = (row) => {
-    setCompanyToDelete(row);
-    setDeleteConfirmOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!companyToDelete) return;
-    const term = isOperator ? 'cliente' : 'empresa';
-    try {
-      await companyService.deleteCompany(companyToDelete.id);
-      showToast(`${isOperator ? 'Cliente' : 'Empresa'} excluída com sucesso.`, 'success');
-      fetchCompanies();
-    } catch (error) {
-      console.error("Erro ao deletar:", error);
-      showToast(`Erro ao excluir o ${term}.`, 'error');
-    } finally {
-      setDeleteConfirmOpen(false);
-      setCompanyToDelete(null);
-    }
-  };
-
-  const handleEditClick = (company) => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleEdit = (company) => {
     setEditingId(company.id);
-    setEditingAddressId(company.address?.id || null);
-    setIsModalOpen(true);
+    const addr = company.address || {};
+    setEditingAddressId(addr.id || null);
+
     setFormData({
       legalName: company.legalName || '',
       cnpjCpf: company.cnpjCpf || '',
       email: company.email || '',
       phoneNumber: company.phoneNumber || '',
       isCliente: company.isCliente ?? true,
-      cep: company.address?.cep || '',
-      street: company.address?.street || '',
-      number: company.address?.number || '',
-      district: company.address?.district || '',
-      city: company.address?.city || '',
-      state: company.address?.state || '',
-      country: company.address?.country || 'Brasil',
-      complement: company.address?.complement || ''
+      cep: addr.cep || '',
+      street: addr.street || '',
+      number: addr.number || '',
+      district: addr.district || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      country: addr.country || 'Brasil',
+      complement: addr.complement || ''
     });
+    setIsModalOpen(true);
   };
 
-  const displayedCompanies = companies.filter(c => {
-    if (isOperator && !c.isCliente) return false;
-    return true;
-  });
+  const handleDelete = (company) => {
+    setCompanyToDelete(company);
+    setDeleteConfirmOpen(true);
+  };
 
-  const filteredCompanies = displayedCompanies.filter(c => {
-    const q = searchTerm.toLowerCase();
-    return (c.legalName && c.legalName.toLowerCase().includes(q)) ||
-      (c.cnpjCpf && c.cnpjCpf.toLowerCase().includes(q));
-  });
+  const confirmDelete = async () => {
+    if (!companyToDelete) return;
+    try {
+      await companyService.deleteCompany(companyToDelete.id);
+      showToast(`${isOperator ? 'Cliente' : 'Empresa'} excluída com sucesso.`, 'success');
+      fetchCompanies();
+    } catch (error) {
+      console.error("Erro ao deletar:", error);
+      showToast('Falha ao excluir o registro.', 'error');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setCompanyToDelete(null);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setEditingAddressId(null);
+    setFormData(initialFormState);
+  };
 
   const companyColumns = [
-    { label: 'Razão Social', key: 'legalName' },
-    { label: 'CNPJ/CPF', key: 'cnpjCpf' },
+    { label: 'Razão Social / Nome', key: 'legalName' },
+    { label: 'CNPJ / CPF', key: 'cnpjCpf' },
     { label: 'E-mail', key: 'email' },
     { label: 'Telefone', key: 'phoneNumber' },
-    {
-      label: 'Tipo',
+    { 
+      label: 'Tipo', 
       key: 'isCliente',
       render: (row) => (
-        <span className={`status-badge ${row.isCliente ? 'ativo' : 'status-transportando'}`} style={{
-          padding: '4px 12px',
-          borderRadius: '50px',
-          fontSize: '0.75rem',
-          fontWeight: 'bold',
-          background: row.isCliente ? '#dcfce3' : '#e0f2fe',
-          color: row.isCliente ? '#166534' : '#0369a1'
-        }}>
-          {row.isCliente ? 'CLIENTE' : 'FORNECEDOR'}
+        <span className={`status-chip ${row.isCliente ? 'active' : 'info'}`}>
+          {row.isCliente ? 'Cliente' : 'Transportadora'}
         </span>
       )
+    },
+    { 
+      label: 'Cidade / UF', 
+      key: 'address',
+      render: (row) => row.address ? `${row.address.city || '-'} (${row.address.state || '-'})` : '-'
     }
   ];
 
   return (
-    <div className="company-page fade-in">
-      <PageHeader
-        title={isOperator ? "Clientes" : "Empresas"}
-        description={isOperator ? "Gerencie os clientes do sistema." : "Gerencie os clientes e fornecedores do sistema."}
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <PageHeader 
+        title={isOperator ? 'Clientes' : 'Empresas & Clientes'}
+        description={`Cadastro e gerenciamento de ${isOperator ? 'clientes e destinatários' : 'empresas parceiras, transportadoras e clientes'}.`}
         icon={Building2}
         onBack={true}
       >
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          {isOperator ? "Novo Cliente" : "Nova Empresa"}
+        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} /> Novo {isOperator ? 'Cliente' : 'Registro'}
         </button>
       </PageHeader>
 
+      <div className="card">
+        <DataTable 
+          columns={companyColumns}
+          data={companies}
+          loading={loading}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          itemsPerPage={12}
+          searchPlaceholder="Pesquisar por razão social, CNPJ, e-mail ou cidade..."
+        />
+      </div>
+
       {isModalOpen && createPortal(
-        <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
+        <div className="modal-overlay fade-in">
           <div className="modal-content" style={{ maxWidth: '800px' }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Building2 size={24} color="var(--primary-color)" />
-                {editingId
-                  ? (isOperator ? 'Editar Cliente' : 'Editar Empresa')
-                  : (isOperator ? 'Novo Cliente' : 'Nova Empresa')
-                }
+                <Building2 size={22} color="var(--primary-color)" />
+                {editingId ? `Editar ${isOperator ? 'Cliente' : 'Empresa'}` : `Nova ${isOperator ? 'Cliente' : 'Empresa'}`}
               </h2>
-              <button className="modal-close-btn" onClick={() => { setIsModalOpen(false); setFormData(initialFormState); setEditingId(null); }}>
-                <X size={24} />
+              <button className="modal-close-btn" onClick={handleCloseModal} aria-label="Fechar">
+                <X size={20} />
               </button>
             </div>
 
-            <div className="modal-body">
-              {feedback.message && (
-                <div className={`form-feedback ${feedback.type} fade-in`} style={{ marginBottom: '1rem', padding: '1rem', borderRadius: '8px', background: feedback.type === 'error' ? '#fee2e2' : '#dcfce3', color: feedback.type === 'error' ? '#991b1b' : '#166534' }}>
-                  {feedback.message}
-                </div>
-              )}
+            <form onSubmit={handleSave}>
+              <div className="modal-body">
+                <div className="form-grid form-grid-2">
+                  
+                  <div className="form-group">
+                    <label className="form-label">Razão Social / Nome</label>
+                    <input 
+                      type="text" 
+                      name="legalName" 
+                      value={formData.legalName} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
 
-              <form onSubmit={handleSave} className="company-form">
-                <div className="form-section-title">Dados Gerais</div>
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label className="company-label">Razão Social / Nome</label>
-                    <input type="text" name="legalName" value={formData.legalName} onChange={handleInputChange} className="company-input" required />
+                  <div className="form-group">
+                    <label className="form-label">CNPJ ou CPF</label>
+                    <input 
+                      type="text" 
+                      name="cnpjCpf" 
+                      value={formData.cnpjCpf} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
                   </div>
-                  <div className="form-field">
-                    <label className="company-label">CNPJ / CPF</label>
-                    <input type="text" name="cnpjCpf" value={formData.cnpjCpf} onChange={handleInputChange} className="company-input" required />
-                  </div>
-                  <div className="form-field">
-                    <label className="company-label">E-mail</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="company-input" required />
-                  </div>
-                  <div className="form-field">
-                    <label className="company-label">Telefone</label>
-                    <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className="company-input" placeholder="(00) 00000-0000" required />
-                  </div>
-                  <div className="form-field checkbox-field">
-                    <label className="company-label">Tipo de Relação</label>
-                    <select name="isCliente" value={formData.isCliente} onChange={handleInputChange} className="company-input" disabled={isOperator}>
-                      <option value={true}>Cliente</option>
-                      <option value={false}>Fornecedor / Parceiro</option>
-                    </select>
-                  </div>
-                </div>
 
-                <div className="form-section-title" style={{ marginTop: '2rem' }}>
-                  <MapPin size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                  Endereço
-                </div>
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label className="company-label">CEP</label>
-                    <input type="text" name="cep" value={formData.cep} onChange={handleInputChange} onBlur={handleCepBlur} className="company-input" placeholder="00000-000" required />
+                  <div className="form-group">
+                    <label className="form-label">E-mail de Contato</label>
+                    <input 
+                      type="email" 
+                      name="email" 
+                      value={formData.email} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
                   </div>
-                  <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                    <label className="company-label">Logradouro / Rua</label>
-                    <input type="text" name="street" value={formData.street} onChange={handleInputChange} className="company-input" required />
-                  </div>
-                  <div className="form-field">
-                    <label className="company-label">Número</label>
-                    <input type="text" name="number" value={formData.number} onChange={handleInputChange} className="company-input" required />
-                  </div>
-                  <div className="form-field">
-                    <label className="company-label">Bairro</label>
-                    <input type="text" name="district" value={formData.district} onChange={handleInputChange} className="company-input" required />
-                  </div>
-                  <div className="form-field">
-                    <label className="company-label">Cidade</label>
-                    <input type="text" name="city" value={formData.city} onChange={handleInputChange} className="company-input" required />
-                  </div>
-                  <div className="form-field">
-                    <label className="company-label">Estado (UF)</label>
-                    <input type="text" name="state" value={formData.state} onChange={handleInputChange} className="company-input" maxLength="2" required />
-                  </div>
-                  <div className="form-field">
-                    <label className="company-label">Complemento</label>
-                    <input type="text" name="complement" value={formData.complement} onChange={handleInputChange} className="company-input" />
-                  </div>
-                </div>
 
-                <div className="modal-action-buttons" style={{ justifyContent: 'flex-end', marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
-                  <button type="button" className="btn-cancel" onClick={() => { setFormData(initialFormState); setEditingId(null); setIsModalOpen(false); }} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
-                    <XOctagon size={16} style={{ display: 'inline', marginRight: '4px' }} /> Cancelar
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    <Save size={16} /> {editingId
-                      ? (isOperator ? 'Atualizar Cliente' : 'Atualizar Empresa')
-                      : (isOperator ? 'Cadastrar Cliente' : 'Cadastrar Empresa')
-                    }
-                  </button>
+                  <div className="form-group">
+                    <label className="form-label">Telefone / Celular</label>
+                    <input 
+                      type="text" 
+                      name="phoneNumber" 
+                      value={formData.phoneNumber} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+
+                  {!isOperator && (
+                    <div className="form-group">
+                      <label className="form-label">Tipo de Cadastro</label>
+                      <select 
+                        name="isCliente" 
+                        value={formData.isCliente} 
+                        onChange={handleInputChange} 
+                        className="form-select"
+                      >
+                        <option value="true">Cliente / Destinatário</option>
+                        <option value="false">Transportadora / Parceira</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Endereço */}
+                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--primary-color)', marginBottom: '0.85rem' }}>Endereço Corporativo</h3>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">CEP</label>
+                    <input 
+                      type="text" 
+                      name="cep" 
+                      value={formData.cep} 
+                      onChange={handleInputChange} 
+                      onBlur={handleCepBlur} 
+                      className="form-input" 
+                      placeholder="00000-000" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Logradouro / Rua</label>
+                    <input 
+                      type="text" 
+                      name="street" 
+                      value={formData.street} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Número</label>
+                    <input 
+                      type="text" 
+                      name="number" 
+                      value={formData.number} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Bairro</label>
+                    <input 
+                      type="text" 
+                      name="district" 
+                      value={formData.district} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Cidade</label>
+                    <input 
+                      type="text" 
+                      name="city" 
+                      value={formData.city} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Estado (UF)</label>
+                    <input 
+                      type="text" 
+                      name="state" 
+                      value={formData.state} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      maxLength="2" 
+                      required 
+                    />
+                  </div>
+
                 </div>
-              </form>
-            </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={handleCloseModal}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  <Save size={16} /> {editingId ? 'Atualizar Dados' : 'Salvar Cadastro'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body
       )}
 
-      <div className="company-list-section">
-        <div className="list-header">
-          <div className="search-wrapper">
-            <Search size={18} className="search-icon" />
-            <input
-              type="text"
-              placeholder={isOperator ? "Pesquisar cliente..." : "Pesquisar empresa..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="list-search-input"
-            />
-          </div>
-          <span className="list-count">
-            {isOperator
-              ? `${displayedCompanies.length} clientes`
-              : `${companies.length} empresas`
-            }
-          </span>
-        </div>
-
-        <div className="list-container">
-          <DataTable
-            columns={companyColumns}
-            data={filteredCompanies}
-            loading={loading}
-            onEdit={handleEditClick}
-            onDelete={handleDelete}
-            itemsPerPage={10}
-          />
-        </div>
-      </div>
-
       <ConfirmModal
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
-        title={`Excluir ${isOperator ? 'Cliente' : 'Empresa'}`}
-        message={`Deseja realmente excluir ${isOperator ? 'o cliente' : 'a empresa'} ${companyToDelete?.legalName}?`}
+        title="Excluir Cadastro"
+        message={`Deseja realmente excluir o cadastro de ${companyToDelete?.legalName}?`}
       />
     </div>
   );

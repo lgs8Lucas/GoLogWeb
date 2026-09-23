@@ -116,108 +116,102 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
   const isColeta = formData.typeOperation === 'COLETA';
 
   return createPortal(
-    <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
-      <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '95vh', overflowY: 'auto' }}>
+    <div className="modal-overlay fade-in">
+      <div className="modal-content" style={{ maxWidth: '800px' }}>
         <div className="modal-header">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Package size={24} color="var(--primary-color)" />
+          <h2>
+            <Package size={22} color="var(--primary-color)" />
             {isEditing ? 'Editar Remessa' : 'Nova Remessa'}
           </h2>
-          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close">
-            <X size={24} />
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Fechar">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="modal-body">
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
             {/* Informações de Seleção de Elementos */}
-            <div style={{ background: 'var(--bg-hover)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+            <div style={{ background: 'var(--bg-hover)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
               <p style={{ fontSize: '0.85rem', color: 'var(--primary-color)', margin: 0 }}>
-                <strong>Vínculo de Viagem:</strong> Selecione abaixo os elementos de cadastro para vincular à remessa.
+                <strong>Vínculo de Operação:</strong> Selecione os dados da remessa e os vínculos para roteirização.
               </p>
             </div>
 
-            {/* Tipo de Operação: Coleta ou Entrega */}
-            <div className="form-group">
-              <label>Tipo de Operação</label>
-              <select name="typeOperation" value={formData.typeOperation} onChange={handleInputChange} className="modal-input" required>
-                <option value="ENTREGA">Entrega</option>
-                <option value="COLETA">Coleta</option>
-              </select>
-            </div>
-
-            {/* Coleta de origem: vincula a entrega à coleta que a originou */}
-            {formData.typeOperation === 'ENTREGA' && (
+            <div className="form-grid form-grid-2">
+              {/* Tipo de Operação: Coleta ou Entrega */}
               <div className="form-group">
-                <label>Coleta de Origem</label>
-                <select name="operationOrigemId" value={formData.operationOrigemId} onChange={handleInputChange} className="modal-input">
-                  <option value="">Nenhuma (opcional)...</option>
-                  {collections.map(c => (
-                    <option key={c.id} value={c.id}>
-                      #{c.id.substring(0, 8)} - {c.customer?.legalName || 'Cliente'} ({c.weight || 0}kg / {c.volume || 0}m³)
-                    </option>
-                  ))}
+                <label className="form-label">Tipo de Operação</label>
+                <select name="typeOperation" value={formData.typeOperation} onChange={handleInputChange} className="form-select" required>
+                  <option value="ENTREGA">Entrega</option>
+                  <option value="COLETA">Coleta</option>
                 </select>
               </div>
-            )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              {/* Coleta de origem: vincula a entrega à coleta que a originou */}
+              {formData.typeOperation === 'ENTREGA' ? (
+                <div className="form-group">
+                  <label className="form-label">Coleta de Origem (Opcional)</label>
+                  <select name="operationOrigemId" value={formData.operationOrigemId} onChange={handleInputChange} className="form-select">
+                    <option value="">Nenhuma...</option>
+                    {collections.map(c => (
+                      <option key={c.id} value={c.id}>
+                        #{c.id.substring(0, 8)} - {c.customer?.legalName || 'Cliente'} ({c.weight || 0}kg / {c.volume || 0}m³)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : <div />}
+
               {/* Peso e volume só na ENTREGA. Na COLETA são atribuídos pela API quando uma entrega é vinculada a ela. */}
               {!isColeta && (
                 <>
                   <div className="form-group">
-                    <label>Peso (Kg)</label>
-                    <input type="number" step="0.01" name="weight" value={formData.weight} onChange={handleInputChange} className="modal-input" required />
+                    <label className="form-label">Peso Estimado (Kg)</label>
+                    <input type="number" step="0.01" name="weight" value={formData.weight} onChange={handleInputChange} className="form-input" required />
                   </div>
                   <div className="form-group">
-                    <label>Volume (m³)</label>
-                    <input type="number" step="0.01" name="volume" value={formData.volume} onChange={handleInputChange} className="modal-input" required />
+                    <label className="form-label">Volume Cúbico (m³)</label>
+                    <input type="number" step="0.01" name="volume" value={formData.volume} onChange={handleInputChange} className="form-input" required />
                   </div>
                 </>
               )}
 
               {isColeta && (
                 <div className="form-group">
-                  <label>Coleta Agendada</label>
-                  <input type="datetime-local" name="scheduledCollection" value={formData.scheduledCollection} onChange={handleInputChange} className="modal-input" required />
+                  <label className="form-label">Coleta Agendada</label>
+                  <input type="datetime-local" name="scheduledCollection" value={formData.scheduledCollection} onChange={handleInputChange} className="form-input" required />
                 </div>
               )}
               {!isColeta && (
                 <div className="form-group">
-                  <label>Entrega Agendada</label>
-                  <input type="datetime-local" name="scheduledDelivery" value={formData.scheduledDelivery} onChange={handleInputChange} className="modal-input" required />
+                  <label className="form-label">Entrega Agendada</label>
+                  <input type="datetime-local" name="scheduledDelivery" value={formData.scheduledDelivery} onChange={handleInputChange} className="form-input" required />
                 </div>
               )}
 
-
               <div className="form-group">
-                <label>Sequência de Entrega</label>
-                <input type="number" name="deliverySequence" value={formData.deliverySequence} onChange={handleInputChange} className="modal-input" required />
-              </div>
-
-              {/* Vínculos de IDs (Esquerda) */}
-              <div className="form-group">
-                <label>Usuário (Operador)</label>
-                <select name="userId" value={formData.userId} onChange={handleInputChange} className="modal-input" required>
+                <label className="form-label">Operador Responsável</label>
+                <select name="userId" value={formData.userId} onChange={handleInputChange} className="form-select" required>
                   <option value="">Selecione o operador...</option>
                   {users.map(u => (
                     <option key={u.id} value={u.id}>{u.name} ({u.userProfile})</option>
                   ))}
                 </select>
               </div>
+
               <div className="form-group">
-                <label>Tipo de Entrega</label>
-                <select name="deliveryTypeId" value={formData.deliveryTypeId} onChange={handleInputChange} className="modal-input" required>
+                <label className="form-label">Tipo de Carga / Entrega</label>
+                <select name="deliveryTypeId" value={formData.deliveryTypeId} onChange={handleInputChange} className="form-select" required>
                   <option value="">Selecione o tipo de entrega...</option>
                   {shipmentTypes.map(st => (
                     <option key={st.id} value={st.id}>{st.name || `Tipo #${st.id.substring(0,8)}`}</option>
                   ))}
                 </select>
               </div>
+
               <div className="form-group">
-                <label>Tipo de Transporte</label>
-                <select name="typeTransportId" value={formData.typeTransportId} onChange={handleInputChange} className="modal-input" required>
+                <label className="form-label">Tipo de Modal / Transporte</label>
+                <select name="typeTransportId" value={formData.typeTransportId} onChange={handleInputChange} className="form-select" required>
                   <option value="">Selecione o tipo de transporte...</option>
                   {typeTransports.map(tt => (
                     <option key={tt.id} value={tt.id}>{tt.name || `Transporte #${tt.id.substring(0,8)}`}</option>
@@ -225,31 +219,30 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                 </select>
               </div>
 
-              {/* Vínculos Geográficos — mesmo atributo na tabela; o rótulo muda conforme a operação.
-                  COLETA usa customerCollectsId / originAdrressId, ENTREGA usa customerDeliveryId / destinationAddressId
-                  (o buildShipmentPayload consolida ambos em customerId / addressId). */}
+              {/* Vínculos Geográficos — o rótulo muda conforme a operação */}
               <div className="form-group">
-                <label>{isColeta ? 'Empresa (Coleta)' : 'Empresa (Entrega)'}</label>
+                <label className="form-label">{isColeta ? 'Empresa / Cliente (Coleta)' : 'Empresa / Destinatário (Entrega)'}</label>
                 <select
                   name={isColeta ? 'customerCollectsId' : 'customerDeliveryId'}
                   value={isColeta ? formData.customerCollectsId : formData.customerDeliveryId}
                   onChange={handleInputChange}
-                  className="modal-input"
+                  className="form-select"
                   required
                 >
                   <option value="">{isColeta ? 'Selecione a empresa de coleta...' : 'Selecione a empresa de entrega...'}</option>
                   {companies.map(c => (
-                    <option key={c.id} value={c.id}>{c.legalName} ({c.isCliente ? 'Cliente' : 'Fornecedor'})</option>
+                    <option key={c.id} value={c.id}>{c.legalName}</option>
                   ))}
                 </select>
               </div>
+
               <div className="form-group">
-                <label>{isColeta ? 'Endereço (Coleta)' : 'Endereço (Entrega)'}</label>
+                <label className="form-label">{isColeta ? 'Endereço (Coleta)' : 'Endereço (Entrega)'}</label>
                 <select
                   name={isColeta ? 'originAdrressId' : 'destinationAddressId'}
                   value={isColeta ? formData.originAdrressId : formData.destinationAddressId}
                   onChange={handleInputChange}
-                  className="modal-input"
+                  className="form-select"
                   required
                 >
                   <option value="">{isColeta ? 'Selecione o endereço de coleta...' : 'Selecione o endereço de entrega...'}</option>
@@ -259,19 +252,17 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                 </select>
               </div>
             </div>
+          </div>
 
-            {/* Actions */}
-            <div className="modal-action-buttons" style={{ justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button type="button" className="btn-cancel" onClick={onClose} style={{ padding: '0.85rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', flex: '0 1 120px' }}>
-                Cancelar
-              </button>
-              <button type="submit" className="btn-confirm" style={{ flex: '0 1 180px' }}>
-                <Save size={16} /> {isEditing ? 'Atualizar' : 'Salvar Remessa'}
-              </button>
-            </div>
-
-          </form>
-        </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary">
+              <Save size={16} /> {isEditing ? 'Atualizar Remessa' : 'Salvar Remessa'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>,
     document.body

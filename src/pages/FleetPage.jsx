@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Save, XOctagon, Edit, Trash2, Truck, Plus, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import '../styles/Profiles.css'; 
-import '../styles/Fleet.css'; 
+import { Truck, Plus, Save, X } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentService } from '../services/equipamentService';
@@ -14,8 +11,6 @@ import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const FleetPage = () => {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
   const [fleet, setFleet] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,7 +20,6 @@ const FleetPage = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState(null);
 
-  // Form State
   const [formData, setFormData] = useState({
     plate: '',
     status: 'ATIVO', // EquipamentStatus: ATIVO | DESATIVADO | EM_MANUTENCAO
@@ -33,11 +27,9 @@ const FleetPage = () => {
     model: '',
     maximumCapacity: '',
     numberAxles: '2',
-    tipo: 'carreta', // 'carreta' (Trailer) or 'truck'/'toco'/'vuc' (Tractor)
-    // Tractor specific
+    tipo: 'carreta',
     typeFuel: 'DIESEL',
     costPerKilometer: '',
-    // Trailer specific
     maximumVolume: '100',
     companyId: ''
   });
@@ -53,8 +45,8 @@ const FleetPage = () => {
     try {
       const data = await equipamentService.getAll();
       const mapped = data.map(item => {
-        // Simple heuristic to distinguish tractor vs trailer based on model/capacity/axles
         const isTrailer = item.maximumVolume !== undefined && item.maximumVolume !== null;
+        const statusText = item.active !== false ? 'Ativo' : 'Inativo';
         return {
           id: item.id,
           placa: item.plate,
@@ -142,22 +134,7 @@ const FleetPage = () => {
       }
 
       showToast(editingId ? 'Veículo atualizado com sucesso!' : 'Veículo criado com sucesso!', 'success');
-      setIsModalOpen(false);
-      setEditingId(null);
-      // Reset form
-      setFormData({
-        plate: '',
-        status: 'ATIVO',
-        renavam: '',
-        model: '',
-        maximumCapacity: '',
-        numberAxles: '2',
-        tipo: 'carreta',
-        typeFuel: 'DIESEL',
-        costPerKilometer: '',
-        maximumVolume: '100',
-        companyId: companies.length > 0 ? companies[0].id : ''
-      });
+      handleCloseModal();
       fetchFleet();
     } catch (error) {
       console.error('Erro ao salvar veículo:', error.response?.data ?? error);
@@ -170,7 +147,6 @@ const FleetPage = () => {
       } else if (data?.message) {
         mensagens = data.message;
       } else if (data?.detail) {
-        // Spring's ProblemDetail (RFC 7807) shape
         mensagens = data.detail;
       } else if (data?.error) {
         mensagens = data.error;
@@ -192,7 +168,7 @@ const FleetPage = () => {
       typeFuel: row.raw.typeFuel || 'DIESEL',
       costPerKilometer: row.raw.costPerKilometer?.toString() || '',
       maximumVolume: row.raw.maximumVolume?.toString() || '100',
-      companyId: row.raw.company?.id || row.raw.companyId || ''
+      companyId: row.raw.company?.id || row.raw.companyId || (companies.length > 0 ? companies[0].id : '')
     });
     setIsModalOpen(true);
   };
@@ -214,7 +190,7 @@ const FleetPage = () => {
       fetchFleet();
     } catch (error) {
       console.error('Erro ao deletar veículo:', error);
-      const msg = error.response?.data?.message || 'Erro ao excluir veículo. Verifique se ele não pertence a um conjunto ou operação.';
+      const msg = error.response?.data?.message || 'Erro ao excluir veículo.';
       showToast(msg, 'error');
     } finally {
       setDeleteConfirmOpen(false);
@@ -240,74 +216,87 @@ const FleetPage = () => {
     });
   };
 
-  const filteredFleet = fleet.filter(item => 
-    (item.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.marca || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.tipo || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const fleetColumns = [
     { label: 'Placa', key: 'placa' },
-    { label: 'Status', key: 'status' },
+    { 
+      label: 'Status', 
+      key: 'status',
+      render: (row) => (
+        <span className={`status-chip ${row.status === 'Ativo' ? 'active' : 'danger'}`}>
+          {row.status}
+        </span>
+      )
+    },
     { label: 'Renavam', key: 'renavam' },
-    { label: 'Marca/Modelo', key: 'marca' },
-    { label: 'Capacid.', key: 'capacidade' },
+    { label: 'Marca / Modelo', key: 'marca' },
+    { label: 'Capacidade', key: 'capacidade' },
     { label: 'Custo/Km', key: 'custoKm' },
     { label: 'Tipo', key: 'tipo' },
     { label: 'Empresa Vinculada', key: 'empresa' }
   ];
 
   return (
-    <div className="profiles-page fade-in">
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
-        title="Frota"
-        description="Gerencie os caminhões e carretas disponíveis no pátio."
+        title="Frota de Veículos"
+        description="Gerenciamento de caminhões tratores e carretas operacionais."
         icon={Truck}
         onBack={true}
       >
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          Novo Veículo
+        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} /> Novo Veículo
         </button>
       </PageHeader>
 
+      <div className="card">
+        <DataTable
+          columns={fleetColumns}
+          data={fleet}
+          loading={loading}
+          onEdit={handleEditClick}
+          onDelete={handleDelete}
+          itemsPerPage={12}
+          searchPlaceholder="Pesquisar placa, modelo, tipo ou renavam..."
+        />
+      </div>
+
       {isModalOpen && createPortal(
-        <div className="modal-overlay fade-in" style={{ zIndex: 1050 }}>
-          <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay fade-in">
+          <div className="modal-content">
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Truck size={24} color="var(--primary-color)" />
-                {editingId ? 'Editar Veículo' : 'Novo Veículo'}
+                <Truck size={22} color="var(--primary-color)" />
+                {editingId ? 'Editar Veículo' : 'Novo Veículo na Frota'}
               </h2>
-              <button className="modal-close-btn" onClick={handleCloseModal}>
-                <X size={24} />
+              <button className="modal-close-btn" onClick={handleCloseModal} aria-label="Fechar">
+                <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSaveVehicle}>
               <div className="modal-body">
-                <div className="form-grid">
+                <div className="form-grid form-grid-2">
                   
-                  <div className="form-field">
-                    <label className="profiles-label">Placa (Ex: AAA-1234 ou AAA1A23)</label>
+                  <div className="form-group">
+                    <label className="form-label">Placa do Veículo</label>
                     <input 
                       type="text" 
                       name="plate" 
                       value={formData.plate} 
                       onChange={handleInputChange} 
-                      className="profiles-input" 
-                      placeholder="ABC-1234" 
+                      className="form-input" 
+                      placeholder="ABC-1234 / AAA1A23" 
                       required 
                     />
                   </div>
                   
-                  <div className="form-field">
-                    <label className="profiles-label">Status</label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleInputChange}
-                      className="profiles-input"
+                  <div className="form-group">
+                    <label className="form-label">Status Operacional</label>
+                    <select 
+                      name="status" 
+                      value={formData.status} 
+                      onChange={handleInputChange} 
+                      className="form-select"
                     >
                       <option value="ATIVO">Ativo</option>
                       <option value="DESATIVADO">Desativado</option>
@@ -315,13 +304,13 @@ const FleetPage = () => {
                     </select>
                   </div>
 
-                  <div className="form-field">
-                    <label className="profiles-label">Empresa Vinculada</label>
+                  <div className="form-group">
+                    <label className="form-label">Empresa Proprietária</label>
                     <select 
                       name="companyId" 
                       value={formData.companyId} 
                       onChange={handleInputChange} 
-                      className="profiles-input" 
+                      className="form-select" 
                       required 
                     >
                       <option value="">Selecione a empresa...</option>
@@ -333,64 +322,64 @@ const FleetPage = () => {
                     </select>
                   </div>
 
-                  <div className="form-field">
-                    <label className="profiles-label">Renavam (Exatamente 11 dígitos)</label>
+                  <div className="form-group">
+                    <label className="form-label">Código Renavam</label>
                     <input 
                       type="text" 
                       name="renavam" 
                       value={formData.renavam} 
                       onChange={handleInputChange} 
-                      className="profiles-input" 
+                      className="form-input" 
                       placeholder="00000000000" 
                       required 
                     />
                   </div>
 
-                  <div className="form-field">
-                    <label className="profiles-label">Número de Eixos</label>
+                  <div className="form-group">
+                    <label className="form-label">Número de Eixos</label>
                     <input 
                       type="number" 
                       name="numberAxles" 
                       value={formData.numberAxles} 
                       onChange={handleInputChange} 
-                      className="profiles-input" 
+                      className="form-input" 
                       required 
                     />
                   </div>
 
-                  <div className="form-field">
-                    <label className="profiles-label">Marca/Modelo</label>
+                  <div className="form-group">
+                    <label className="form-label">Marca / Modelo</label>
                     <input 
                       type="text" 
                       name="model" 
                       value={formData.model} 
                       onChange={handleInputChange} 
-                      className="profiles-input" 
-                      placeholder="Volvo FH" 
+                      className="form-input" 
+                      placeholder="Volvo FH 540 / Scania R450" 
                       required 
                     />
                   </div>
 
-                  <div className="form-field">
-                    <label className="profiles-label">Capacidade Máxima (Kg)</label>
+                  <div className="form-group">
+                    <label className="form-label">Capacidade Máxima (Kg)</label>
                     <input 
                       type="number" 
                       name="maximumCapacity" 
                       value={formData.maximumCapacity} 
                       onChange={handleInputChange} 
-                      className="profiles-input" 
+                      className="form-input" 
                       placeholder="30000" 
                       required 
                     />
                   </div>
 
-                  <div className="form-field">
-                    <label className="profiles-label">Tipo de Veículo</label>
+                  <div className="form-group">
+                    <label className="form-label">Tipo de Equipamento</label>
                     <select 
                       name="tipo" 
                       value={formData.tipo} 
                       onChange={handleInputChange} 
-                      className="profiles-input"
+                      className="form-select"
                       required
                     >
                       <option value="carreta">Carreta (Trailer)</option>
@@ -400,32 +389,30 @@ const FleetPage = () => {
                     </select>
                   </div>
 
-                  {/* Trailer-specific field */}
                   {formData.tipo === 'carreta' && (
-                    <div className="form-field">
-                      <label className="profiles-label">Volume Máximo (m³)</label>
+                    <div className="form-group">
+                      <label className="form-label">Volume Máximo (m³)</label>
                       <input 
                         type="number" 
                         step="0.1" 
                         name="maximumVolume" 
                         value={formData.maximumVolume} 
                         onChange={handleInputChange} 
-                        className="profiles-input" 
+                        className="form-input" 
                         required 
                       />
                     </div>
                   )}
 
-                  {/* Tractor-specific fields */}
                   {formData.tipo !== 'carreta' && (
                     <>
-                      <div className="form-field">
-                        <label className="profiles-label">Tipo de Combustível</label>
+                      <div className="form-group">
+                        <label className="form-label">Tipo de Combustível</label>
                         <select 
                           name="typeFuel" 
                           value={formData.typeFuel} 
                           onChange={handleInputChange} 
-                          className="profiles-input"
+                          className="form-select"
                           required
                         >
                           <option value="DIESEL">Diesel</option>
@@ -433,8 +420,8 @@ const FleetPage = () => {
                           <option value="ETANOL">Etanol</option>
                         </select>
                       </div>
-                      <div className="form-field">
-                        <label className="profiles-label">Custo por Km (R$)</label>
+                      <div className="form-group">
+                        <label className="form-label">Custo por Km (R$)</label>
                         <input
                           type="number"
                           step="0.01"
@@ -442,24 +429,23 @@ const FleetPage = () => {
                           name="costPerKilometer"
                           value={formData.costPerKilometer}
                           onChange={handleInputChange}
-                          className="profiles-input"
+                          className="form-input"
                           placeholder="0.00"
                           required
                         />
                       </div>
                     </>
                   )}
-
-                  <div className="modal-action-buttons" style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                    <button type="button" className="btn-cancel" onClick={handleCloseModal} style={{ padding: '0.85rem 1.5rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer' }}>
-                      <XOctagon size={16} /> Cancelar
-                    </button>
-                    <button type="submit" className="btn-primary">
-                      <Save size={16} /> {editingId ? 'Atualizar Veículo' : 'Salvar Veículo'}
-                    </button>
-                  </div>
-                  
                 </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={handleCloseModal}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  <Save size={16} /> {editingId ? 'Atualizar Veículo' : 'Salvar Veículo'}
+                </button>
               </div>
             </form>
           </div>
@@ -467,40 +453,13 @@ const FleetPage = () => {
         document.body
       )}
 
-      {/* Table Section */}
-      <div className="profiles-table-container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
-          <div className="search-input-wrapper" style={{ minWidth: '300px' }}>
-            <input
-              type="text"
-              placeholder="Pesquisar placa, modelo ou tipo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="profiles-input"
-              style={{ width: '100%', paddingRight: '2.5rem' }}
-            />
-            <Search className="search-icon" size={18} style={{ position: 'absolute', right: '12px' }} />
-          </div>
-          <span className="profiles-count" style={{ margin: 0 }}>{filteredFleet.length} resultados</span>
-        </div>
-        <DataTable
-          columns={fleetColumns}
-          data={filteredFleet}
-          loading={loading}
-          onEdit={handleEditClick}
-          onDelete={handleDelete}
-          itemsPerPage={15}
-        />
-      </div>
-
       <ConfirmModal
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
         title="Excluir Veículo"
-        message={`Deseja realmente excluir o veículo de placa ${vehicleToDelete?.placa}?`}
+        message={`Deseja realmente remover o veículo de placa ${vehicleToDelete?.placa} da frota?`}
       />
-
     </div>
   );
 };
