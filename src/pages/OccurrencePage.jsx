@@ -147,6 +147,15 @@ const OccurrencePage = () => {
     { label: 'Relator / Emissor', key: 'senderName', render: (row) => row.sender?.name || 'Sistema' }
   ];
 
+  const occurrenceFilterConfigs = [
+    { key: 'type', label: 'Tipo' },
+    { 
+      key: 'senderName', 
+      label: 'Relator',
+      accessor: (row) => row.sender?.name || 'Sistema'
+    }
+  ];
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
@@ -166,6 +175,7 @@ const OccurrencePage = () => {
           data={occurrences} 
           loading={loading}
           itemsPerPage={12}
+          filterConfigs={occurrenceFilterConfigs}
           emptyMessage="Nenhuma ocorrência registrada no sistema."
           searchPlaceholder="Pesquisar ocorrência por tipo, descrição ou código..."
         />

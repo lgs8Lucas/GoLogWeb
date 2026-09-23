@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Edit, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Search, Database } from 'lucide-react';
+import SmartFilterBar from './SmartFilterBar';
 
 const DataTable = ({
   columns = [],
@@ -10,28 +11,60 @@ const DataTable = ({
   itemsPerPage = 12,
   emptyMessage = "Nenhum registro encontrado.",
   searchable = true,
-  searchPlaceholder = "Buscar registros..."
+  searchPlaceholder = "Buscar registros...",
+  filterConfigs = []
 }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilters, setActiveFilters] = useState({});
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [data.length, searchTerm]);
+  }, [data.length, searchTerm, activeFilters]);
 
-  // Filter data based on search term across all standard values
-  const filteredData = React.useMemo(() => {
-    if (!searchTerm.trim()) return data;
-    const term = searchTerm.toLowerCase();
-    return data.filter(row => {
-      return Object.values(row).some(val => {
-        if (val === null || val === undefined) return false;
-        if (typeof val === 'object') return false;
-        return String(val).toLowerCase().includes(term);
+  // Filter data based on search term AND active smart filters
+  const filteredData = useMemo(() => {
+    let result = data;
+
+    // Apply smart filters
+    const filterKeys = Object.keys(activeFilters);
+    if (filterKeys.length > 0) {
+      result = result.filter(row => {
+        return filterKeys.every(k => {
+          const targetVal = activeFilters[k];
+          if (targetVal === undefined || targetVal === '' || targetVal === 'ALL') return true;
+
+          // Find config to check for custom accessor
+          const cfg = filterConfigs.find(c => c.key === k);
+          let rowVal;
+          if (cfg && cfg.accessor) {
+            rowVal = cfg.accessor(row);
+          } else if (k.includes('.')) {
+            rowVal = k.split('.').reduce((obj, prop) => obj?.[prop], row);
+          } else {
+            rowVal = row[k];
+          }
+
+          return String(rowVal).toLowerCase() === String(targetVal).toLowerCase();
+        });
       });
-    });
-  }, [data, searchTerm]);
+    }
+
+    // Apply text search
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(row => {
+        return Object.values(row).some(val => {
+          if (val === null || val === undefined) return false;
+          if (typeof val === 'object') return false;
+          return String(val).toLowerCase().includes(term);
+        });
+      });
+    }
+
+    return result;
+  }, [data, searchTerm, activeFilters, filterConfigs]);
 
   const handleSort = (key, sortable) => {
     if (sortable === false) return;
@@ -62,6 +95,16 @@ const DataTable = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+      {filterConfigs.length > 0 && (
+        <SmartFilterBar
+          filterConfigs={filterConfigs}
+          data={data}
+          selectedFilters={activeFilters}
+          onFilterChange={setActiveFilters}
+          onClear={() => setActiveFilters({})}
+        />
+      )}
+
       {searchable && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>

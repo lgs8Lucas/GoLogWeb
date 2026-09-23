@@ -189,6 +189,23 @@ const ProfilesPage = () => {
     }
   ];
 
+  const profileFilterConfigs = [
+    { 
+      key: 'userProfile', 
+      label: 'Perfil',
+      options: [
+        { label: 'Administrador (ADMIN)', value: 'ADMIN' },
+        { label: 'Operador (OPERATOR)', value: 'OPERATOR' },
+        { label: 'Motorista (DRIVER)', value: 'DRIVER' }
+      ]
+    },
+    { 
+      key: 'empresa', 
+      label: 'Empresa', 
+      accessor: (row) => row.company?.legalName || row.companyName || '' 
+    }
+  ];
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
@@ -210,6 +227,7 @@ const ProfilesPage = () => {
           onEdit={handleEditClick}
           onDelete={handleDelete}
           itemsPerPage={12}
+          filterConfigs={profileFilterConfigs}
           searchPlaceholder="Pesquisar por nome, e-mail, CPF ou perfil..."
         />
       </div>

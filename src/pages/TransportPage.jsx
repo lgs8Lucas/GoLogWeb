@@ -15,6 +15,7 @@ import DataTable from '../components/DataTable';
 import DeliveryModal from '../components/DeliveryModal';
 import ConfirmModal from '../components/ConfirmModal';
 import OptimizeRouteModal from '../components/OptimizeRouteModal';
+import SmartFilterBar from '../components/SmartFilterBar';
 
 const TransportPage = () => {
   const navigate = useNavigate();
@@ -23,6 +24,9 @@ const TransportPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
+
+  // Smart filters for transports
+  const [transportFilters, setTransportFilters] = useState({});
 
   // Tabs and Shipments state
   const [activeTab, setActiveTab] = useState('transportes'); // 'transportes' | 'entregas'
@@ -303,41 +307,43 @@ const TransportPage = () => {
     }
   ];
 
+  const transportFilterConfigs = [
+    { key: 'status', label: 'Status' },
+    { key: 'driver', label: 'Motorista' },
+    { key: 'origin', label: 'Origem' },
+    { key: 'currentDest', label: 'Destino' }
+  ];
+
+  const shipmentFilterConfigs = [
+    { key: 'typeOperation', label: 'Operação' },
+    { key: 'status', label: 'Status' }
+  ];
+
+  const filteredTransports = transports.filter(item => {
+    return Object.keys(transportFilters).every(k => {
+      const val = transportFilters[k];
+      if (!val || val === 'ALL') return true;
+      return String(item[k] || '').toLowerCase() === String(val).toLowerCase();
+    });
+  });
+
   const renderShipmentsPanel = (panelKey, data, searchTerm, setSearchTerm, emptyMessage, statusFilter) => {
     const base = statusFilter
       ? data.filter(item => item.status === statusFilter)
       : data;
-    const filtered = base.filter(item =>
-      (item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.status || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.typeOperation || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     return (
-      <div key={panelKey} style={{ padding: '0 2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--card-bg)', borderRadius: '12px 12px 0 0', padding: '1rem' }}>
-          <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
-            <div className="search-input-wrapper" style={{ minWidth: '300px', position: 'relative' }}>
-              <input
-                type="text"
-                placeholder="Pesquisar por ID, status ou tipo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem 2.5rem 0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}
-              />
-            </div>
-          </div>
-          <span style={{ fontWeight: 500, color: 'var(--text-light)' }}>{filtered.length} resultados</span>
-        </div>
-
+      <div key={panelKey} className="card">
         <DataTable
           columns={shipmentColumns}
-          data={filtered}
+          data={base}
           loading={loading}
           onEdit={handleEditShipment}
           onDelete={(row) => setShipmentToDelete(row)}
           emptyMessage={emptyMessage}
           itemsPerPage={15}
+          filterConfigs={shipmentFilterConfigs}
+          searchPlaceholder="Pesquisar por código, cliente ou modal..."
         />
       </div>
     );
@@ -391,6 +397,14 @@ const TransportPage = () => {
 
       {activeTab === 'transportes' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <SmartFilterBar
+            filterConfigs={transportFilterConfigs}
+            data={transports}
+            selectedFilters={transportFilters}
+            onFilterChange={setTransportFilters}
+            onClear={() => setTransportFilters({})}
+          />
+
           <div className="table-container">
             <div className="tms-transport-accordion-list">
               <div className="tms-accordion-header">
@@ -407,7 +421,11 @@ const TransportPage = () => {
                 <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Carregando transportes ativos...
                 </div>
-              ) : transports.map((item) => {
+              ) : filteredTransports.length === 0 ? (
+                <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Nenhum transporte encontrado com os filtros selecionados.
+                </div>
+              ) : filteredTransports.map((item) => {
                 const isExpanded = expandedRow === item.id;
                 
                 return (

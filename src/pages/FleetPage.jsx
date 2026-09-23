@@ -235,6 +235,12 @@ const FleetPage = () => {
     { label: 'Empresa Vinculada', key: 'empresa' }
   ];
 
+  const fleetFilterConfigs = [
+    { key: 'tipo', label: 'Tipo' },
+    { key: 'status', label: 'Status' },
+    { key: 'empresa', label: 'Empresa' }
+  ];
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
@@ -256,6 +262,7 @@ const FleetPage = () => {
           onEdit={handleEditClick}
           onDelete={handleDelete}
           itemsPerPage={12}
+          filterConfigs={fleetFilterConfigs}
           searchPlaceholder="Pesquisar placa, modelo, tipo ou renavam..."
         />
       </div>

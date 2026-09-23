@@ -210,6 +210,29 @@ const CompanyPage = () => {
     }
   ];
 
+  const companyFilterConfigs = isOperator ? [
+    { 
+      key: 'city', 
+      label: 'Cidade', 
+      accessor: (row) => row.address?.city || '' 
+    }
+  ] : [
+    { 
+      key: 'tipo', 
+      label: 'Classificação',
+      options: [
+        { label: 'Cliente / Destinatário', value: 'CLIENTE' },
+        { label: 'Transportadora / Parceiro', value: 'EMPRESA' }
+      ],
+      accessor: (row) => (row.isCliente ? 'CLIENTE' : 'EMPRESA')
+    },
+    { 
+      key: 'city', 
+      label: 'Cidade', 
+      accessor: (row) => row.address?.city || '' 
+    }
+  ];
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
@@ -231,6 +254,7 @@ const CompanyPage = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           itemsPerPage={12}
+          filterConfigs={companyFilterConfigs}
           searchPlaceholder="Pesquisar por razão social, CNPJ, e-mail ou cidade..."
         />
       </div>

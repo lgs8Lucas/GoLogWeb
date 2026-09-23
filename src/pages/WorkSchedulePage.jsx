@@ -194,6 +194,15 @@ const WorkSchedulePage = () => {
     { label: 'Status', key: 'status', render: (row) => STATUS_LABELS[row.status] || row.status || '-' }
   ];
 
+  const scheduleFilterConfigs = [
+    { key: 'status', label: 'Status' },
+    { 
+      key: 'driver', 
+      label: 'Motorista', 
+      accessor: (row) => row.driver?.user?.name || row.driver?.name || '' 
+    }
+  ];
+
   return (
     <div className="profiles-container fade-in">
       <PageHeader
@@ -215,6 +224,7 @@ const WorkSchedulePage = () => {
           loading={loading}
           onEdit={handleEditClick}
           onDelete={handleDelete}
+          filterConfigs={scheduleFilterConfigs}
           emptyMessage="Nenhuma escala de trabalho cadastrada."
         />
       </div>
