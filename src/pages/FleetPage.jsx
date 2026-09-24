@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Truck, Plus, Save, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Truck, Plus, Save, X, Building2 } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentService } from '../services/equipamentService';
@@ -9,8 +10,11 @@ import { trailerService } from '../services/trailerService';
 import { companyService } from '../services/companyService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
+import { translateStatus, translateVehicleType, translateFuel } from '../utils/enumTranslations';
 
 const FleetPage = () => {
+  const [searchParams] = useSearchParams();
+  const editParamId = searchParams.get('edit');
   const [fleet, setFleet] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,24 +50,31 @@ const FleetPage = () => {
       const data = await equipamentService.getAll();
       const mapped = data.map(item => {
         const isTrailer = item.maximumVolume !== undefined && item.maximumVolume !== null;
-        const statusText = item.active !== false ? 'Ativo' : 'Inativo';
         return {
           id: item.id,
           placa: item.plate,
-          status: STATUS_LABELS[item.status] || (item.active !== false ? 'Ativo' : 'Inativo'),
+          status: translateStatus(item.status || (item.active !== false ? 'ATIVO' : 'DESATIVADO')),
           renavam: item.renavam,
           marca: item.model || 'Volvo FH',
           capacidade: `${item.maximumCapacity || 0} kg`,
-          tipo: isTrailer ? 'Carreta' : 'Caminhão',
+          tipo: isTrailer ? 'Carreta / Reboque' : 'Cavalo Mecânico',
           isTrailer: isTrailer,
           custoKm: !isTrailer && item.costPerKilometer != null
             ? item.costPerKilometer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
             : '-',
           empresa: item.company?.legalName || '-',
+          companyId: item.company?.id || item.companyId,
           raw: item
         };
       });
       setFleet(mapped);
+
+      if (editParamId && mapped && mapped.length > 0) {
+        const target = mapped.find(v => v.id === editParamId);
+        if (target) {
+          handleEditClick(target);
+        }
+      }
     } catch (error) {
       console.error('Erro ao buscar frota:', error);
     } finally {
@@ -217,7 +228,19 @@ const FleetPage = () => {
   };
 
   const fleetColumns = [
-    { label: 'Placa', key: 'placa' },
+    { 
+      label: 'Placa', 
+      key: 'placa',
+      render: (row) => (
+        <span 
+          style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary-color)' }}
+          onClick={() => handleEditClick(row)}
+          title="Clique para editar este veículo"
+        >
+          {row.placa}
+        </span>
+      )
+    },
     { 
       label: 'Status', 
       key: 'status',
@@ -232,7 +255,22 @@ const FleetPage = () => {
     { label: 'Capacidade', key: 'capacidade' },
     { label: 'Custo/Km', key: 'custoKm' },
     { label: 'Tipo', key: 'tipo' },
-    { label: 'Empresa Vinculada', key: 'empresa' }
+    { 
+      label: 'Empresa Vinculada', 
+      key: 'empresa',
+      render: (row) => row.companyId ? (
+        <Link 
+          to={`/empresas?edit=${row.companyId}`} 
+          className="entity-link"
+          title={`Ver empresa ${row.empresa}`}
+        >
+          <Building2 size={13} />
+          <span>{row.empresa}</span>
+        </Link>
+      ) : (
+        <span style={{ color: 'var(--text-muted)' }}>{row.empresa || '-'}</span>
+      )
+    }
   ];
 
   const fleetFilterConfigs = [

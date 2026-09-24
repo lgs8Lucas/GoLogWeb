@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Layers, Plus, Save, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Layers, Plus, Save, X, Truck, Box } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentGroupService } from '../services/equipamentGroupService';
@@ -9,6 +10,9 @@ import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const EquipamentGroupPage = () => {
+  const [searchParams] = useSearchParams();
+  const editParamId = searchParams.get('edit');
+
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,7 +34,14 @@ const EquipamentGroupPage = () => {
     setLoading(true);
     try {
       const data = await equipamentGroupService.getAll();
-      setGroups(data);
+      setGroups(data || []);
+
+      if (editParamId && data && data.length > 0) {
+        const target = data.find(g => g.id === editParamId);
+        if (target) {
+          handleEditClick(target);
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar conjuntos:', error);
       showToast('Erro ao carregar lista de conjuntos.', 'error');
@@ -50,7 +61,7 @@ const EquipamentGroupPage = () => {
       }
     };
     loadEquipments();
-  }, []);
+  }, [editParamId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -119,17 +130,65 @@ const EquipamentGroupPage = () => {
   };
 
   const columns = [
-    { label: 'Código', key: 'id', render: (row) => row.id.substring(0, 8) },
-    { label: 'Identificação / Observação', key: 'observation' },
+    {
+      label: 'Código',
+      key: 'id',
+      render: (row) => (
+        <span 
+          style={{ cursor: 'pointer', fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-color)' }}
+          onClick={() => handleEditClick(row)}
+          title="Clique para editar este conjunto"
+        >
+          #{row.id.substring(0, 8)}
+        </span>
+      )
+    },
     { 
-      label: 'Placas Vinculadas', 
+      label: 'Identificação / Observação', 
+      key: 'observation',
+      render: (row) => <strong>{row.observation || 'Sem identificação'}</strong>
+    },
+    { 
+      label: 'Composição de Veículos (Frota)', 
       key: 'plates',
       render: (row) => {
-        const plates = [];
-        if (row.equipament1?.plate) plates.push(row.equipament1.plate);
-        if (row.equipament2?.plate) plates.push(row.equipament2.plate);
-        if (row.equipament3?.plate) plates.push(row.equipament3.plate);
-        return plates.length > 0 ? plates.join(' + ') : '-';
+        const hasEquips = row.equipament1 || row.equipament2 || row.equipament3;
+        if (!hasEquips) return <span style={{ color: 'var(--text-muted)' }}>Nenhum veículo vinculado</span>;
+
+        return (
+          <div className="equip-badges-container">
+            {row.equipament1 && (
+              <Link 
+                to={`/frota?edit=${row.equipament1.id}`}
+                className="equip-pill tractor"
+                title={`Cavalo Mecânico: ${row.equipament1.model || ''} - Clique para editar`}
+              >
+                <Truck size={14} />
+                <span><strong>Cavalo:</strong> {row.equipament1.plate}</span>
+              </Link>
+            )}
+            {row.equipament2 && (
+              <Link 
+                to={`/frota?edit=${row.equipament2.id}`}
+                className="equip-pill trailer"
+                title={`Carreta 1: ${row.equipament2.model || ''} - Clique para editar`}
+              >
+                <Box size={14} />
+                <span><strong>Carreta:</strong> {row.equipament2.plate}</span>
+              </Link>
+            )}
+            {row.equipament3 && (
+              <Link 
+                to={`/frota?edit=${row.equipament3.id}`}
+                className="equip-pill trailer"
+                title={`Carreta 2: ${row.equipament3.model || ''} - Clique para editar`}
+              >
+                <Box size={14} />
+                <span><strong>Carreta 2:</strong> {row.equipament3.plate}</span>
+              </Link>
+            )}
+          </div>
+        );
       }
     }
   ];
@@ -160,87 +219,80 @@ const EquipamentGroupPage = () => {
       </div>
 
       {isModalOpen && createPortal(
-        <div className="modal-overlay fade-in">
-          <div className="modal-content" style={{ maxWidth: '640px' }}>
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Layers size={22} color="var(--primary-color)" />
-                {editingId ? 'Editar Conjunto' : 'Novo Conjunto de Veículos'}
-              </h2>
-              <button className="modal-close-btn" onClick={handleCloseModal} aria-label="Fechar">
+              <h2>{editingId ? 'Editar Conjunto' : 'Novo Conjunto'}</h2>
+              <button className="modal-close-btn" onClick={handleCloseModal}>
                 <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="form-grid">
-                  
-                  <div className="form-group">
-                    <label className="form-label">Identificação / Observação</label>
-                    <input 
-                      type="text" 
-                      name="observation" 
-                      value={formData.observation} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      placeholder="Ex: Bitrem Graos - Cavalo Volvo + 2 Carretas"
-                      required 
-                    />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Identificação / Observação *</label>
+                  <input 
+                    type="text" 
+                    name="observation" 
+                    value={formData.observation} 
+                    onChange={handleInputChange} 
+                    className="form-input" 
+                    placeholder="Ex: Bitrem Graneleiro 01 ou Conjunto Rota Sul"
+                    required 
+                  />
+                </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Veículo Principal (Cavalo / Trator)</label>
-                    <select 
-                      name="equipament1Id" 
-                      value={formData.equipament1Id} 
-                      onChange={handleInputChange} 
-                      className="form-select" 
-                      required
-                    >
-                      <option value="">Selecione o veículo principal...</option>
-                      {equipments.map(e => (
-                        <option key={e.id} value={e.id}>
-                          {e.plate} - {e.model || 'Veículo'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Caminhão Trator / Cavalo Mecânico (Equipamento 1) *</label>
+                  <select 
+                    name="equipament1Id" 
+                    value={formData.equipament1Id} 
+                    onChange={handleInputChange} 
+                    className="form-select" 
+                    required
+                  >
+                    <option value="">Selecione o veículo de tração...</option>
+                    {equipments.map(eq => (
+                      <option key={eq.id} value={eq.id}>
+                        {eq.plate} - {eq.model || 'Veículo'} ({eq.maximumVolume != null ? 'Carreta' : 'Cavalo/Truck'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Segunda Unidade (Carreta 1 - Opcional)</label>
-                    <select 
-                      name="equipament2Id" 
-                      value={formData.equipament2Id} 
-                      onChange={handleInputChange} 
-                      className="form-select"
-                    >
-                      <option value="">Nenhum (Apenas 1 unidade)</option>
-                      {equipments.map(e => (
-                        <option key={e.id} value={e.id}>
-                          {e.plate} - {e.model || 'Carreta'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Carreta / Semirreboque 1 (Equipamento 2 - Opcional)</label>
+                  <select 
+                    name="equipament2Id" 
+                    value={formData.equipament2Id} 
+                    onChange={handleInputChange} 
+                    className="form-select"
+                  >
+                    <option value="">Nenhum (ou semicarreta)...</option>
+                    {equipments.filter(e => e.id !== formData.equipament1Id).map(eq => (
+                      <option key={eq.id} value={eq.id}>
+                        {eq.plate} - {eq.model || 'Implemento'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Terceira Unidade (Carreta 2 - Opcional)</label>
-                    <select 
-                      name="equipament3Id" 
-                      value={formData.equipament3Id} 
-                      onChange={handleInputChange} 
-                      className="form-select"
-                    >
-                      <option value="">Nenhum</option>
-                      {equipments.map(e => (
-                        <option key={e.id} value={e.id}>
-                          {e.plate} - {e.model || 'Carreta'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
+                <div className="form-group">
+                  <label className="form-label">Carreta 2 / Segundo Reboque (Equipamento 3 - Opcional)</label>
+                  <select 
+                    name="equipament3Id" 
+                    value={formData.equipament3Id} 
+                    onChange={handleInputChange} 
+                    className="form-select"
+                  >
+                    <option value="">Nenhum (Composição simples)...</option>
+                    {equipments.filter(e => e.id !== formData.equipament1Id && e.id !== formData.equipament2Id).map(eq => (
+                      <option key={eq.id} value={eq.id}>
+                        {eq.plate} - {eq.model || 'Implemento'}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -248,7 +300,7 @@ const EquipamentGroupPage = () => {
                 <button type="button" className="btn btn-outline" onClick={handleCloseModal}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <button type="submit" className="btn btn-save">
                   <Save size={16} /> Salvar Conjunto
                 </button>
               </div>
@@ -258,12 +310,12 @@ const EquipamentGroupPage = () => {
         document.body
       )}
 
-      <ConfirmModal
+      <ConfirmModal 
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
         title="Excluir Conjunto"
-        message={`Deseja realmente remover o conjunto ${groupToDelete?.observation}?`}
+        message={`Tem certeza que deseja excluir o conjunto "${groupToDelete?.observation || ''}"?`}
       />
     </div>
   );

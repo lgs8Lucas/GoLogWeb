@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, Navigation, AlertTriangle, X, Route, Clock, Leaf, Sparkles, User, ArrowRight, Eye, ShieldAlert, Calendar, CheckCircle2, Box } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, Navigation, AlertTriangle, X, Route, Clock, Leaf, Sparkles, User, ArrowRight, Eye, ShieldAlert, Calendar, CheckCircle2, Box, Building2 } from 'lucide-react';
+import { translateStatus, translateOperation } from '../utils/enumTranslations';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
 import PageHeader from '../components/PageHeader';
@@ -352,8 +353,44 @@ const TransportPage = () => {
 
   // Shipments (Entregas / Remessas) Data Handling
   const shipmentColumns = [
-    { label: 'Código', key: 'id', render: (row) => row.id ? row.id.substring(0, 8) : 'N/A' },
-    { label: 'Operação', key: 'typeOperation', render: (row) => row.typeOperation || 'ENTREGA' },
+    { 
+      label: 'Código', 
+      key: 'id', 
+      render: (row) => (
+        <span 
+          style={{ cursor: 'pointer', fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-color)' }}
+          onClick={() => handleEditShipment(row)}
+          title="Clique para editar este registro"
+        >
+          #{row.id ? row.id.substring(0, 8) : 'N/A'}
+        </span>
+      )
+    },
+    {
+      label: 'Cliente / Destinatário',
+      key: 'customer',
+      render: (row) => row.customer?.id ? (
+        <Link 
+          to={`/empresas?edit=${row.customer.id}`} 
+          className="entity-link"
+          title={`Ver dados do cliente ${row.customer.legalName}`}
+        >
+          <Building2 size={13} />
+          <span>{row.customer.legalName}</span>
+        </Link>
+      ) : (
+        <span>{row.customer?.legalName || '-'}</span>
+      )
+    },
+    { 
+      label: 'Operação', 
+      key: 'typeOperation', 
+      render: (row) => (
+        <span className={`status-chip ${row.typeOperation === 'COLETA' || row.typeOperation === 'PICKUP' ? 'warning' : 'info'}`}>
+          {translateOperation(row.typeOperation)}
+        </span>
+      )
+    },
     { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
     { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
     {
@@ -365,11 +402,15 @@ const TransportPage = () => {
     { 
       label: 'Status', 
       key: 'status', 
-      render: (row) => (
-        <span className={`status-chip ${row.status === 'FINALIZADO' || row.status === 'DELIVERED' ? 'active' : 'info'}`}>
-          {row.status || 'PENDENTE'}
-        </span>
-      )
+      render: (row) => {
+        const text = translateStatus(row.status || 'PENDENTE');
+        const isDone = text === 'Concluído';
+        return (
+          <span className={`status-chip ${isDone ? 'active' : 'info'}`}>
+            {text}
+          </span>
+        );
+      }
     }
   ];
 
@@ -542,16 +583,38 @@ const TransportPage = () => {
                           <User size={13} />
                           Motorista
                         </span>
-                        <span className="tms-entity-value">{item.driver}</span>
+                        {item.rawTransport?.driver?.user?.id ? (
+                          <Link 
+                            to={`/perfis?edit=${item.rawTransport.driver.user.id}`} 
+                            className="entity-link"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Ver/Editar perfil do motorista"
+                          >
+                            <span>{item.driver}</span>
+                          </Link>
+                        ) : (
+                          <span className="tms-entity-value">{item.driver}</span>
+                        )}
                       </div>
 
                       {/* Equipamento */}
                       <div className="tms-card-entity">
                         <span className="tms-entity-label">
                           <Truck size={13} />
-                          Frota / Placa
+                          Frota / Conjunto
                         </span>
-                        <span className="tms-entity-value">{item.equipments}</span>
+                        {item.rawTransport?.equipamentGroup?.id ? (
+                          <Link 
+                            to={`/conjuntos?edit=${item.rawTransport.equipamentGroup.id}`} 
+                            className="entity-link secondary"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Ver/Editar conjunto de equipamentos"
+                          >
+                            <span>{item.equipments}</span>
+                          </Link>
+                        ) : (
+                          <span className="tms-entity-value">{item.equipments}</span>
+                        )}
                       </div>
 
                       {/* Quick action button */}

@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Sliders, Plus, Save, X, Layers, ShieldAlert, CheckCircle2, Building2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  Sliders,
+  Plus,
+  Save,
+  X,
+  Layers,
+  ShieldAlert,
+  CheckCircle2,
+  Building2,
+  Tags,
+  PackageCheck
+} from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import ConfirmModal from '../components/ConfirmModal';
@@ -8,11 +20,19 @@ import { useToast } from '../components/ToastContext';
 import { optimizationProfileService } from '../services/optimizationProfileService';
 import { demandTypeService } from '../services/demandTypeService';
 import { visitTypeService } from '../services/visitTypeService';
+import { typeTransportService } from '../services/typeTransportService';
+import { shipmentTypeService } from '../services/shipmentTypeService';
 import { companyService } from '../services/companyService';
+import { translateRuleType } from '../utils/enumTranslations';
 import '../styles/OptimizationRules.css';
 
 const OptimizationRulesPage = () => {
-  const [activeTab, setActiveTab] = useState('profiles'); // 'profiles' | 'demands' | 'morphology'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'profiles';
+  const setActiveTab = (tab) => {
+    setSearchParams({ tab });
+  };
+
   const [companies, setCompanies] = useState([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,6 +72,28 @@ const OptimizationRulesPage = () => {
   };
   const [demandForm, setDemandForm] = useState(initialDemandForm);
 
+  // Estados de Tipos de Transporte (Legado / Integrado)
+  const [transportTypes, setTransportTypes] = useState([]);
+  const [isTransportModalOpen, setIsTransportModalOpen] = useState(false);
+  const [editingTransportId, setEditingTransportId] = useState(null);
+  const initialTransportForm = {
+    name: '',
+    description: '',
+    care: ''
+  };
+  const [transportForm, setTransportForm] = useState(initialTransportForm);
+
+  // Estados de Tipos de Carga (Legado / Integrado)
+  const [shipmentTypesList, setShipmentTypesList] = useState([]);
+  const [isShipmentTypeModalOpen, setIsShipmentTypeModalOpen] = useState(false);
+  const [editingShipmentTypeId, setEditingShipmentTypeId] = useState(null);
+  const initialShipmentTypeForm = {
+    name: '',
+    description: '',
+    care: ''
+  };
+  const [shipmentTypeForm, setShipmentTypeForm] = useState(initialShipmentTypeForm);
+
   // Estados de Regras de Morfologia
   const [rules, setRules] = useState([]);
   const [visitTypes, setVisitTypes] = useState([]);
@@ -68,7 +110,7 @@ const OptimizationRulesPage = () => {
   // Exclusão
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [deleteType, setDeleteType] = useState(''); // 'profile' | 'demand' | 'rule'
+  const [deleteType, setDeleteType] = useState(''); // 'profile' | 'demand' | 'rule' | 'transport' | 'shipmentType'
 
   useEffect(() => {
     loadCompanies();
@@ -103,6 +145,12 @@ const OptimizationRulesPage = () => {
       } else if (activeTab === 'demands') {
         const data = await demandTypeService.getAvailableForCompany(selectedCompanyId);
         setDemandTypes(data || []);
+      } else if (activeTab === 'transports') {
+        const data = await typeTransportService.getAll();
+        setTransportTypes(data || []);
+      } else if (activeTab === 'shipments') {
+        const data = await shipmentTypeService.getAll();
+        setShipmentTypesList(data || []);
       } else if (activeTab === 'morphology') {
         const [rulesData, typesData] = await Promise.all([
           visitTypeService.getRulesByCompany(selectedCompanyId),
@@ -181,6 +229,50 @@ const OptimizationRulesPage = () => {
     }
   };
 
+  // Transport Type Handlers
+  const handleSaveTransport = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...transportForm,
+        name: transportForm.name.toUpperCase().replace(/[^A-Z ]/g, '')
+      };
+      if (editingTransportId) {
+        await typeTransportService.update(editingTransportId, payload);
+        showToast('Tipo de transporte atualizado com sucesso!', 'success');
+      } else {
+        await typeTransportService.create(payload);
+        showToast('Tipo de transporte cadastrado com sucesso!', 'success');
+      }
+      setIsTransportModalOpen(false);
+      setEditingTransportId(null);
+      loadTabData();
+    } catch (err) {
+      console.error('Erro ao salvar tipo de transporte:', err);
+      showToast('Erro ao salvar tipo de transporte.', 'error');
+    }
+  };
+
+  // Shipment Type Handlers
+  const handleSaveShipmentType = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingShipmentTypeId) {
+        await shipmentTypeService.update(editingShipmentTypeId, shipmentTypeForm);
+        showToast('Tipo de carga atualizado com sucesso!', 'success');
+      } else {
+        await shipmentTypeService.create(shipmentTypeForm);
+        showToast('Tipo de carga cadastrado com sucesso!', 'success');
+      }
+      setIsShipmentTypeModalOpen(false);
+      setEditingShipmentTypeId(null);
+      loadTabData();
+    } catch (err) {
+      console.error('Erro ao salvar tipo de carga:', err);
+      showToast('Erro ao salvar tipo de carga.', 'error');
+    }
+  };
+
   // Rule Handlers
   const handleSaveRule = async (e) => {
     e.preventDefault();
@@ -209,6 +301,12 @@ const OptimizationRulesPage = () => {
       } else if (deleteType === 'demand') {
         await demandTypeService.delete(itemToDelete.id);
         showToast('Demanda excluída com sucesso!', 'success');
+      } else if (deleteType === 'transport') {
+        await typeTransportService.delete(itemToDelete.id);
+        showToast('Tipo de transporte excluído com sucesso!', 'success');
+      } else if (deleteType === 'shipmentType') {
+        await shipmentTypeService.delete(itemToDelete.id);
+        showToast('Tipo de carga excluído com sucesso!', 'success');
       } else if (deleteType === 'rule') {
         await visitTypeService.deleteRule(itemToDelete.id);
         showToast('Regra excluída com sucesso!', 'success');
@@ -226,8 +324,8 @@ const OptimizationRulesPage = () => {
   return (
     <div className="fade-in opt-rules-page">
       <PageHeader
-        title="Regras & Custos de Otimização"
-        description="Gerencie os parâmetros do motor de cálculo, métricas de capacidade e regras morfológicas."
+        title="Regras, Custos & Morfologia de Rota"
+        description="Central unificada de parâmetros do motor de cálculo, capacidades multi-dimensionais, tipos de carga e restrições de compatibilidade."
         icon={Sliders}
       />
 
@@ -258,6 +356,14 @@ const OptimizationRulesPage = () => {
               setDemandForm(initialDemandForm);
               setEditingDemandId(null);
               setIsDemandModalOpen(true);
+            } else if (activeTab === 'transports') {
+              setTransportForm(initialTransportForm);
+              setEditingTransportId(null);
+              setIsTransportModalOpen(true);
+            } else if (activeTab === 'shipments') {
+              setShipmentTypeForm(initialShipmentTypeForm);
+              setEditingShipmentTypeId(null);
+              setIsShipmentTypeModalOpen(true);
             } else {
               setRuleForm(initialRuleForm);
               setIsRuleModalOpen(true);
@@ -267,6 +373,8 @@ const OptimizationRulesPage = () => {
           <Plus size={18} />
           {activeTab === 'profiles' && 'Novo Perfil de Cálculo'}
           {activeTab === 'demands' && 'Nova Métrica de Demanda'}
+          {activeTab === 'transports' && 'Novo Tipo de Transporte'}
+          {activeTab === 'shipments' && 'Novo Tipo de Carga'}
           {activeTab === 'morphology' && 'Nova Regra de Incompatibilidade'}
         </button>
       </div>
@@ -284,14 +392,28 @@ const OptimizationRulesPage = () => {
           onClick={() => setActiveTab('demands')}
         >
           <Layers size={18} />
-          Tipos de Demanda & Capacidades ({demandTypes.length})
+          Demandas & Capacidades ({demandTypes.length})
+        </button>
+        <button
+          className={`opt-tab-btn ${activeTab === 'transports' ? 'active' : ''}`}
+          onClick={() => setActiveTab('transports')}
+        >
+          <Tags size={18} />
+          Tipos de Transporte ({transportTypes.length})
+        </button>
+        <button
+          className={`opt-tab-btn ${activeTab === 'shipments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('shipments')}
+        >
+          <PackageCheck size={18} />
+          Tipos de Carga ({shipmentTypesList.length})
         </button>
         <button
           className={`opt-tab-btn ${activeTab === 'morphology' ? 'active' : ''}`}
           onClick={() => setActiveTab('morphology')}
         >
           <ShieldAlert size={18} />
-          Morfologia & Incompatibilidades ({rules.length})
+          Incompatibilidades & Morfologia ({rules.length})
         </button>
       </div>
 
@@ -438,7 +560,91 @@ const OptimizationRulesPage = () => {
         </div>
       )}
 
-      {/* Conteúdo Aba 3: Morfologia */}
+      {/* Conteúdo Aba 3: Tipos de Transporte */}
+      {activeTab === 'transports' && (
+        <div className="card">
+          <DataTable
+            loading={loading}
+            data={transportTypes}
+            emptyMessage="Nenhum tipo de transporte cadastrado."
+            columns={[
+              {
+                label: 'Nome do Transporte',
+                key: 'name',
+                render: (row) => <strong style={{ color: 'var(--primary-color)' }}>{row.name}</strong>
+              },
+              {
+                label: 'Descrição',
+                key: 'description',
+                render: (row) => row.description || '-'
+              },
+              {
+                label: 'Cuidados / Requisitos',
+                key: 'care',
+                render: (row) => row.care || '-'
+              }
+            ]}
+            onEdit={(row) => {
+              setEditingTransportId(row.id);
+              setTransportForm({
+                name: row.name || '',
+                description: row.description || '',
+                care: row.care || ''
+              });
+              setIsTransportModalOpen(true);
+            }}
+            onDelete={(row) => {
+              setItemToDelete(row);
+              setDeleteType('transport');
+              setDeleteConfirmOpen(true);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Conteúdo Aba 4: Tipos de Carga */}
+      {activeTab === 'shipments' && (
+        <div className="card">
+          <DataTable
+            loading={loading}
+            data={shipmentTypesList}
+            emptyMessage="Nenhum tipo de carga cadastrado."
+            columns={[
+              {
+                label: 'Nome da Carga',
+                key: 'name',
+                render: (row) => <strong style={{ color: 'var(--primary-color)' }}>{row.name}</strong>
+              },
+              {
+                label: 'Descrição',
+                key: 'description',
+                render: (row) => row.description || '-'
+              },
+              {
+                label: 'Instruções de Cuidado',
+                key: 'care',
+                render: (row) => row.care || '-'
+              }
+            ]}
+            onEdit={(row) => {
+              setEditingShipmentTypeId(row.id);
+              setShipmentTypeForm({
+                name: row.name || '',
+                description: row.description || '',
+                care: row.care || ''
+              });
+              setIsShipmentTypeModalOpen(true);
+            }}
+            onDelete={(row) => {
+              setItemToDelete(row);
+              setDeleteType('shipmentType');
+              setDeleteConfirmOpen(true);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Conteúdo Aba 5: Morfologia */}
       {activeTab === 'morphology' && (
         <div className="card">
           <DataTable
@@ -452,10 +658,10 @@ const OptimizationRulesPage = () => {
                 render: (row) => <strong style={{ color: 'var(--primary-color)' }}>{row.name}</strong>
               },
               {
-                label: 'Tipo de Regra',
+                label: 'Tipo de Restrição',
                 key: 'ruleType',
-                render: () => (
-                  <span className="status-chip danger">Incompatível no mesmo caminhão</span>
+                render: (row) => (
+                  <span className="status-chip danger">{translateRuleType(row.ruleType)}</span>
                 )
               },
               {
@@ -717,6 +923,122 @@ const OptimizationRulesPage = () => {
                 </button>
                 <button type="submit" className="btn btn-save">
                   <Save size={16} /> Salvar Demanda
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Tipo de Transporte */}
+      {isTransportModalOpen && createPortal(
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h2>{editingTransportId ? 'Editar Tipo de Transporte' : 'Novo Tipo de Transporte'}</h2>
+              <button className="modal-close-btn" onClick={() => setIsTransportModalOpen(false)} aria-label="Fechar">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveTransport}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">Nome do Transporte *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: CARGA SECA, REFRIGERADO, PERIGOSO"
+                    className="form-input"
+                    value={transportForm.name}
+                    onChange={(e) => setTransportForm({ ...transportForm, name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Descrição</label>
+                  <input
+                    type="text"
+                    placeholder="Descrição da modalidade"
+                    className="form-input"
+                    value={transportForm.description}
+                    onChange={(e) => setTransportForm({ ...transportForm, description: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Cuidados Especiais</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Vedação contra umidade, cinta de amarração"
+                    className="form-input"
+                    value={transportForm.care}
+                    onChange={(e) => setTransportForm({ ...transportForm, care: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setIsTransportModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-save">
+                  <Save size={16} /> Salvar Tipo de Transporte
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Tipo de Carga */}
+      {isShipmentTypeModalOpen && createPortal(
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h2>{editingShipmentTypeId ? 'Editar Tipo de Carga' : 'Novo Tipo de Carga'}</h2>
+              <button className="modal-close-btn" onClick={() => setIsShipmentTypeModalOpen(false)} aria-label="Fechar">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveShipmentType}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">Nome da Carga *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Alimentos Perecíveis, Eletrodomésticos"
+                    className="form-input"
+                    value={shipmentTypeForm.name}
+                    onChange={(e) => setShipmentTypeForm({ ...shipmentTypeForm, name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Descrição</label>
+                  <input
+                    type="text"
+                    placeholder="Detalhes dos produtos transportados"
+                    className="form-input"
+                    value={shipmentTypeForm.description}
+                    onChange={(e) => setShipmentTypeForm({ ...shipmentTypeForm, description: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Instruções de Cuidado</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Frágil, este lado para cima, empilhamento máx 3"
+                    className="form-input"
+                    value={shipmentTypeForm.care}
+                    onChange={(e) => setShipmentTypeForm({ ...shipmentTypeForm, care: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setIsShipmentTypeModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-save">
+                  <Save size={16} /> Salvar Tipo de Carga
                 </button>
               </div>
             </form>

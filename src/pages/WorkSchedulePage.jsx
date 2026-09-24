@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarClock, Plus, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { CalendarClock, Plus, X, User, Layers, Truck, Box } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { workScheduleService } from '../services/workScheduleService';
@@ -8,6 +9,7 @@ import { driverService } from '../services/driverService';
 import { equipamentGroupService } from '../services/equipamentGroupService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
+import { translateStatus } from '../utils/enumTranslations';
 import '../styles/Profiles.css';
 
 const STATUS_LABELS = {
@@ -33,6 +35,8 @@ const toTimeInputValue = (value) => {
 };
 
 const WorkSchedulePage = () => {
+  const [searchParams] = useSearchParams();
+  const editParamId = searchParams.get('edit');
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,6 +63,13 @@ const WorkSchedulePage = () => {
     try {
       const data = await workScheduleService.getAll();
       setSchedules(data || []);
+
+      if (editParamId && data && data.length > 0) {
+        const target = data.find(s => s.id === editParamId);
+        if (target) {
+          handleEditClick(target);
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar escalas de trabalho:', error);
       showToast('Erro ao carregar lista de escalas de trabalho.', 'error');
@@ -170,8 +181,72 @@ const WorkSchedulePage = () => {
   };
 
   const columns = [
-    { label: 'Motorista', key: 'motorista', render: (row) => row.driver ? driverLabel(row.driver) : '-' },
-    { label: 'Conjunto / Placas', key: 'conjunto', render: (row) => row.equipamentGroup ? groupLabel(row.equipamentGroup) : '-' },
+    { 
+      label: 'Motorista', 
+      key: 'motorista', 
+      render: (row) => row.driver ? (
+        <Link
+          to={`/perfis?edit=${row.driver?.user?.id || row.driver?.userId || row.driver?.id}`}
+          className="entity-link"
+          title="Ver/Editar perfil do motorista"
+        >
+          <User size={13} />
+          <span>{driverLabel(row.driver)}</span>
+        </Link>
+      ) : '-' 
+    },
+    { 
+      label: 'Conjunto / Placas', 
+      key: 'conjunto', 
+      render: (row) => {
+        const g = row.equipamentGroup;
+        if (!g) return '-';
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <Link 
+              to={`/conjuntos?edit=${g.id}`}
+              className="entity-link secondary"
+              title="Ver/Editar este conjunto de equipamentos"
+            >
+              <Layers size={13} />
+              <span>{g.observation || `Conjunto #${g.id.substring(0, 8)}`}</span>
+            </Link>
+            <div className="equip-badges-container">
+              {g.equipament1 && (
+                <Link 
+                  to={`/frota?edit=${g.equipament1.id}`} 
+                  className="equip-pill tractor" 
+                  title="Ver cavalo mecânico na frota"
+                >
+                  <Truck size={12} />
+                  <span>{g.equipament1.plate}</span>
+                </Link>
+              )}
+              {g.equipament2 && (
+                <Link 
+                  to={`/frota?edit=${g.equipament2.id}`} 
+                  className="equip-pill trailer" 
+                  title="Ver carreta 1 na frota"
+                >
+                  <Box size={12} />
+                  <span>{g.equipament2.plate}</span>
+                </Link>
+              )}
+              {g.equipament3 && (
+                <Link 
+                  to={`/frota?edit=${g.equipament3.id}`} 
+                  className="equip-pill trailer" 
+                  title="Ver carreta 2 na frota"
+                >
+                  <Box size={12} />
+                  <span>{g.equipament3.plate}</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        );
+      }
+    },
     {
       label: 'Válida até',
       key: 'scheduleDate',
@@ -191,7 +266,18 @@ const WorkSchedulePage = () => {
       key: 'costPerHour',
       render: (row) => row.costPerHour != null ? row.costPerHour.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
     },
-    { label: 'Status', key: 'status', render: (row) => STATUS_LABELS[row.status] || row.status || '-' }
+    { 
+      label: 'Status', 
+      key: 'status', 
+      render: (row) => {
+        const text = translateStatus(row.status);
+        return (
+          <span className={`status-chip ${text === 'Ativo' ? 'active' : 'danger'}`}>
+            {text}
+          </span>
+        );
+      }
+    }
   ];
 
   const scheduleFilterConfigs = [

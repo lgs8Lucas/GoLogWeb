@@ -138,16 +138,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               </NavLink>
 
               <NavLink 
-                to="/tipos-transporte" 
-                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
-                onClick={handleLinkClick}
-                title="Tipos de Transporte"
-              >
-                <Tags size={20} />
-                <span>Tipos de Transporte</span>
-              </NavLink>
-
-              <NavLink 
                 to="/conjuntos" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
@@ -155,16 +145,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               >
                 <Layers size={20} />
                 <span>Conjuntos de Equipamentos</span>
-              </NavLink>
-
-              <NavLink 
-                to="/tipos-carga" 
-                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
-                onClick={handleLinkClick}
-                title="Tipos de Carga"
-              >
-                <Package size={20} />
-                <span>Tipos de Carga</span>
               </NavLink>
 
               <NavLink 

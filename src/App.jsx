@@ -36,9 +36,9 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']} />}>
               <Route path="empresas" element={<CompanyPage />} />
               <Route path="enderecos" element={<AddressPage />} />
-              <Route path="tipos-transporte" element={<TypeTransportPage />} />
+              <Route path="tipos-transporte" element={<Navigate to="/regras-otimizacao?tab=transports" replace />} />
               <Route path="conjuntos" element={<EquipamentGroupPage />} />
-              <Route path="tipos-carga" element={<ShipmentTypePage />} />
+              <Route path="tipos-carga" element={<Navigate to="/regras-otimizacao?tab=shipments" replace />} />
               <Route path="ocorrencias" element={<OccurrencePage />} />
               <Route path="escalas" element={<WorkSchedulePage />} />
               <Route path="regras-otimizacao" element={<OptimizationRulesPage />} />

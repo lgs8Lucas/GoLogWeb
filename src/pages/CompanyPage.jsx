@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Building2, Plus, Save, X } from 'lucide-react';
 import { companyService } from '../services/companyService';
 import { addressService } from '../services/addressService';
@@ -10,6 +11,8 @@ import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const CompanyPage = () => {
+  const [searchParams] = useSearchParams();
+  const editParamId = searchParams.get('edit');
   const userRole = authService.getUserRole();
   const isOperator = userRole === 'OPERATOR';
   const [companies, setCompanies] = useState([]);
@@ -41,13 +44,20 @@ const CompanyPage = () => {
 
   useEffect(() => {
     fetchCompanies();
-  }, []);
+  }, [editParamId]);
 
   const fetchCompanies = async () => {
     setLoading(true);
     try {
       const data = await companyService.getAllCompanies();
-      setCompanies(data);
+      setCompanies(data || []);
+
+      if (editParamId && data && data.length > 0) {
+        const target = data.find(c => c.id === editParamId);
+        if (target) {
+          handleEditClick(target);
+        }
+      }
     } catch (error) {
       console.error("Erro ao buscar empresas:", error);
       showToast('Erro ao carregar lista de empresas.', 'error');
@@ -190,7 +200,19 @@ const CompanyPage = () => {
   };
 
   const companyColumns = [
-    { label: 'Razão Social / Nome', key: 'legalName' },
+    { 
+      label: 'Razão Social / Nome', 
+      key: 'legalName',
+      render: (row) => (
+        <span 
+          style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary-color)' }}
+          onClick={() => handleEditClick(row)}
+          title="Clique para editar este registro"
+        >
+          {row.legalName}
+        </span>
+      )
+    },
     { label: 'CNPJ / CPF', key: 'cnpjCpf' },
     { label: 'E-mail', key: 'email' },
     { label: 'Telefone', key: 'phoneNumber' },
