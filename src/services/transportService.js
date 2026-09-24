@@ -42,8 +42,39 @@ export const transportService = {
     return response.data;
   },
 
-  optimizeRoutes: async ({ shipmentIds = [], workScheduleIds = [], routePriority } = {}) => {
-    const response = await apiClient.post('/api-route-optimization', { shipmentIds, workScheduleIds, routePriority });
+  optimizeRoutes: async ({
+    shipmentIds = [],
+    workScheduleIds = [],
+    routePriority,
+    profileId,
+    kmCostMultiplier,
+    hourCostMultiplier,
+    fixedCostPerVehicle,
+    penaltyCostUnserved,
+    defaultServiceDurationSeconds,
+    timeWindowLeadMinutes
+  } = {}) => {
+    const payload = {
+      shipmentIds,
+      workScheduleIds,
+      routePriority,
+      profileId: profileId || null,
+      kmCostMultiplier: kmCostMultiplier !== undefined && kmCostMultiplier !== '' ? parseFloat(kmCostMultiplier) : null,
+      hourCostMultiplier: hourCostMultiplier !== undefined && hourCostMultiplier !== '' ? parseFloat(hourCostMultiplier) : null,
+      fixedCostPerVehicle: fixedCostPerVehicle !== undefined && fixedCostPerVehicle !== '' ? parseFloat(fixedCostPerVehicle) : null,
+      penaltyCostUnserved: penaltyCostUnserved !== undefined && penaltyCostUnserved !== '' ? parseFloat(penaltyCostUnserved) : null,
+      defaultServiceDurationSeconds: defaultServiceDurationSeconds !== undefined && defaultServiceDurationSeconds !== '' ? parseInt(defaultServiceDurationSeconds, 10) : null,
+      timeWindowLeadMinutes: timeWindowLeadMinutes !== undefined && timeWindowLeadMinutes !== '' ? parseInt(timeWindowLeadMinutes, 10) : null
+    };
+
+    // Remove campos nulos para não poluir o JSON
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === null || payload[key] === undefined) {
+        delete payload[key];
+      }
+    });
+
+    const response = await apiClient.post('/api-route-optimization', payload);
     return response.data;
   }
 };

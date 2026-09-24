@@ -12,6 +12,7 @@ import {
   Layers,
   AlertTriangle,
   CalendarClock,
+  Sliders,
   ChevronLeft,
   ChevronRight,
   X
@@ -184,6 +185,16 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               >
                 <AlertTriangle size={20} />
                 <span>Ocorrências</span>
+              </NavLink>
+
+              <NavLink 
+                to="/regras-otimizacao" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+                title="Regras & Custos de Rota"
+              >
+                <Sliders size={20} />
+                <span>Regras & Custos de Rota</span>
               </NavLink>
             </>
           )}

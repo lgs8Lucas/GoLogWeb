@@ -15,6 +15,7 @@ import AddressPage from './pages/AddressPage';
 import ShipmentTypePage from './pages/ShipmentTypePage';
 import OccurrencePage from './pages/OccurrencePage';
 import WorkSchedulePage from './pages/WorkSchedulePage';
+import OptimizationRulesPage from './pages/OptimizationRulesPage';
 import { ToastProvider } from './components/ToastContext';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
               <Route path="tipos-carga" element={<ShipmentTypePage />} />
               <Route path="ocorrencias" element={<OccurrencePage />} />
               <Route path="escalas" element={<WorkSchedulePage />} />
+              <Route path="regras-otimizacao" element={<OptimizationRulesPage />} />
             </Route>
 
             <Route path="frota" element={<FleetPage />} />
