@@ -47,9 +47,21 @@ const FleetPage = () => {
   const fetchFleet = async () => {
     setLoading(true);
     try {
-      const data = await equipamentService.getAll();
-      const mapped = data.map(item => {
+      const [data, comps] = await Promise.all([
+        equipamentService.getAll(),
+        companyService.getAllCompanies()
+      ]);
+      const safeData = Array.isArray(data) ? data : [];
+      const safeComps = Array.isArray(comps) ? comps : [];
+      setCompanies(safeComps);
+
+      const compsMap = {};
+      safeComps.forEach(c => { compsMap[c.id] = c; });
+
+      const mapped = safeData.map(item => {
         const isTrailer = item.maximumVolume !== undefined && item.maximumVolume !== null;
+        const comp = compsMap[item.companyId] || item.company;
+        const compName = comp?.legalName || item.company?.legalName || item.companyName || '-';
         return {
           id: item.id,
           placa: item.plate,
@@ -62,8 +74,8 @@ const FleetPage = () => {
           custoKm: !isTrailer && item.costPerKilometer != null
             ? item.costPerKilometer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
             : '-',
-          empresa: item.company?.legalName || '-',
-          companyId: item.company?.id || item.companyId,
+          empresa: compName,
+          companyId: item.companyId || comp?.id,
           raw: item
         };
       });
@@ -84,18 +96,6 @@ const FleetPage = () => {
 
   useEffect(() => {
     fetchFleet();
-    const fetchCompanies = async () => {
-      try {
-        const comps = await companyService.getAllCompanies();
-        setCompanies(comps || []);
-        if (comps && comps.length > 0) {
-          setFormData(prev => ({ ...prev, companyId: comps[0].id }));
-        }
-      } catch (err) {
-        console.error("Erro ao buscar empresas para frota:", err);
-      }
-    };
-    fetchCompanies();
   }, []);
 
   const handleInputChange = (e) => {
@@ -279,6 +279,28 @@ const FleetPage = () => {
     { key: 'empresa', label: 'Empresa' }
   ];
 
+  const handleOpenNewVehicle = () => {
+    const selectedTenant = authService.getSelectedTenant();
+    const defaultCompId = (selectedTenant && selectedTenant !== 'all')
+      ? selectedTenant
+      : (companies.length > 0 ? companies[0].id : '');
+    setEditingId(null);
+    setFormData({
+      plate: '',
+      status: 'ATIVO',
+      renavam: '',
+      model: '',
+      maximumCapacity: '',
+      numberAxles: '2',
+      tipo: 'carreta',
+      typeFuel: 'DIESEL',
+      kmPerLiter: '2.5',
+      maximumVolume: '100',
+      companyId: defaultCompId
+    });
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
@@ -287,7 +309,7 @@ const FleetPage = () => {
         icon={Truck}
         onBack={true}
       >
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={handleOpenNewVehicle}>
           <Plus size={18} /> Novo Veículo
         </button>
       </PageHeader>

@@ -56,8 +56,13 @@ const TransportPage = () => {
         occurrenceService.getAll()
       ]);
 
+      const safeTransports = Array.isArray(transportsData) ? transportsData : (transportsData?.content || []);
+      const safeShipments = Array.isArray(shipmentsData) ? shipmentsData : (shipmentsData?.content || []);
+      const safeBacklog = Array.isArray(backlogShipmentsData) ? backlogShipmentsData : (backlogShipmentsData?.content || []);
+      const safeOccurrences = Array.isArray(occurrencesData) ? occurrencesData : (occurrencesData?.content || []);
+
       const shipmentsByTransport = {};
-      shipmentsData.forEach(s => {
+      safeShipments.forEach(s => {
         if (s.transport) {
           const tid = s.transport.id;
           if (!shipmentsByTransport[tid]) {
@@ -67,7 +72,7 @@ const TransportPage = () => {
         }
       });
 
-      const mapped = transportsData.map(t => {
+      const mapped = safeTransports.map(t => {
         const tShipments = shipmentsByTransport[t.id] || [];
         tShipments.sort((a, b) => {
           const seqA = a.routeStop?.sequenceOrder ?? 999;
@@ -155,15 +160,15 @@ const TransportPage = () => {
           steps: steps,
           rawTransport: t,
           rawShipments: tShipments,
-          occurrences: occurrencesData ? occurrencesData.filter(occ => {
+          occurrences: safeOccurrences.filter(occ => {
             const occTid = occ.transport?.id || occ.transportId;
             return occTid === t.id;
-          }) : []
+          })
         };
       });
 
       setTransports(mapped);
-      setBacklogShipments(backlogShipmentsData || []);
+      setBacklogShipments(safeBacklog);
       if (mapped.length > 0) {
         setExpandedRow(mapped[0].id); // Expand first row by default
       }

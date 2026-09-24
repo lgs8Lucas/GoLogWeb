@@ -35,6 +35,11 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    const selectedTenant = localStorage.getItem('golog_selected_tenant');
+    if (selectedTenant && selectedTenant !== 'all' && selectedTenant !== '') {
+      config.headers['X-Tenant-Id'] = selectedTenant;
+    }
+
     return config;
   },
   (error) => {

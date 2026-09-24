@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Layers, Plus, Save, X, Truck, Box } from 'lucide-react';
+import { Layers, Plus, Save, X, Truck, Box, Building2 } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentGroupService } from '../services/equipamentGroupService';
@@ -190,7 +190,27 @@ const EquipamentGroupPage = () => {
           </div>
         );
       }
+    },
+    { 
+      label: 'Empresa Vinculada', 
+      key: 'company',
+      render: (row) => row.company?.id ? (
+        <Link 
+          to={`/empresas?edit=${row.company.id}`} 
+          className="entity-link"
+          title={`Ver empresa ${row.company.legalName}`}
+        >
+          <Building2 size={13} />
+          <span>{row.company.legalName || 'Empresa'}</span>
+        </Link>
+      ) : (
+        <span style={{ color: 'var(--text-muted)' }}>{row.company?.legalName || '-'}</span>
+      )
     }
+  ];
+
+  const groupFilterConfigs = [
+    { key: 'empresa', label: 'Empresa', accessor: (row) => row.company?.legalName || '' }
   ];
 
   return (
@@ -214,6 +234,7 @@ const EquipamentGroupPage = () => {
           onEdit={handleEditClick}
           onDelete={handleDelete}
           itemsPerPage={12}
+          filterConfigs={groupFilterConfigs}
           searchPlaceholder="Pesquisar por identificação, código ou placa..."
         />
       </div>

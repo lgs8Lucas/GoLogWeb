@@ -15,6 +15,7 @@ import {
   Sliders,
   ChevronLeft,
   ChevronRight,
+  Network,
   X
 } from 'lucide-react';
 import { authService } from '../services/authService';
@@ -175,6 +176,21 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               >
                 <Sliders size={20} />
                 <span>Regras & Custos de Rota</span>
+              </NavLink>
+            </>
+          )}
+
+          {authService.isMaster() && (
+            <>
+              <div className="sidebar-section-title">Administração Master</div>
+              <NavLink 
+                to="/tenants" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+                title="Gestão de Tenants"
+              >
+                <Network size={20} />
+                <span>Gestão de Tenants</span>
               </NavLink>
             </>
           )}

@@ -16,6 +16,7 @@ import ShipmentTypePage from './pages/ShipmentTypePage';
 import OccurrencePage from './pages/OccurrencePage';
 import WorkSchedulePage from './pages/WorkSchedulePage';
 import OptimizationRulesPage from './pages/OptimizationRulesPage';
+import TenantsPage from './pages/TenantsPage';
 import { ToastProvider } from './components/ToastContext';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
 
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="perfis" element={<ProfilesPage />} />
+              <Route path="tenants" element={<TenantsPage />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']} />}>

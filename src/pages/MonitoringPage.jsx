@@ -18,10 +18,11 @@ const MonitoringPage = () => {
     const fetchRealData = async () => {
       try {
         const shipments = await deliveryService.getAllPersonalized();
+        const safeShipments = Array.isArray(shipments) ? shipments : (shipments?.content || []);
         // Group shipments by transport
         const transportsMap = {};
 
-        shipments.forEach(s => {
+        safeShipments.forEach(s => {
           if (!s.transport) return;
           const tid = s.transport.id;
           if (!transportsMap[tid]) {

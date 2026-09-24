@@ -46,6 +46,30 @@ const CompanyPage = () => {
     fetchCompanies();
   }, [editParamId]);
 
+  const handleEditClick = (company) => {
+    setEditingId(company.id);
+    const addr = company.address || {};
+    setEditingAddressId(addr.id || null);
+
+    setFormData({
+      legalName: company.legalName || '',
+      cnpjCpf: company.cnpjCpf || '',
+      email: company.email || '',
+      phoneNumber: company.phoneNumber || '',
+      isCliente: company.isCliente ?? true,
+      cep: addr.cep || '',
+      street: addr.street || '',
+      number: addr.number || '',
+      district: addr.district || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      country: addr.country || 'Brasil',
+      complement: addr.complement || ''
+    });
+    setIsModalOpen(true);
+  };
+  const handleEdit = handleEditClick;
+
   const fetchCompanies = async () => {
     setLoading(true);
     try {
@@ -149,28 +173,6 @@ const CompanyPage = () => {
     }
   };
 
-  const handleEdit = (company) => {
-    setEditingId(company.id);
-    const addr = company.address || {};
-    setEditingAddressId(addr.id || null);
-
-    setFormData({
-      legalName: company.legalName || '',
-      cnpjCpf: company.cnpjCpf || '',
-      email: company.email || '',
-      phoneNumber: company.phoneNumber || '',
-      isCliente: company.isCliente ?? true,
-      cep: addr.cep || '',
-      street: addr.street || '',
-      number: addr.number || '',
-      district: addr.district || '',
-      city: addr.city || '',
-      state: addr.state || '',
-      country: addr.country || 'Brasil',
-      complement: addr.complement || ''
-    });
-    setIsModalOpen(true);
-  };
 
   const handleDelete = (company) => {
     setCompanyToDelete(company);
@@ -217,13 +219,23 @@ const CompanyPage = () => {
     { label: 'E-mail', key: 'email' },
     { label: 'Telefone', key: 'phoneNumber' },
     { 
-      label: 'Tipo', 
-      key: 'isCliente',
-      render: (row) => (
-        <span className={`status-chip ${row.isCliente ? 'active' : 'info'}`}>
-          {row.isCliente ? 'Cliente' : 'Transportadora'}
-        </span>
-      )
+      label: 'Tipo / Classificação', 
+      key: 'companyType',
+      render: (row) => {
+        if (row.companyType === 'TENANT_MASTER' || row.isMaster) {
+          return <span className="status-chip danger">GoLog Master</span>;
+        }
+        if (row.companyType === 'TENANT_HEADQUARTER') {
+          return <span className="status-chip active">Matriz (Tenant)</span>;
+        }
+        if (row.companyType === 'TENANT_BRANCH') {
+          return <span className="status-chip warning">Filial</span>;
+        }
+        if (row.isCliente || row.companyType === 'CLIENT') {
+          return <span className="status-chip info">Cliente</span>;
+        }
+        return <span className="status-chip info">Fornecedor</span>;
+      }
     },
     { 
       label: 'Cidade / UF', 
@@ -243,10 +255,19 @@ const CompanyPage = () => {
       key: 'tipo', 
       label: 'Classificação',
       options: [
+        { label: 'Matriz (Tenant)', value: 'TENANT_HEADQUARTER' },
+        { label: 'Filial (Tenant)', value: 'TENANT_BRANCH' },
         { label: 'Cliente / Destinatário', value: 'CLIENTE' },
-        { label: 'Transportadora / Parceiro', value: 'EMPRESA' }
+        { label: 'Fornecedor / Parceiro', value: 'FORNECEDOR' },
+        { label: 'GoLog Master', value: 'TENANT_MASTER' }
       ],
-      accessor: (row) => (row.isCliente ? 'CLIENTE' : 'EMPRESA')
+      accessor: (row) => {
+        if (row.companyType === 'TENANT_MASTER' || row.isMaster) return 'TENANT_MASTER';
+        if (row.companyType === 'TENANT_HEADQUARTER') return 'TENANT_HEADQUARTER';
+        if (row.companyType === 'TENANT_BRANCH') return 'TENANT_BRANCH';
+        if (row.isCliente || row.companyType === 'CLIENT') return 'CLIENTE';
+        return 'FORNECEDOR';
+      }
     },
     { 
       key: 'city', 

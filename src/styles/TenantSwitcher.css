@@ -1,0 +1,252 @@
+/* GoLog TMS - TenantSwitcher Styles (Alto Contraste & Design Limpo) */
+
+.tenant-switcher-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tenant-switcher-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.tenant-switcher-btn:hover,
+.tenant-switcher-btn.active {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.tenant-switcher-btn .tenant-icon {
+  color: var(--secondary-color);
+  flex-shrink: 0;
+}
+
+.tenant-switcher-btn .tenant-icon.global {
+  color: #34d399;
+}
+
+.tenant-switcher-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.tenant-switcher-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #cbd5e1;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.tenant-switcher-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.chevron-icon {
+  color: #cbd5e1;
+  transition: transform 0.2s ease;
+}
+
+.chevron-icon.rotate {
+  transform: rotate(180deg);
+}
+
+/* Backdrop */
+.tenant-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 998;
+}
+
+/* Dropdown Menu - Claro, Elegante e com Alto Contraste */
+.tenant-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 310px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  z-index: 999;
+  overflow: hidden;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tenant-dropdown-header {
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tenant-dropdown-list {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.tenant-dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 6px 0;
+}
+
+.tenant-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.tenant-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.tenant-dropdown-item.selected {
+  background: rgba(42, 178, 155, 0.12);
+  color: var(--secondary-dark);
+}
+
+.item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.item-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.tenant-dropdown-item.selected .item-icon {
+  color: var(--secondary-color);
+}
+
+.item-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.item-header-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.item-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tenant-dropdown-item.selected .item-title {
+  color: var(--secondary-dark);
+}
+
+.item-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.check-icon {
+  color: var(--secondary-color);
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.tenant-type-tag {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tenant-type-tag.tenant_master {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 1px solid #d8b4fe;
+}
+
+.tenant-type-tag.tenant_headquarter {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+}
+
+.tenant-type-tag.tenant_branch {
+  background: var(--status-active-bg);
+  color: var(--status-active-text);
+  border: 1px solid var(--status-active-border);
+}
+
+/* Badge para usuários não-master (mostra apenas a empresa dele) */
+.tenant-badge-client {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 5px 12px;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.tenant-badge-client .tenant-icon {
+  color: var(--secondary-color);
+}

@@ -240,6 +240,19 @@ const ProfilesPage = () => {
     }
   ];
 
+  const handleOpenNewModal = () => {
+    const selectedTenant = authService.getSelectedTenant();
+    const defaultCompId = (selectedTenant && selectedTenant !== 'all') 
+      ? selectedTenant 
+      : (companies.length > 0 ? companies[0].id : '');
+    setEditingId(null);
+    setFormData({
+      ...initialFormState,
+      companyId: defaultCompId
+    });
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
@@ -248,7 +261,7 @@ const ProfilesPage = () => {
         icon={Users}
         onBack={true}
       >
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={handleOpenNewModal}>
           <Plus size={18} /> Novo Usuário
         </button>
       </PageHeader>
