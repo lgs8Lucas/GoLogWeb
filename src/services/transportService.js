@@ -42,9 +42,31 @@ export const transportService = {
     return response.data;
   },
 
-  optimizeRoutes: async ({ shipmentIds = [], workScheduleIds = [], routePriority } = {}) => {
-    const response = await apiClient.post('/api-route-optimization', { shipmentIds, workScheduleIds, routePriority });
+  optimizeRoutes: async ({
+    shipmentIds = [],
+    workScheduleIds = [],
+    routePriority = 'ECONOMIA',
+    profileId = null,
+    kmCostMultiplier = null,
+    hourCostMultiplier = null,
+    fixedCostPerVehicle = null,
+    penaltyCostUnserved = null,
+    defaultServiceDurationSeconds = null,
+    timeWindowLeadMinutes = null
+  } = {}) => {
+    const payload = {
+      shipmentIds,
+      workScheduleIds,
+      routePriority,
+      ...(profileId ? { profileId } : {}),
+      ...(kmCostMultiplier !== null ? { kmCostMultiplier } : {}),
+      ...(hourCostMultiplier !== null ? { hourCostMultiplier } : {}),
+      ...(fixedCostPerVehicle !== null ? { fixedCostPerVehicle } : {}),
+      ...(penaltyCostUnserved !== null ? { penaltyCostUnserved } : {}),
+      ...(defaultServiceDurationSeconds !== null ? { defaultServiceDurationSeconds } : {}),
+      ...(timeWindowLeadMinutes !== null ? { timeWindowLeadMinutes } : {})
+    };
+    const response = await apiClient.post('/api-route-optimization', payload);
     return response.data;
   }
 };
-

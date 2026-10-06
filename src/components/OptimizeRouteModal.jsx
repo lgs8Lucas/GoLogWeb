@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, FastForward } from 'lucide-react';
+import { X, FastForward, Sliders, ChevronDown, ChevronUp } from 'lucide-react';
 import { transportService } from '../services/transportService';
 import { deliveryService } from '../services/deliveryService';
 import { workScheduleService } from '../services/workScheduleService';
+import { optimizationProfileService } from '../services/optimizationProfileService';
+import { companyService } from '../services/companyService';
 import { useToast } from './ToastContext';
 
 const driverLabel = (d) => d?.name || d?.user?.name || (d?.id ? `Motorista #${d.id.substring(0, 8)}` : 'Sem motorista');
@@ -16,7 +18,7 @@ const groupLabel = (g) => {
 const checkboxListStyle = {
   border: '1px solid var(--border-color)',
   borderRadius: '8px',
-  maxHeight: '260px',
+  maxHeight: '220px',
   overflowY: 'auto',
   padding: '0.5rem'
 };
@@ -38,9 +40,21 @@ const ROUTE_PRIORITY_OPTIONS = [
 const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
   const [shipments, setShipments] = useState([]);
   const [workSchedules, setWorkSchedules] = useState([]);
+  const [profiles, setProfiles] = useState([]);
   const [selectedShipmentIds, setSelectedShipmentIds] = useState([]);
   const [selectedScheduleIds, setSelectedScheduleIds] = useState([]);
   const [routePriority, setRoutePriority] = useState('ECONOMIA');
+  const [selectedProfileId, setSelectedProfileId] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Parâmetros avançados de override
+  const [kmCostMultiplier, setKmCostMultiplier] = useState('');
+  const [hourCostMultiplier, setHourCostMultiplier] = useState('');
+  const [fixedCostPerVehicle, setFixedCostPerVehicle] = useState('');
+  const [penaltyCostUnserved, setPenaltyCostUnserved] = useState('');
+  const [defaultServiceDurationSeconds, setDefaultServiceDurationSeconds] = useState('');
+  const [timeWindowLeadMinutes, setTimeWindowLeadMinutes] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
@@ -51,19 +65,43 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
     setSelectedShipmentIds([]);
     setSelectedScheduleIds([]);
     setRoutePriority('ECONOMIA');
+    setSelectedProfileId('');
+    setShowAdvanced(false);
+    setKmCostMultiplier('');
+    setHourCostMultiplier('');
+    setFixedCostPerVehicle('');
+    setPenaltyCostUnserved('');
+    setDefaultServiceDurationSeconds('');
+    setTimeWindowLeadMinutes('');
     setLoading(true);
 
     const loadData = async () => {
       try {
-        const [shipmentsData, schedulesData] = await Promise.all([
+        const [shipmentsData, schedulesData, companiesData] = await Promise.all([
           deliveryService.getByStatus('PENDENTE'),
-          workScheduleService.getAll()
+          workScheduleService.getAll(),
+          companyService.getAllCompanies()
         ]);
         setShipments(shipmentsData || []);
         setWorkSchedules((schedulesData || []).filter(s => s.status === 'ATIVO'));
+
+        // Se houver empresa cadastrada, busca os perfis de otimização disponíveis
+        const transportCompany = (companiesData || []).find(c => !c.isCliente) || (companiesData || [])[0];
+        if (transportCompany?.id) {
+          try {
+            const profilesData = await optimizationProfileService.getByCompany(transportCompany.id);
+            setProfiles(profilesData || []);
+            const defaultProfile = (profilesData || []).find(p => p.isDefault);
+            if (defaultProfile) {
+              setSelectedProfileId(defaultProfile.id);
+            }
+          } catch (e) {
+            console.warn('Perfis de otimização não carregados para a empresa:', e);
+          }
+        }
       } catch (err) {
         console.error('Erro ao carregar dados para otimização de rotas:', err);
-        showToast('Erro ao carregar remessas e escalas de trabalho.', 'error');
+        showToast('Erro ao carregar dados operacionais.', 'error');
       } finally {
         setLoading(false);
       }
@@ -87,15 +125,22 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
       await transportService.optimizeRoutes({
         shipmentIds: selectedShipmentIds,
         workScheduleIds: selectedScheduleIds,
-        routePriority
+        routePriority,
+        profileId: selectedProfileId || null,
+        kmCostMultiplier: kmCostMultiplier ? parseFloat(kmCostMultiplier) : null,
+        hourCostMultiplier: hourCostMultiplier ? parseFloat(hourCostMultiplier) : null,
+        fixedCostPerVehicle: fixedCostPerVehicle ? parseFloat(fixedCostPerVehicle) : null,
+        penaltyCostUnserved: penaltyCostUnserved ? parseFloat(penaltyCostUnserved) : null,
+        defaultServiceDurationSeconds: defaultServiceDurationSeconds ? parseInt(defaultServiceDurationSeconds, 10) : null,
+        timeWindowLeadMinutes: timeWindowLeadMinutes ? parseInt(timeWindowLeadMinutes, 10) : null
       });
-      showToast('Rotas otimizadas com sucesso!', 'success');
+      showToast('Rotas otimizadas com sucesso via gRPC!', 'success');
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error('Erro ao otimizar rotas:', error);
       const data = error.response?.data;
-      const mensagem = (typeof data === 'string' && data.trim()) || data?.message || data?.detail || 'Erro ao otimizar rotas.';
+      const mensagem = (typeof data === 'string' && data.trim()) || data?.message || data?.detail || 'Erro ao otimizar rotas no motor gRPC.';
       showToast(mensagem, 'error');
     } finally {
       setSubmitting(false);
@@ -104,36 +149,152 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
 
   return createPortal(
     <div className="modal-overlay fade-in">
-      <div className="modal-content" style={{ maxWidth: '720px' }}>
+      <div className="modal-content" style={{ maxWidth: '780px' }}>
         <div className="modal-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <FastForward size={22} color="var(--primary-color)" />
-            Otimizar e Planejar Rotas
+            Otimizar e Planejar Rotas (Motor gRPC)
           </h2>
           <button className="modal-close-btn" onClick={onClose} aria-label="Fechar">
             <X size={20} />
           </button>
         </div>
 
-        <div className="modal-body">
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {loading ? (
             <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>Carregando remessas e escalas...</p>
           ) : (
             <>
-              <div className="form-group">
-                <label className="form-label">Prioridade da Otimização</label>
-                <select
-                  className="form-select"
-                  value={routePriority}
-                  onChange={(e) => setRoutePriority(e.target.value)}
-                >
-                  {ROUTE_PRIORITY_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label} — {opt.description}</option>
-                  ))}
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: profiles.length > 0 ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Estratégia de Otimização</label>
+                  <select
+                    className="form-select"
+                    value={routePriority}
+                    onChange={(e) => setRoutePriority(e.target.value)}
+                  >
+                    {ROUTE_PRIORITY_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label} — {opt.description}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {profiles.length > 0 && (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Perfil de Cálculo & Regras</label>
+                    <select
+                      className="form-select"
+                      value={selectedProfileId}
+                      onChange={(e) => setSelectedProfileId(e.target.value)}
+                    >
+                      <option value="">Padrão do Sistema</option>
+                      {profiles.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} {p.isDefault ? '(Padrão)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div className="form-group">
+              {/* Parâmetros Avançados de Otimização */}
+              <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--primary-color)',
+                    fontWeight: 600,
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Sliders size={16} /> Ajustes Finos de Cálculo (Opcional)
+                  </span>
+                  {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+
+                {showAdvanced && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Mult. Custo KM</label>
+                      <input
+                        type="number"
+                        step="0.05"
+                        placeholder="Ex: 1.0 ou 0.1"
+                        className="form-input"
+                        value={kmCostMultiplier}
+                        onChange={(e) => setKmCostMultiplier(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Mult. Custo Hora</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Ex: 1.0 ou 2.0"
+                        className="form-input"
+                        value={hourCostMultiplier}
+                        onChange={(e) => setHourCostMultiplier(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Custo Fixo / Veículo (R$)</label>
+                      <input
+                        type="number"
+                        step="10"
+                        placeholder="Ex: 50.00"
+                        className="form-input"
+                        value={fixedCostPerVehicle}
+                        onChange={(e) => setFixedCostPerVehicle(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Duração Parada (seg)</label>
+                      <input
+                        type="number"
+                        step="60"
+                        placeholder="Ex: 1800 (30 min)"
+                        className="form-input"
+                        value={defaultServiceDurationSeconds}
+                        onChange={(e) => setDefaultServiceDurationSeconds(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Janela Antecedência (min)</label>
+                      <input
+                        type="number"
+                        step="5"
+                        placeholder="Ex: 15"
+                        className="form-input"
+                        value={timeWindowLeadMinutes}
+                        onChange={(e) => setTimeWindowLeadMinutes(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Penalidade Não Atendido</label>
+                      <input
+                        type="number"
+                        step="1000"
+                        placeholder="Ex: 100000"
+                        className="form-input"
+                        value={penaltyCostUnserved}
+                        onChange={(e) => setPenaltyCostUnserved(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label className="form-label" style={{ margin: 0 }}>Remessas Pendentes ({selectedShipmentIds.length}/{shipments.length})</label>
                   <button type="button" className="btn btn-outline" style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }} onClick={() => toggleAll(shipments, selectedShipmentIds, setSelectedShipmentIds)}>
@@ -161,7 +322,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ margin: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                   <label className="form-label" style={{ margin: 0 }}>Escalas de Trabalho Ativas ({selectedScheduleIds.length}/{workSchedules.length})</label>
                   <button type="button" className="btn btn-outline" style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }} onClick={() => toggleAll(workSchedules, selectedScheduleIds, setSelectedScheduleIds)}>
@@ -202,7 +363,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
             onClick={handleSubmit}
             disabled={loading || submitting || selectedShipmentIds.length === 0 || selectedScheduleIds.length === 0}
           >
-            {submitting ? 'Otimizando Rotas...' : 'Otimizar Rotas'}
+            {submitting ? 'Otimizando Rotas via gRPC...' : 'Otimizar Rotas (gRPC)'}
           </button>
         </div>
       </div>
