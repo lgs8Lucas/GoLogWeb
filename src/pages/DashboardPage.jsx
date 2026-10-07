@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
+import SustainabilitySection from '../components/SustainabilitySection';
 import { deliveryService } from '../services/deliveryService';
 import { dashboardService } from '../services/dashboardService';
 import { decodePolyline } from '../utils/polyline';
@@ -96,7 +97,8 @@ const DashboardPage = () => {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
 
   return (
-    <div className={`dashboard-grid-container fade-in ${isMapExpanded ? 'map-fullwidth' : ''}`}>
+    <div className="dashboard-page-wrapper">
+      <div className={`dashboard-grid-container fade-in ${isMapExpanded ? 'map-fullwidth' : ''}`}>
       {/* Map Section (Main Interactive View) */}
       <div className={`dashboard-map-card card ${isMapExpanded ? 'expanded' : ''}`}>
         <div className="dashboard-card-header">
@@ -263,6 +265,10 @@ const DashboardPage = () => {
         </div>
       </div>
     </div>
+
+    {/* Seção Estratégica ESG: Eficiência Energética e Indicador t.km */}
+    <SustainabilitySection stats={stats} />
+  </div>
   );
 };
 

@@ -171,3 +171,121 @@
   accent-color: var(--secondary-color);
   cursor: pointer;
 }
+
+/* Preset Selector Styles (Sem Código) */
+.preset-selector-container {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.preset-selector-label {
+  display: block;
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.65rem;
+}
+
+.preset-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+@media (max-width: 600px) {
+  .preset-buttons-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preset-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.preset-btn:hover {
+  border-color: var(--primary-light);
+  background: #f8fafc;
+}
+
+.preset-btn.active {
+  border-color: var(--primary-color);
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.preset-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.preset-btn strong {
+  display: block;
+  font-size: 0.825rem;
+  color: var(--primary-color);
+}
+
+.preset-btn small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+  margin-top: 0.15rem;
+}
+
+/* Guide Banner on Profiles tab */
+.opt-guide-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .opt-guide-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.opt-guide-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.opt-guide-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.opt-guide-body h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0 0 0.25rem 0;
+}
+
+.opt-guide-body p {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.35;
+}
+

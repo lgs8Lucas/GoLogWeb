@@ -26,6 +26,65 @@ import { companyService } from '../services/companyService';
 import { translateRuleType } from '../utils/enumTranslations';
 import '../styles/OptimizationRules.css';
 
+const PRESET_TEMPLATES = [
+  {
+    id: 'balanced',
+    title: 'Equilibrado',
+    icon: '⚖️',
+    description: 'Balanço entre menor km, tempo e pontualidade.',
+    values: {
+      kmCostMultiplier: 1.0,
+      hourCostMultiplier: 1.0,
+      fixedCostPerVehicle: 0.0,
+      penaltyCostUnserved: 100000.0,
+      defaultServiceDurationSeconds: 1800,
+      timeWindowLeadMinutes: 15
+    }
+  },
+  {
+    id: 'eco',
+    title: 'Máxima Economia (Menor KM)',
+    icon: '⛽',
+    description: 'Foco em menor rodagem e frota reduzida.',
+    values: {
+      kmCostMultiplier: 1.5,
+      hourCostMultiplier: 0.8,
+      fixedCostPerVehicle: 150.0,
+      penaltyCostUnserved: 100000.0,
+      defaultServiceDurationSeconds: 1800,
+      timeWindowLeadMinutes: 20
+    }
+  },
+  {
+    id: 'express',
+    title: 'Expresso / Alta Velocidade',
+    icon: '🚀',
+    description: 'Prioriza chegadas rápidas e cumprimento estrito.',
+    values: {
+      kmCostMultiplier: 0.8,
+      hourCostMultiplier: 1.8,
+      fixedCostPerVehicle: 0.0,
+      penaltyCostUnserved: 150000.0,
+      defaultServiceDurationSeconds: 1200,
+      timeWindowLeadMinutes: 10
+    }
+  },
+  {
+    id: 'delicate',
+    title: 'Operação Cautelosa',
+    icon: '🛡️',
+    description: 'Mais tempo para descarga e janelas folgadas.',
+    values: {
+      kmCostMultiplier: 1.1,
+      hourCostMultiplier: 1.2,
+      fixedCostPerVehicle: 50.0,
+      penaltyCostUnserved: 200000.0,
+      defaultServiceDurationSeconds: 2700,
+      timeWindowLeadMinutes: 30
+    }
+  }
+];
+
 const OptimizationRulesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'profiles';
@@ -419,7 +478,32 @@ const OptimizationRulesPage = () => {
 
       {/* Conteúdo Aba 1: Perfis */}
       {activeTab === 'profiles' && (
-        <div className="card">
+        <div>
+          <div className="opt-guide-container">
+            <div className="opt-guide-card">
+              <div className="opt-guide-icon">🛣️</div>
+              <div className="opt-guide-body">
+                <h4>Multiplicadores de Distância & Tempo</h4>
+                <p>Aumentar o custo por KM força o roteirizador a buscar trajetos mais curtos. Aumentar o por hora prioriza rodovias expressas.</p>
+              </div>
+            </div>
+            <div className="opt-guide-card">
+              <div className="opt-guide-icon">🚛</div>
+              <div className="opt-guide-body">
+                <h4>Custo Fixo por Veículo</h4>
+                <p>Configurar um custo fixo (ex: R$ 100/veículo) faz o motor consolidar as remessas em menos caminhões para evitar rodagem vazia.</p>
+              </div>
+            </div>
+            <div className="opt-guide-card">
+              <div className="opt-guide-icon">⏱️</div>
+              <div className="opt-guide-body">
+                <h4>Tempo de Atendimento e Tolerância</h4>
+                <p>Define a média gasta na descarga do cliente e a antecedência permitida na janela de horário sem gerar atraso penalizado.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
           <DataTable
             loading={loading}
             data={profiles}
@@ -493,6 +577,7 @@ const OptimizationRulesPage = () => {
             }}
           />
         </div>
+      </div>
       )}
 
       {/* Conteúdo Aba 2: Demandas */}
@@ -709,6 +794,37 @@ const OptimizationRulesPage = () => {
             </div>
             <form onSubmit={handleSaveProfile}>
               <div className="modal-body">
+                {/* Presets Rápidos Sem Código */}
+                <div className="preset-selector-container">
+                  <span className="preset-selector-label">
+                    ✨ Presets Inteligentes (Sem Código): Escolha um modelo para preenchimento rápido
+                  </span>
+                  <div className="preset-buttons-grid">
+                    {PRESET_TEMPLATES.map(p => (
+                      <button
+                        type="button"
+                        key={p.id}
+                        className={`preset-btn ${profileForm.selectedPreset === p.id ? 'active' : ''}`}
+                        onClick={() => {
+                          setProfileForm(prev => ({
+                            ...prev,
+                            selectedPreset: p.id,
+                            name: prev.name ? prev.name : p.title,
+                            description: prev.description ? prev.description : p.description,
+                            ...p.values
+                          }));
+                        }}
+                      >
+                        <span className="preset-icon">{p.icon}</span>
+                        <div>
+                          <strong>{p.title}</strong>
+                          <small>{p.description}</small>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">Nome do Perfil *</label>
                   <input

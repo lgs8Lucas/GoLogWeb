@@ -406,3 +406,296 @@
   height: 36px;
   background-color: var(--border-color);
 }
+
+/* Full Width Sustainability & ESG Section */
+.sustainability-full-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.sustainability-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1.25rem;
+}
+
+.leaf-badge-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  flex-shrink: 0;
+}
+
+.esg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.725rem;
+  font-weight: 700;
+}
+
+.ods-badges-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ods-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.725rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.ods-badge.ods-9 {
+  background: #fdba74;
+  color: #7c2d12;
+}
+
+.ods-badge.ods-12 {
+  background: #fde047;
+  color: #713f12;
+}
+
+.ods-badge.ods-13 {
+  background: #86efac;
+  color: #14532d;
+}
+
+.sustainability-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .sustainability-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .sustainability-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.esg-metric-card {
+  background: var(--bg-hover, #f8fafc);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: var(--transition);
+}
+
+.esg-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-light);
+}
+
+.esg-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.esg-card-label {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.esg-card-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+}
+
+.esg-card-icon-box.green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.esg-card-icon-box.emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.esg-card-icon-box.amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.esg-card-icon-box.blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.esg-card-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.esg-card-value small {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.esg-card-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin: 0;
+  flex: 1;
+}
+
+.esg-card-footer {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.esg-gain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.esg-gain-badge.emerald {
+  color: #059669;
+}
+
+.esg-sub-info {
+  font-size: 0.725rem;
+  color: var(--text-muted);
+}
+
+/* ESG Chart Box */
+.esg-chart-box {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  background: var(--bg-surface);
+}
+
+.esg-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.esg-chart-toggle {
+  display: flex;
+  gap: 0.35rem;
+  background: var(--bg-hover, #f1f5f9);
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+}
+
+.esg-toggle-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.esg-toggle-btn.active {
+  background: var(--bg-surface, #ffffff);
+  color: var(--primary-color);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.esg-svg-chart-container {
+  width: 100%;
+}
+
+.esg-svg {
+  width: 100%;
+  height: 220px;
+}
+
+.esg-chart-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.legend-box {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.legend-note {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-style: italic;
+}
+
