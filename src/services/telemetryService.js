@@ -6,19 +6,27 @@ export const telemetryService = {
     return response.data;
   },
 
+  /**
+   * Envia lote de telemetrias para o Gateway de Ingestão de Alta Performance.
+   * Utiliza cache de placas em memória e dispara detecção de geofencing de paradas.
+   * @param {Array} items Lista de itens de telemetria [{ plate, latitude, longitude, speed, dateTime, alert, device, data1, data2 }]
+   */
+  sendBatch: async (items) => {
+    const response = await apiClient.post('/api/v1/telemetry/batch', { items });
+    return response.data;
+  },
+
   getTelemetryById: async (id) => {
     const response = await apiClient.get(`/telemetry/${id}`);
     return response.data;
   },
 
   updateTelemetry: async (payload) => {
-    // The OpenAPI spec maps PUT /telemetry to accept telemetryCreateRequest as a query param.
     const response = await apiClient.put('/telemetry', null, { params: { telemetryCreateRequest: payload } });
     return response.data;
   },
 
   patchTelemetry: async (id, payload) => {
-    // The OpenAPI spec maps PATCH /telemetry/{id} with telemetryUpdateRequest as query param.
     const response = await apiClient.patch(`/telemetry/${id}`, null, { params: { telemetryUpdateRequest: payload } });
     return response.data;
   },

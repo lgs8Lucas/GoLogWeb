@@ -254,10 +254,16 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                               {s.address?.city || s.customer?.address?.city || 'Araras'} ({s.address?.state || s.customer?.address?.state || 'SP'})
                             </p>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                               <span>Carga: <strong>{s.weight || 0} kg</strong> / <strong>{s.volume || 0} m³</strong></span>
                               {sched && (
                                 <span>Agendado: <strong>{new Date(sched).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                              )}
+                              {s.routeStop?.arrivedAt && (
+                                <span style={{ color: '#059669', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                  ✓ Chegada: {new Date(s.routeStop.arrivedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                  {s.routeStop.autoCheckIn ? ' (Geofence ' + (s.routeStop.checkInDistance ? Math.round(s.routeStop.checkInDistance) + 'm' : '') + ')' : ''}
+                                </span>
                               )}
                             </div>
                           </div>
