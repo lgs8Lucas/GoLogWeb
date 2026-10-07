@@ -30,6 +30,30 @@ export const companyService = {
     await apiClient.delete(`/company/${id}`);
   },
 
+  /**
+   * Atualiza as configurações de Webhook (URL de callback e segredo HMAC) da empresa.
+   */
+  updateWebhook: async (id, payload) => {
+    const response = await apiClient.patch(`/company/${id}/webhook`, payload);
+    return response.data;
+  },
+
+  /**
+   * Dispara um teste de webhook contra a URL salva na empresa.
+   */
+  testWebhook: async (id) => {
+    const response = await apiClient.post(`/company/${id}/webhook/test`);
+    return response.data;
+  },
+
+  /**
+   * Testa qualquer URL de webhook antes de salvar.
+   */
+  testWebhookUrl: async (payload) => {
+    const response = await apiClient.post('/company/webhook/test-url', payload);
+    return response.data;
+  },
+
   // Standard generic REST aliases for compatibility
   getAll: async () => companyService.getAllCompanies(),
   getById: async (id) => companyService.getCompanyById(id),

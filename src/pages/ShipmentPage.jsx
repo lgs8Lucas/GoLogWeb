@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Trash2, Search } from 'lucide-react';
+import { Package, Trash2, Search, FileUp } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
+import ImportInvoicesModal from '../components/ImportInvoicesModal';
 import { deliveryService } from '../services/deliveryService';
 import '../styles/Profiles.css'; // Reusing standard styles
 
@@ -67,6 +68,8 @@ const ShipmentPage = () => {
     }
   ];
 
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
   return (
     <div className="profiles-container fade-in">
       <PageHeader 
@@ -74,6 +77,24 @@ const ShipmentPage = () => {
         description="Acompanhe todas as ordens de coleta e entrega registradas no sistema."
         icon={Package}
         onBack={true}
+      >
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setIsImportModalOpen(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+        >
+          <FileUp size={16} />
+          Importar NF-e / Cargas (ERP)
+        </button>
+      </PageHeader>
+
+      <ImportInvoicesModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          fetchShipments();
+        }}
       />
 
       <div className="profiles-table-container">

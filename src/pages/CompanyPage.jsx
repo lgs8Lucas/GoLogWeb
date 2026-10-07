@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
-import { Building2, Plus, Save, X } from 'lucide-react';
+import { Building2, Plus, Save, X, Globe, RefreshCw, Radio } from 'lucide-react';
 import { companyService } from '../services/companyService';
 import { addressService } from '../services/addressService';
 import { authService } from '../services/authService';
@@ -35,12 +35,16 @@ const CompanyPage = () => {
     city: '',
     state: '',
     country: 'Brasil',
-    complement: ''
+    complement: '',
+    webhookUrl: '',
+    webhookSecret: '',
+    webhookActive: true
   };
 
   const [formData, setFormData] = useState(initialFormState);
   const [editingId, setEditingId] = useState(null);
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [testingWebhook, setTestingWebhook] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -64,11 +68,39 @@ const CompanyPage = () => {
       city: addr.city || '',
       state: addr.state || '',
       country: addr.country || 'Brasil',
-      complement: addr.complement || ''
+      complement: addr.complement || '',
+      webhookUrl: company.webhookUrl || '',
+      webhookSecret: company.webhookSecret || '',
+      webhookActive: company.webhookActive ?? true
     });
     setIsModalOpen(true);
   };
   const handleEdit = handleEditClick;
+
+  const handleTestWebhook = async () => {
+    if (!formData.webhookUrl) {
+      showToast('Informe a URL do webhook para testar.', 'error');
+      return;
+    }
+    setTestingWebhook(true);
+    try {
+      const res = await companyService.testWebhookUrl({
+        webhookUrl: formData.webhookUrl,
+        webhookSecret: formData.webhookSecret,
+        webhookActive: formData.webhookActive
+      });
+      if (res.success) {
+        showToast(`Webhook respondeu com sucesso! HTTP ${res.statusCode} (${res.latencyMs}ms)`, 'success');
+      } else {
+        showToast(`Falha no webhook: ${res.message} (${res.latencyMs}ms)`, 'error');
+      }
+    } catch (err) {
+      console.error('Erro ao testar webhook:', err);
+      showToast('Erro ao disparar teste de webhook.', 'error');
+    } finally {
+      setTestingWebhook(false);
+    }
+  };
 
   const fetchCompanies = async () => {
     setLoading(true);
@@ -159,9 +191,29 @@ const CompanyPage = () => {
 
       if (editingId) {
         await companyService.updateCompany(editingId, companyPayload);
+        try {
+          await companyService.updateWebhook(editingId, {
+            webhookUrl: formData.webhookUrl,
+            webhookSecret: formData.webhookSecret,
+            webhookActive: formData.webhookActive
+          });
+        } catch (webhookErr) {
+          console.error("Erro ao salvar webhook:", webhookErr);
+        }
         showToast(`${isOperator ? 'Cliente' : 'Empresa'} atualizada com sucesso.`, 'success');
       } else {
-        await companyService.createCompany(companyPayload);
+        const created = await companyService.createCompany(companyPayload);
+        if (created?.id && formData.webhookUrl) {
+          try {
+            await companyService.updateWebhook(created.id, {
+              webhookUrl: formData.webhookUrl,
+              webhookSecret: formData.webhookSecret,
+              webhookActive: formData.webhookActive
+            });
+          } catch (webhookErr) {
+            console.error("Erro ao salvar webhook:", webhookErr);
+          }
+        }
         showToast(`${isOperator ? 'Cliente' : 'Empresa'} cadastrada com sucesso.`, 'success');
       }
 
@@ -241,6 +293,18 @@ const CompanyPage = () => {
       label: 'Cidade / UF', 
       key: 'address',
       render: (row) => row.address ? `${row.address.city || '-'} (${row.address.state || '-'})` : '-'
+    },
+    {
+      label: 'Webhook ERP',
+      key: 'webhookUrl',
+      render: (row) => row.webhookUrl ? (
+        <span className={`status-chip ${row.webhookActive ? 'active' : 'warning'}`} title={row.webhookUrl}>
+          <Radio size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+          {row.webhookActive ? 'Ativo' : 'Pausado'}
+        </span>
+      ) : (
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>-</span>
+      )
     }
   ];
 
@@ -459,6 +523,64 @@ const CompanyPage = () => {
                       className="form-input" 
                       maxLength="2" 
                       required 
+                    />
+                  </div>
+
+                  {/* Integração ERP & Webhooks */}
+                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--primary-color)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Globe size={18} /> Integração ERP / WMS & Webhooks
+                      </h3>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          name="webhookActive"
+                          checked={formData.webhookActive}
+                          onChange={handleInputChange}
+                        />
+                        Webhook Ativo
+                      </label>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.85rem 0' }}>
+                      Receba notificações HTTP POST em tempo real com assinatura HMAC SHA-256 para eventos de remessas e geofencing.
+                    </p>
+                  </div>
+
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">URL do Webhook (Endpoint do ERP)</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input 
+                        type="url" 
+                        name="webhookUrl" 
+                        value={formData.webhookUrl} 
+                        onChange={handleInputChange} 
+                        className="form-input" 
+                        placeholder="https://erp.empresa.com.br/api/golog/webhook"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTestWebhook}
+                        disabled={testingWebhook || !formData.webhookUrl}
+                        className="btn btn-outline"
+                        style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                      >
+                        {testingWebhook ? <RefreshCw size={14} className="spin" /> : <Radio size={14} />}
+                        Testar Ping
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">Secret do Webhook (Assinatura HMAC SHA-256)</label>
+                    <input 
+                      type="password" 
+                      name="webhookSecret" 
+                      value={formData.webhookSecret} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      placeholder="Chave secreta para validação de X-GoLog-Signature"
                     />
                   </div>
 
