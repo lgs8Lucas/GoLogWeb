@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/Navbar.css';
 import Logo from '../assets/logo.png';
 import { authService } from '../services/authService';
+import TenantSwitcher from './TenantSwitcher';
 
 const Navbar = ({ onToggleMobileMenu, isMobileOpen, isCollapsed, onToggleCollapse }) => {
   const navigate = useNavigate();
@@ -43,6 +44,8 @@ const Navbar = ({ onToggleMobileMenu, isMobileOpen, isCollapsed, onToggleCollaps
         </div>
 
         <div className="navbar-actions">
+          <TenantSwitcher />
+
           {userRole && (
             <div className="user-profile-badge">
               <ShieldCheck size={16} className="role-icon" />

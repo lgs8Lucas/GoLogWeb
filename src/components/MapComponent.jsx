@@ -13,7 +13,7 @@ const loadGoogleMapsScript = (apiKey) => {
     googleMapsPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
       const keyParam = apiKey ? `&key=${apiKey}` : '';
-      script.src = `https://maps.googleapis.com/maps/api/js?libraries=geometry,places${keyParam}`;
+      script.src = `https://maps.googleapis.com/maps/api/js?libraries=geometry,places&loading=async${keyParam}`;
       script.async = true;
       script.defer = true;
       script.onload = () => {

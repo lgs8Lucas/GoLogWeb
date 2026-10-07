@@ -58,14 +58,22 @@ export const transportService = {
       shipmentIds,
       workScheduleIds,
       routePriority,
-      ...(profileId ? { profileId } : {}),
-      ...(kmCostMultiplier !== null ? { kmCostMultiplier } : {}),
-      ...(hourCostMultiplier !== null ? { hourCostMultiplier } : {}),
-      ...(fixedCostPerVehicle !== null ? { fixedCostPerVehicle } : {}),
-      ...(penaltyCostUnserved !== null ? { penaltyCostUnserved } : {}),
-      ...(defaultServiceDurationSeconds !== null ? { defaultServiceDurationSeconds } : {}),
-      ...(timeWindowLeadMinutes !== null ? { timeWindowLeadMinutes } : {})
+      profileId: profileId || null,
+      kmCostMultiplier: kmCostMultiplier !== undefined && kmCostMultiplier !== null && kmCostMultiplier !== '' ? parseFloat(kmCostMultiplier) : null,
+      hourCostMultiplier: hourCostMultiplier !== undefined && hourCostMultiplier !== null && hourCostMultiplier !== '' ? parseFloat(hourCostMultiplier) : null,
+      fixedCostPerVehicle: fixedCostPerVehicle !== undefined && fixedCostPerVehicle !== null && fixedCostPerVehicle !== '' ? parseFloat(fixedCostPerVehicle) : null,
+      penaltyCostUnserved: penaltyCostUnserved !== undefined && penaltyCostUnserved !== null && penaltyCostUnserved !== '' ? parseFloat(penaltyCostUnserved) : null,
+      defaultServiceDurationSeconds: defaultServiceDurationSeconds !== undefined && defaultServiceDurationSeconds !== null && defaultServiceDurationSeconds !== '' ? parseInt(defaultServiceDurationSeconds, 10) : null,
+      timeWindowLeadMinutes: timeWindowLeadMinutes !== undefined && timeWindowLeadMinutes !== null && timeWindowLeadMinutes !== '' ? parseInt(timeWindowLeadMinutes, 10) : null
     };
+
+    // Remove campos nulos para não poluir o JSON
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === null || payload[key] === undefined) {
+        delete payload[key];
+      }
+    });
+
     const response = await apiClient.post('/api-route-optimization', payload);
     return response.data;
   }

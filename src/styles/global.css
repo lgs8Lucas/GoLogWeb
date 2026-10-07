@@ -425,3 +425,79 @@
   border-color: var(--primary-color);
   transform: translateX(-2px);
 }
+
+/* Entity Links & Quick Navigations */
+.entity-link {
+  color: var(--primary-color);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+  font-size: 0.825rem;
+}
+
+.entity-link:hover {
+  background-color: var(--primary-color);
+  color: var(--text-white) !important;
+  border-color: var(--primary-color);
+  text-decoration: none;
+}
+
+.entity-link.secondary {
+  color: var(--secondary-dark);
+  background-color: var(--status-active-bg);
+  border-color: var(--status-active-border);
+}
+
+.entity-link.secondary:hover {
+  background-color: var(--secondary-color);
+  color: var(--text-white) !important;
+}
+
+.equip-badges-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.equip-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.equip-pill.tractor {
+  background-color: #f1f5f9;
+  color: var(--primary-color);
+  border: 1px solid var(--border-dark);
+}
+
+.equip-pill.tractor:hover {
+  background-color: var(--primary-color);
+  color: #ffffff !important;
+}
+
+.equip-pill.trailer {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.equip-pill.trailer:hover {
+  background-color: #059669;
+  color: #ffffff !important;
+}
+

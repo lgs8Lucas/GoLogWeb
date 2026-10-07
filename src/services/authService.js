@@ -10,14 +10,26 @@ export const authService = {
       if (response.data.message || response.data.error) {
         throw new Error(response.data.message || response.data.error || "Credenciais Inválidas");
       }
-      return response.data.token || response.data.accessToken || Object.values(response.data)[0];
+      
+      const token = response.data.token || response.data.accessToken || Object.values(response.data)[0];
+      if (token) {
+        localStorage.setItem('golog_token', token);
+      }
+      localStorage.setItem('golog_user_data', JSON.stringify(response.data));
+      return token;
     }
 
-    return typeof response.data === 'string' ? response.data.replace(/"/g, '') : response.data;
+    const token = typeof response.data === 'string' ? response.data.replace(/"/g, '') : response.data;
+    if (token) {
+      localStorage.setItem('golog_token', token);
+    }
+    return token;
   },
 
   logout: () => {
     localStorage.removeItem('golog_token');
+    localStorage.removeItem('golog_user_data');
+    localStorage.removeItem('golog_selected_tenant');
   },
 
   getUserRole: () => {
@@ -32,14 +44,14 @@ export const authService = {
 
       if (!userLevel) {
         console.error("Token válido, mas sem o perfil do usuário (role). Expulsando.");
-        localStorage.removeItem('golog_token');
+        authService.logout();
         return null;
       }
 
       return userLevel;
     } catch (e) {
       console.error("Token corrompido ou mal formatado. Limpando sessão.", e);
-      localStorage.removeItem('golog_token');
+      authService.logout();
       return null;
     }
   },
@@ -53,12 +65,12 @@ export const authService = {
     try {
       const payload = jwtDecode(token);
       if (!payload.exp || Date.now() >= payload.exp * 1000) {
-        localStorage.removeItem('golog_token');
+        authService.logout();
         return false;
       }
       return true;
     } catch {
-      localStorage.removeItem('golog_token');
+      authService.logout();
       return false;
     }
   },
@@ -77,5 +89,61 @@ export const authService = {
   getCurrentUserEmail: () => {
     const payload = authService.getDecodedToken();
     return payload ? (payload.sub || payload.email || null) : null;
+  },
+
+  isMaster: () => {
+    try {
+      const dataStr = localStorage.getItem('golog_user_data');
+      if (dataStr) {
+        const data = JSON.parse(dataStr);
+        if (typeof data.isMaster === 'boolean') return data.isMaster;
+      }
+    } catch {}
+
+    const payload = authService.getDecodedToken();
+    return Boolean(payload?.isMaster);
+  },
+
+  getTenantInfo: () => {
+    try {
+      const dataStr = localStorage.getItem('golog_user_data');
+      if (dataStr) {
+        const data = JSON.parse(dataStr);
+        return {
+          companyId: data.companyId,
+          companyName: data.companyName,
+          companyType: data.companyType,
+          isMaster: Boolean(data.isMaster),
+          userName: data.userName,
+          userRole: data.userRole
+        };
+      }
+    } catch {}
+
+    const payload = authService.getDecodedToken();
+    if (payload) {
+      return {
+        companyId: payload.companyId,
+        companyName: payload.companyName,
+        companyType: payload.companyType,
+        isMaster: Boolean(payload.isMaster),
+        userName: payload.user,
+        userRole: payload.role
+      };
+    }
+    return {};
+  },
+
+  getSelectedTenant: () => {
+    return localStorage.getItem('golog_selected_tenant') || 'all';
+  },
+
+  setSelectedTenant: (tenantId) => {
+    if (!tenantId || tenantId === 'all') {
+      localStorage.removeItem('golog_selected_tenant');
+    } else {
+      localStorage.setItem('golog_selected_tenant', tenantId);
+    }
+    window.dispatchEvent(new CustomEvent('tenantChanged', { detail: tenantId || 'all' }));
   }
 };

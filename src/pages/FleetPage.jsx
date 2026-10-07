@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Truck, Plus, Save, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Truck, Plus, Save, X, Building2 } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentService } from '../services/equipamentService';
@@ -9,8 +10,11 @@ import { trailerService } from '../services/trailerService';
 import { companyService } from '../services/companyService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
+import { translateStatus, translateVehicleType, translateFuel } from '../utils/enumTranslations';
 
 const FleetPage = () => {
+  const [searchParams] = useSearchParams();
+  const editParamId = searchParams.get('edit');
   const [fleet, setFleet] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,27 +47,46 @@ const FleetPage = () => {
   const fetchFleet = async () => {
     setLoading(true);
     try {
-      const data = await equipamentService.getAll();
-      const mapped = data.map(item => {
+      const [data, comps] = await Promise.all([
+        equipamentService.getAll(),
+        companyService.getAllCompanies()
+      ]);
+      const safeData = Array.isArray(data) ? data : [];
+      const safeComps = Array.isArray(comps) ? comps : [];
+      setCompanies(safeComps);
+
+      const compsMap = {};
+      safeComps.forEach(c => { compsMap[c.id] = c; });
+
+      const mapped = safeData.map(item => {
         const isTrailer = item.maximumVolume !== undefined && item.maximumVolume !== null;
-        const statusText = item.active !== false ? 'Ativo' : 'Inativo';
+        const comp = compsMap[item.companyId] || item.company;
+        const compName = comp?.legalName || item.company?.legalName || item.companyName || '-';
         return {
           id: item.id,
           placa: item.plate,
-          status: STATUS_LABELS[item.status] || (item.active !== false ? 'Ativo' : 'Inativo'),
+          status: translateStatus(item.status || (item.active !== false ? 'ATIVO' : 'DESATIVADO')),
           renavam: item.renavam,
           marca: item.model || 'Volvo FH',
           capacidade: `${item.maximumCapacity || 0} kg`,
-          tipo: isTrailer ? 'Carreta' : 'Caminhão',
+          tipo: isTrailer ? 'Carreta / Reboque' : 'Cavalo Mecânico',
           isTrailer: isTrailer,
           custoKm: !isTrailer && item.costPerKilometer != null
             ? item.costPerKilometer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
             : '-',
-          empresa: item.company?.legalName || '-',
+          empresa: compName,
+          companyId: item.companyId || comp?.id,
           raw: item
         };
       });
       setFleet(mapped);
+
+      if (editParamId && mapped && mapped.length > 0) {
+        const target = mapped.find(v => v.id === editParamId);
+        if (target) {
+          handleEditClick(target);
+        }
+      }
     } catch (error) {
       console.error('Erro ao buscar frota:', error);
     } finally {
@@ -73,18 +96,6 @@ const FleetPage = () => {
 
   useEffect(() => {
     fetchFleet();
-    const fetchCompanies = async () => {
-      try {
-        const comps = await companyService.getAllCompanies();
-        setCompanies(comps || []);
-        if (comps && comps.length > 0) {
-          setFormData(prev => ({ ...prev, companyId: comps[0].id }));
-        }
-      } catch (err) {
-        console.error("Erro ao buscar empresas para frota:", err);
-      }
-    };
-    fetchCompanies();
   }, []);
 
   const handleInputChange = (e) => {
@@ -217,7 +228,19 @@ const FleetPage = () => {
   };
 
   const fleetColumns = [
-    { label: 'Placa', key: 'placa' },
+    { 
+      label: 'Placa', 
+      key: 'placa',
+      render: (row) => (
+        <span 
+          style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary-color)' }}
+          onClick={() => handleEditClick(row)}
+          title="Clique para editar este veículo"
+        >
+          {row.placa}
+        </span>
+      )
+    },
     { 
       label: 'Status', 
       key: 'status',
@@ -232,7 +255,22 @@ const FleetPage = () => {
     { label: 'Capacidade', key: 'capacidade' },
     { label: 'Custo/Km', key: 'custoKm' },
     { label: 'Tipo', key: 'tipo' },
-    { label: 'Empresa Vinculada', key: 'empresa' }
+    { 
+      label: 'Empresa Vinculada', 
+      key: 'empresa',
+      render: (row) => row.companyId ? (
+        <Link 
+          to={`/empresas?edit=${row.companyId}`} 
+          className="entity-link"
+          title={`Ver empresa ${row.empresa}`}
+        >
+          <Building2 size={13} />
+          <span>{row.empresa}</span>
+        </Link>
+      ) : (
+        <span style={{ color: 'var(--text-muted)' }}>{row.empresa || '-'}</span>
+      )
+    }
   ];
 
   const fleetFilterConfigs = [
@@ -240,6 +278,28 @@ const FleetPage = () => {
     { key: 'status', label: 'Status' },
     { key: 'empresa', label: 'Empresa' }
   ];
+
+  const handleOpenNewVehicle = () => {
+    const selectedTenant = authService.getSelectedTenant();
+    const defaultCompId = (selectedTenant && selectedTenant !== 'all')
+      ? selectedTenant
+      : (companies.length > 0 ? companies[0].id : '');
+    setEditingId(null);
+    setFormData({
+      plate: '',
+      status: 'ATIVO',
+      renavam: '',
+      model: '',
+      maximumCapacity: '',
+      numberAxles: '2',
+      tipo: 'carreta',
+      typeFuel: 'DIESEL',
+      kmPerLiter: '2.5',
+      maximumVolume: '100',
+      companyId: defaultCompId
+    });
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -249,7 +309,7 @@ const FleetPage = () => {
         icon={Truck}
         onBack={true}
       >
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={handleOpenNewVehicle}>
           <Plus size={18} /> Novo Veículo
         </button>
       </PageHeader>

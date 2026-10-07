@@ -57,9 +57,10 @@ const DashboardPage = () => {
     const fetchMapRoutes = async () => {
       try {
         const shipments = await deliveryService.getAllPersonalized();
+        const safeShipments = Array.isArray(shipments) ? shipments : (shipments?.content || []);
         const transportsMap = {};
 
-        shipments.forEach(s => {
+        safeShipments.forEach(s => {
           if (!s.transport) return;
           const tid = s.transport.id;
           if (!transportsMap[tid]) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Building2, Plus, Save, X } from 'lucide-react';
 import { companyService } from '../services/companyService';
 import { addressService } from '../services/addressService';
@@ -10,6 +11,8 @@ import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const CompanyPage = () => {
+  const [searchParams] = useSearchParams();
+  const editParamId = searchParams.get('edit');
   const userRole = authService.getUserRole();
   const isOperator = userRole === 'OPERATOR';
   const [companies, setCompanies] = useState([]);
@@ -41,13 +44,44 @@ const CompanyPage = () => {
 
   useEffect(() => {
     fetchCompanies();
-  }, []);
+  }, [editParamId]);
+
+  const handleEditClick = (company) => {
+    setEditingId(company.id);
+    const addr = company.address || {};
+    setEditingAddressId(addr.id || null);
+
+    setFormData({
+      legalName: company.legalName || '',
+      cnpjCpf: company.cnpjCpf || '',
+      email: company.email || '',
+      phoneNumber: company.phoneNumber || '',
+      isCliente: company.isCliente ?? true,
+      cep: addr.cep || '',
+      street: addr.street || '',
+      number: addr.number || '',
+      district: addr.district || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      country: addr.country || 'Brasil',
+      complement: addr.complement || ''
+    });
+    setIsModalOpen(true);
+  };
+  const handleEdit = handleEditClick;
 
   const fetchCompanies = async () => {
     setLoading(true);
     try {
       const data = await companyService.getAllCompanies();
-      setCompanies(data);
+      setCompanies(data || []);
+
+      if (editParamId && data && data.length > 0) {
+        const target = data.find(c => c.id === editParamId);
+        if (target) {
+          handleEditClick(target);
+        }
+      }
     } catch (error) {
       console.error("Erro ao buscar empresas:", error);
       showToast('Erro ao carregar lista de empresas.', 'error');
@@ -139,28 +173,6 @@ const CompanyPage = () => {
     }
   };
 
-  const handleEdit = (company) => {
-    setEditingId(company.id);
-    const addr = company.address || {};
-    setEditingAddressId(addr.id || null);
-
-    setFormData({
-      legalName: company.legalName || '',
-      cnpjCpf: company.cnpjCpf || '',
-      email: company.email || '',
-      phoneNumber: company.phoneNumber || '',
-      isCliente: company.isCliente ?? true,
-      cep: addr.cep || '',
-      street: addr.street || '',
-      number: addr.number || '',
-      district: addr.district || '',
-      city: addr.city || '',
-      state: addr.state || '',
-      country: addr.country || 'Brasil',
-      complement: addr.complement || ''
-    });
-    setIsModalOpen(true);
-  };
 
   const handleDelete = (company) => {
     setCompanyToDelete(company);
@@ -190,18 +202,40 @@ const CompanyPage = () => {
   };
 
   const companyColumns = [
-    { label: 'Razão Social / Nome', key: 'legalName' },
+    { 
+      label: 'Razão Social / Nome', 
+      key: 'legalName',
+      render: (row) => (
+        <span 
+          style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary-color)' }}
+          onClick={() => handleEditClick(row)}
+          title="Clique para editar este registro"
+        >
+          {row.legalName}
+        </span>
+      )
+    },
     { label: 'CNPJ / CPF', key: 'cnpjCpf' },
     { label: 'E-mail', key: 'email' },
     { label: 'Telefone', key: 'phoneNumber' },
     { 
-      label: 'Tipo', 
-      key: 'isCliente',
-      render: (row) => (
-        <span className={`status-chip ${row.isCliente ? 'active' : 'info'}`}>
-          {row.isCliente ? 'Cliente' : 'Transportadora'}
-        </span>
-      )
+      label: 'Tipo / Classificação', 
+      key: 'companyType',
+      render: (row) => {
+        if (row.companyType === 'TENANT_MASTER' || row.isMaster) {
+          return <span className="status-chip danger">GoLog Master</span>;
+        }
+        if (row.companyType === 'TENANT_HEADQUARTER') {
+          return <span className="status-chip active">Matriz (Tenant)</span>;
+        }
+        if (row.companyType === 'TENANT_BRANCH') {
+          return <span className="status-chip warning">Filial</span>;
+        }
+        if (row.isCliente || row.companyType === 'CLIENT') {
+          return <span className="status-chip info">Cliente</span>;
+        }
+        return <span className="status-chip info">Fornecedor</span>;
+      }
     },
     { 
       label: 'Cidade / UF', 
@@ -221,10 +255,19 @@ const CompanyPage = () => {
       key: 'tipo', 
       label: 'Classificação',
       options: [
+        { label: 'Matriz (Tenant)', value: 'TENANT_HEADQUARTER' },
+        { label: 'Filial (Tenant)', value: 'TENANT_BRANCH' },
         { label: 'Cliente / Destinatário', value: 'CLIENTE' },
-        { label: 'Transportadora / Parceiro', value: 'EMPRESA' }
+        { label: 'Fornecedor / Parceiro', value: 'FORNECEDOR' },
+        { label: 'GoLog Master', value: 'TENANT_MASTER' }
       ],
-      accessor: (row) => (row.isCliente ? 'CLIENTE' : 'EMPRESA')
+      accessor: (row) => {
+        if (row.companyType === 'TENANT_MASTER' || row.isMaster) return 'TENANT_MASTER';
+        if (row.companyType === 'TENANT_HEADQUARTER') return 'TENANT_HEADQUARTER';
+        if (row.companyType === 'TENANT_BRANCH') return 'TENANT_BRANCH';
+        if (row.isCliente || row.companyType === 'CLIENT') return 'CLIENTE';
+        return 'FORNECEDOR';
+      }
     },
     { 
       key: 'city', 

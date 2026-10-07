@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Plus, Save, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Users, Plus, Save, X, Building2 } from 'lucide-react';
 import { userService } from '../services/userService';
 import { driverService } from '../services/driverService';
 import { companyService } from '../services/companyService';
@@ -8,8 +9,11 @@ import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
+import { translateUserRole } from '../utils/enumTranslations';
 
 const ProfilesPage = () => {
+  const [searchParams] = useSearchParams();
+  const editParamId = searchParams.get('edit');
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [companies, setCompanies] = useState([]);
@@ -36,7 +40,14 @@ const ProfilesPage = () => {
     setLoading(true);
     try {
       const data = await userService.getAllUsers();
-      setProfiles(data);
+      setProfiles(data || []);
+
+      if (editParamId && data && data.length > 0) {
+        const target = data.find(u => u.id === editParamId);
+        if (target) {
+          handleEditClick(target);
+        }
+      }
     } catch (err) {
       console.error("Erro ao puxar perfis: ", err);
       showToast('Erro ao carregar lista de usuários.', 'error');
@@ -162,7 +173,19 @@ const ProfilesPage = () => {
   };
 
   const profileColumns = [
-    { label: 'Nome Completo', key: 'name' },
+    { 
+      label: 'Nome Completo', 
+      key: 'name',
+      render: (row) => (
+        <span 
+          style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary-color)' }}
+          onClick={() => handleEditClick(row)}
+          title="Clique para editar este usuário"
+        >
+          {row.name}
+        </span>
+      )
+    },
     { label: 'E-mail', key: 'email' },
     { label: 'CPF', key: 'cpf' },
     { 
@@ -177,7 +200,7 @@ const ProfilesPage = () => {
 
         return (
           <span className={`status-chip ${chipClass}`}>
-            {role}
+            {translateUserRole(role)}
           </span>
         );
       }
@@ -185,7 +208,18 @@ const ProfilesPage = () => {
     { 
       label: 'Empresa Vinculada', 
       key: 'company',
-      render: (row) => row.company?.legalName || '-'
+      render: (row) => row.company?.id ? (
+        <Link 
+          to={`/empresas?edit=${row.company.id}`} 
+          className="entity-link"
+          title={`Ver empresa ${row.company.legalName}`}
+        >
+          <Building2 size={13} />
+          <span>{row.company.legalName || 'Empresa'}</span>
+        </Link>
+      ) : (
+        <span style={{ color: 'var(--text-muted)' }}>{row.company?.legalName || '-'}</span>
+      )
     }
   ];
 
@@ -206,6 +240,19 @@ const ProfilesPage = () => {
     }
   ];
 
+  const handleOpenNewModal = () => {
+    const selectedTenant = authService.getSelectedTenant();
+    const defaultCompId = (selectedTenant && selectedTenant !== 'all') 
+      ? selectedTenant 
+      : (companies.length > 0 ? companies[0].id : '');
+    setEditingId(null);
+    setFormData({
+      ...initialFormState,
+      companyId: defaultCompId
+    });
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <PageHeader 
@@ -214,7 +261,7 @@ const ProfilesPage = () => {
         icon={Users}
         onBack={true}
       >
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={handleOpenNewModal}>
           <Plus size={18} /> Novo Usuário
         </button>
       </PageHeader>

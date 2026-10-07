@@ -15,6 +15,8 @@ import AddressPage from './pages/AddressPage';
 import ShipmentTypePage from './pages/ShipmentTypePage';
 import OccurrencePage from './pages/OccurrencePage';
 import WorkSchedulePage from './pages/WorkSchedulePage';
+import OptimizationRulesPage from './pages/OptimizationRulesPage';
+import TenantsPage from './pages/TenantsPage';
 import { ToastProvider } from './components/ToastContext';
 
 function App() {
@@ -30,16 +32,18 @@ function App() {
 
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="perfis" element={<ProfilesPage />} />
+              <Route path="tenants" element={<TenantsPage />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']} />}>
               <Route path="empresas" element={<CompanyPage />} />
               <Route path="enderecos" element={<AddressPage />} />
-              <Route path="tipos-transporte" element={<TypeTransportPage />} />
+              <Route path="tipos-transporte" element={<Navigate to="/regras-otimizacao?tab=transports" replace />} />
               <Route path="conjuntos" element={<EquipamentGroupPage />} />
-              <Route path="tipos-carga" element={<ShipmentTypePage />} />
+              <Route path="tipos-carga" element={<Navigate to="/regras-otimizacao?tab=shipments" replace />} />
               <Route path="ocorrencias" element={<OccurrencePage />} />
               <Route path="escalas" element={<WorkSchedulePage />} />
+              <Route path="regras-otimizacao" element={<OptimizationRulesPage />} />
             </Route>
 
             <Route path="frota" element={<FleetPage />} />

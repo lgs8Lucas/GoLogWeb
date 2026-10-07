@@ -12,8 +12,10 @@ import {
   Layers,
   AlertTriangle,
   CalendarClock,
+  Sliders,
   ChevronLeft,
   ChevronRight,
+  Network,
   X
 } from 'lucide-react';
 import { authService } from '../services/authService';
@@ -137,16 +139,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               </NavLink>
 
               <NavLink 
-                to="/tipos-transporte" 
-                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
-                onClick={handleLinkClick}
-                title="Tipos de Transporte"
-              >
-                <Tags size={20} />
-                <span>Tipos de Transporte</span>
-              </NavLink>
-
-              <NavLink 
                 to="/conjuntos" 
                 className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
                 onClick={handleLinkClick}
@@ -154,16 +146,6 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               >
                 <Layers size={20} />
                 <span>Conjuntos de Equipamentos</span>
-              </NavLink>
-
-              <NavLink 
-                to="/tipos-carga" 
-                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
-                onClick={handleLinkClick}
-                title="Tipos de Carga"
-              >
-                <Package size={20} />
-                <span>Tipos de Carga</span>
               </NavLink>
 
               <NavLink 
@@ -184,6 +166,31 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
               >
                 <AlertTriangle size={20} />
                 <span>Ocorrências</span>
+              </NavLink>
+
+              <NavLink 
+                to="/regras-otimizacao" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+                title="Regras & Custos de Rota"
+              >
+                <Sliders size={20} />
+                <span>Regras & Custos de Rota</span>
+              </NavLink>
+            </>
+          )}
+
+          {authService.isMaster() && (
+            <>
+              <div className="sidebar-section-title">Administração Master</div>
+              <NavLink 
+                to="/tenants" 
+                className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+                onClick={handleLinkClick}
+                title="Gestão de Tenants"
+              >
+                <Network size={20} />
+                <span>Gestão de Tenants</span>
               </NavLink>
             </>
           )}

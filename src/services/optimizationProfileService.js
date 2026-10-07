@@ -1,8 +1,21 @@
 import { apiClient } from './apiClient';
 
 export const optimizationProfileService = {
-  save: async (data) => {
-    const response = await apiClient.post('/optimization-profile', data);
+  getAllByCompany: async (companyId) => {
+    if (!companyId) return [];
+    const response = await apiClient.get(`/optimization-profile/company/${companyId}`);
+    return response.data;
+  },
+
+  getByCompany: async (companyId) => {
+    if (!companyId) return [];
+    const response = await apiClient.get(`/optimization-profile/company/${companyId}`);
+    return response.data;
+  },
+
+  getDefaultByCompany: async (companyId) => {
+    if (!companyId) return null;
+    const response = await apiClient.get(`/optimization-profile/company/${companyId}/default`);
     return response.data;
   },
 
@@ -11,13 +24,13 @@ export const optimizationProfileService = {
     return response.data;
   },
 
-  getByCompany: async (companyId) => {
-    const response = await apiClient.get(`/optimization-profile/company/${companyId}`);
+  create: async (data) => {
+    const response = await apiClient.post('/optimization-profile', data);
     return response.data;
   },
 
-  getDefaultByCompany: async (companyId) => {
-    const response = await apiClient.get(`/optimization-profile/company/${companyId}/default`);
+  save: async (data) => {
+    const response = await apiClient.post('/optimization-profile', data);
     return response.data;
   },
 
