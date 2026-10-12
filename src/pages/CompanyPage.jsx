@@ -254,11 +254,11 @@ const CompanyPage = () => {
   };
 
   const companyColumns = [
-    { 
-      label: 'Razão Social / Nome', 
+    {
+      label: 'Razão Social / Nome',
       key: 'legalName',
       render: (row) => (
-        <span 
+        <span
           style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary-color)' }}
           onClick={() => handleEditClick(row)}
           title="Clique para editar este registro"
@@ -270,8 +270,8 @@ const CompanyPage = () => {
     { label: 'CNPJ / CPF', key: 'cnpjCpf' },
     { label: 'E-mail', key: 'email' },
     { label: 'Telefone', key: 'phoneNumber' },
-    { 
-      label: 'Tipo / Classificação', 
+    {
+      label: 'Tipo / Classificação',
       key: 'companyType',
       render: (row) => {
         if (row.companyType === 'TENANT_MASTER' || row.isMaster) {
@@ -289,8 +289,8 @@ const CompanyPage = () => {
         return <span className="status-chip info">Fornecedor</span>;
       }
     },
-    { 
-      label: 'Cidade / UF', 
+    {
+      label: 'Cidade / UF',
       key: 'address',
       render: (row) => row.address ? `${row.address.city || '-'} (${row.address.state || '-'})` : '-'
     },
@@ -309,14 +309,14 @@ const CompanyPage = () => {
   ];
 
   const companyFilterConfigs = isOperator ? [
-    { 
-      key: 'city', 
-      label: 'Cidade', 
-      accessor: (row) => row.address?.city || '' 
+    {
+      key: 'city',
+      label: 'Cidade',
+      accessor: (row) => row.address?.city || ''
     }
   ] : [
-    { 
-      key: 'tipo', 
+    {
+      key: 'tipo',
       label: 'Classificação',
       options: [
         { label: 'Matriz (Tenant)', value: 'TENANT_HEADQUARTER' },
@@ -333,16 +333,16 @@ const CompanyPage = () => {
         return 'FORNECEDOR';
       }
     },
-    { 
-      key: 'city', 
-      label: 'Cidade', 
-      accessor: (row) => row.address?.city || '' 
+    {
+      key: 'city',
+      label: 'Cidade',
+      accessor: (row) => row.address?.city || ''
     }
   ];
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <PageHeader 
+      <PageHeader
         title={isOperator ? 'Clientes' : 'Empresas & Clientes'}
         description={`Cadastro e gerenciamento de ${isOperator ? 'clientes e destinatários' : 'empresas parceiras, transportadoras e clientes'}.`}
         icon={Building2}
@@ -354,7 +354,7 @@ const CompanyPage = () => {
       </PageHeader>
 
       <div className="card">
-        <DataTable 
+        <DataTable
           columns={companyColumns}
           data={companies}
           loading={loading}
@@ -382,62 +382,62 @@ const CompanyPage = () => {
             <form onSubmit={handleSave}>
               <div className="modal-body">
                 <div className="form-grid form-grid-2">
-                  
+
                   <div className="form-group">
                     <label className="form-label">Razão Social / Nome</label>
-                    <input 
-                      type="text" 
-                      name="legalName" 
-                      value={formData.legalName} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
+                    <input
+                      type="text"
+                      name="legalName"
+                      value={formData.legalName}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">CNPJ ou CPF</label>
-                    <input 
-                      type="text" 
-                      name="cnpjCpf" 
-                      value={formData.cnpjCpf} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
+                    <input
+                      type="text"
+                      name="cnpjCpf"
+                      value={formData.cnpjCpf}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">E-mail de Contato</label>
-                    <input 
-                      type="email" 
-                      name="email" 
-                      value={formData.email} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">Telefone / Celular</label>
-                    <input 
-                      type="text" 
-                      name="phoneNumber" 
-                      value={formData.phoneNumber} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
+                    <input
+                      type="text"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
                     />
                   </div>
 
                   {!isOperator && (
                     <div className="form-group">
                       <label className="form-label">Tipo de Cadastro</label>
-                      <select 
-                        name="isCliente" 
-                        value={formData.isCliente} 
-                        onChange={handleInputChange} 
+                      <select
+                        name="isCliente"
+                        value={formData.isCliente}
+                        onChange={handleInputChange}
                         className="form-select"
                       >
                         <option value="true">Cliente / Destinatário</option>
@@ -453,76 +453,76 @@ const CompanyPage = () => {
 
                   <div className="form-group">
                     <label className="form-label">CEP</label>
-                    <input 
-                      type="text" 
-                      name="cep" 
-                      value={formData.cep} 
-                      onChange={handleInputChange} 
-                      onBlur={handleCepBlur} 
-                      className="form-input" 
-                      placeholder="00000-000" 
-                      required 
+                    <input
+                      type="text"
+                      name="cep"
+                      value={formData.cep}
+                      onChange={handleInputChange}
+                      onBlur={handleCepBlur}
+                      className="form-input"
+                      placeholder="00000-000"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">Logradouro / Rua</label>
-                    <input 
-                      type="text" 
-                      name="street" 
-                      value={formData.street} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
+                    <input
+                      type="text"
+                      name="street"
+                      value={formData.street}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">Número</label>
-                    <input 
-                      type="text" 
-                      name="number" 
-                      value={formData.number} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
+                    <input
+                      type="text"
+                      name="number"
+                      value={formData.number}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">Bairro</label>
-                    <input 
-                      type="text" 
-                      name="district" 
-                      value={formData.district} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
+                    <input
+                      type="text"
+                      name="district"
+                      value={formData.district}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">Cidade</label>
-                    <input 
-                      type="text" 
-                      name="city" 
-                      value={formData.city} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      required 
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">Estado (UF)</label>
-                    <input 
-                      type="text" 
-                      name="state" 
-                      value={formData.state} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
-                      maxLength="2" 
-                      required 
+                    <input
+                      type="text"
+                      name="state"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      maxLength="2"
+                      required
                     />
                   </div>
 
@@ -550,12 +550,12 @@ const CompanyPage = () => {
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">URL do Webhook (Endpoint do ERP)</label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input 
-                        type="url" 
-                        name="webhookUrl" 
-                        value={formData.webhookUrl} 
-                        onChange={handleInputChange} 
-                        className="form-input" 
+                      <input
+                        type="url"
+                        name="webhookUrl"
+                        value={formData.webhookUrl}
+                        onChange={handleInputChange}
+                        className="form-input"
                         placeholder="https://erp.empresa.com.br/api/golog/webhook"
                         style={{ flex: 1 }}
                       />
@@ -574,12 +574,12 @@ const CompanyPage = () => {
 
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">Secret do Webhook (Assinatura HMAC SHA-256)</label>
-                    <input 
-                      type="password" 
-                      name="webhookSecret" 
-                      value={formData.webhookSecret} 
-                      onChange={handleInputChange} 
-                      className="form-input" 
+                    <input
+                      type="password"
+                      name="webhookSecret"
+                      value={formData.webhookSecret}
+                      onChange={handleInputChange}
+                      className="form-input"
                       placeholder="Chave secreta para validação de X-GoLog-Signature"
                     />
                   </div>
