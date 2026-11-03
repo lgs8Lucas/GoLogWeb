@@ -138,6 +138,13 @@
   position: relative;
 }
 
+/* O wrapper só tem min-height (altura indefinida), então o height: 100% do
+   MapComponent colapsaria para 0. Posicionar absolutamente garante a altura. */
+.map-view-wrapper > .map-container {
+  position: absolute !important;
+  inset: 0;
+}
+
 .dashboard-map-card.expanded .map-view-wrapper {
   min-height: 620px;
 }

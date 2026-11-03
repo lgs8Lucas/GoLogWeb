@@ -785,7 +785,7 @@ const OptimizationRulesPage = () => {
       {/* Modal Profile */}
       {isProfileModalOpen && createPortal(
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '680px' }}>
+          <div className="modal-content" style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="modal-header">
               <h2>{editingProfileId ? 'Editar Perfil de Cálculo' : 'Novo Perfil de Otimização'}</h2>
               <button className="modal-close-btn" onClick={() => setIsProfileModalOpen(false)} aria-label="Fechar">
