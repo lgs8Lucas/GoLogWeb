@@ -5,6 +5,7 @@ import { Users, Plus, Save, X, Building2 } from 'lucide-react';
 import { userService } from '../services/userService';
 import { driverService } from '../services/driverService';
 import { companyService } from '../services/companyService';
+import { authService } from '../services/authService';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/ToastContext';

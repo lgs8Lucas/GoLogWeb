@@ -8,6 +8,7 @@ import { equipamentService } from '../services/equipamentService';
 import { tractorService } from '../services/tractorService';
 import { trailerService } from '../services/trailerService';
 import { companyService } from '../services/companyService';
+import { authService } from '../services/authService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { translateStatus, translateVehicleType, translateFuel } from '../utils/enumTranslations';
