@@ -6,13 +6,21 @@ const buildShipmentPayload = (deliveryData) => {
   const typeOperation = deliveryData.typeOperation || 'ENTREGA';
   const isColeta = typeOperation === 'COLETA';
 
+  const rawDate = (isColeta ? deliveryData.scheduledCollection : deliveryData.scheduledDelivery)
+    || deliveryData.scheduledDelivery || deliveryData.scheduledCollection;
+  let formattedSchedulind = rawDate;
+  if (!formattedSchedulind) {
+    formattedSchedulind = new Date(Date.now() + 86400000).toISOString().slice(0, 19);
+  } else if (typeof formattedSchedulind === 'string') {
+    formattedSchedulind = formattedSchedulind.replace('Z', '').slice(0, 19);
+  }
+
   return {
     typeOperation,
     weight: parseFloat(deliveryData.weight || 0.0),
     volume: parseFloat(deliveryData.volume || 0.0),
     // Handle the backend's 'schedulind' property typo
-    schedulind: (isColeta ? deliveryData.scheduledCollection : deliveryData.scheduledDelivery)
-      || deliveryData.scheduledDelivery || deliveryData.scheduledCollection || new Date().toISOString(),
+    schedulind: formattedSchedulind,
     status: deliveryData.status || 'PENDENTE',
     userId: deliveryData.userId,
     shipmentTypeId: deliveryData.deliveryTypeId,

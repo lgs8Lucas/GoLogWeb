@@ -81,14 +81,20 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
 
     const loadData = async () => {
       try {
-        const [shipmentsData, schedulesData, companiesData] = await Promise.all([
-          deliveryService.getByStatus('PENDENTE'),
-          workScheduleService.getAll(),
-          companyService.getAllCompanies()
+        const [pendingShipments, waitingShipments, schedulesData, companiesData] = await Promise.all([
+          deliveryService.getByStatus('PENDENTE').catch(() => []),
+          deliveryService.getByStatus('AGUARDANDO_INICIO').catch(() => []),
+          workScheduleService.getAll().catch(() => []),
+          companyService.getAllCompanies().catch(() => [])
         ]);
 
-        setShipments(shipmentsData || []);
-        const activeSchedules = (schedulesData || []).filter(s => s.status === 'ATIVO');
+        const combinedMap = new Map();
+        (pendingShipments || []).forEach(s => combinedMap.set(s.id, s));
+        (waitingShipments || []).forEach(s => combinedMap.set(s.id, s));
+        const activeShipments = Array.from(combinedMap.values());
+        setShipments(activeShipments);
+
+        const activeSchedules = (schedulesData || []).filter(s => s.status === 'ATIVO' || s.status === 'EM_OPERACAO');
         setWorkSchedules(activeSchedules);
 
         // Identifica a empresa para carregar os perfis de cálculo
@@ -117,7 +123,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     loadData();
-  }, [isOpen]);
+  }, [isOpen, showToast]);
 
   const handleProfileChange = (profileId) => {
     setSelectedProfileId(profileId);
@@ -178,7 +184,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
 
   return createPortal(
     <div className="modal-overlay fade-in">
-      <div className="modal-content" style={{ maxWidth: '780px', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div className="modal-content" style={{ maxWidth: '780px' }}>
         <div className="modal-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <FastForward size={22} color="var(--primary-color, #2563eb)" />
@@ -195,7 +201,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
           ) : (
             <>
               {/* Seletor de Perfil de Cálculo & Prioridade */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
+              <div className="form-grid form-grid-2" style={{ marginBottom: '0.5rem' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label" style={{ fontWeight: 600 }}>Perfil de Custos & Regras</label>
                   <select
@@ -253,7 +259,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
                 </button>
 
                 {showAdvanced && (
-                  <div style={{ padding: '1rem', background: 'var(--bg-primary, #ffffff)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                  <div style={{ padding: '1rem', background: 'var(--bg-primary, #ffffff)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>Mult. Custo Km</label>
                       <input
@@ -347,6 +353,9 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
                       />
                       <span>
                         <strong>#{s.id.substring(0, 8)}</strong> — {s.typeOperation || 'ENTREGA'} — {s.customer?.legalName || 'Sem cliente'}
+                        <span style={{ fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px', background: s.status === 'PENDENTE' ? '#fef3c7' : '#e0e7ff', color: s.status === 'PENDENTE' ? '#92400e' : '#3730a3', marginLeft: '6px', fontWeight: 600 }}>
+                          {s.status}
+                        </span>
                         <br />
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                           {s.weight || 0} kg | {s.volume || 0} m³ | {s.address?.city || s.customer?.address?.city || 'Araras'}

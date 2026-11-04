@@ -194,7 +194,7 @@ const SustainabilitySection = ({ stats }) => {
 
         {/* Renderização do Gráfico SVG de Barras com Tooltip */}
         <div className="esg-svg-chart-container">
-          <svg viewBox="0 0 640 220" className="esg-svg" preserveAspectRatio="none">
+          <svg viewBox="0 0 640 220" className="esg-svg" preserveAspectRatio="xMidYMid meet">
             {/* Grid Lines Horizontais */}
             <line x1="40" y1="30" x2="620" y2="30" stroke="var(--border-color, #e2e8f0)" strokeDasharray="4" />
             <line x1="40" y1="80" x2="620" y2="80" stroke="var(--border-color, #e2e8f0)" strokeDasharray="4" />

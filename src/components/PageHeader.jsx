@@ -42,7 +42,7 @@ const PageHeader = ({ title, description, icon: Icon, onBack, children }) => {
             </div>
           )}
           
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <h1 className="page-header-title">{title}</h1>
             {description && <p className="page-header-subtitle">{description}</p>}
           </div>

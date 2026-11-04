@@ -3,7 +3,7 @@
   inset: 0;
   background-color: rgba(15, 23, 42, 0.7);
   backdrop-filter: blur(8px);
-  z-index: 1050;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -44,6 +44,7 @@
   padding: 1.15rem 1.75rem;
   border-bottom: 1px solid var(--border-color);
   background: linear-gradient(180deg, #ffffff 0%, var(--bg-hover) 100%);
+  flex-shrink: 0;
 }
 
 .monitoring-header-left {
@@ -97,6 +98,10 @@
   .monitoring-modal-body {
     grid-template-columns: 1fr;
     overflow-y: auto;
+  }
+
+  .monitoring-modal-left {
+    min-height: 380px;
   }
 }
 

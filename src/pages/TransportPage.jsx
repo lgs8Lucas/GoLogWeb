@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
-import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, Navigation, AlertTriangle, X, Route, Clock, Leaf, Sparkles, User, ArrowRight, Eye, ShieldAlert, Calendar, CheckCircle2, Box, Building2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, ChevronDown, ChevronUp, MapPin, Truck, Package, Navigation, AlertTriangle, X, Route, Clock, Leaf, DollarSign, Sparkles, User, ArrowRight, Eye, ShieldAlert, Calendar, CheckCircle2, Box, Building2, FileUp } from 'lucide-react';
 import { translateStatus, translateOperation } from '../utils/enumTranslations';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
@@ -14,17 +14,19 @@ import MonitoringModal from '../components/MonitoringModal';
 import { useToast } from '../components/ToastContext';
 import DataTable from '../components/DataTable';
 import DeliveryModal from '../components/DeliveryModal';
+import ImportInvoicesModal from '../components/ImportInvoicesModal';
 import ConfirmModal from '../components/ConfirmModal';
 import OptimizeRouteModal from '../components/OptimizeRouteModal';
 import SmartFilterBar from '../components/SmartFilterBar';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 const TransportPage = () => {
-  const navigate = useNavigate();
   const [transports, setTransports] = useState([]);
   const [expandedRow, setExpandedRow] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Smart filters for transports
   const [transportFilters, setTransportFilters] = useState({});
@@ -80,6 +82,14 @@ const TransportPage = () => {
           return seqA - seqB;
         });
 
+        const locations = tShipments.map(s => {
+          const city = s.address?.city || s.customer?.address?.city || 'Araras';
+          const state = s.address?.state || s.customer?.address?.state || 'SP';
+          return `${city} - ${state}`;
+        });
+        const origin = locations[0] || 'Origem';
+        const destination = locations[locations.length - 1] || 'Destino';
+
         let steps = [];
         if (tShipments.length > 0) {
           steps = tShipments.map((s, index) => {
@@ -133,14 +143,6 @@ const TransportPage = () => {
             status: 'active'
           }];
         }
-
-        const locations = tShipments.map(s => {
-          const city = s.address?.city || s.customer?.address?.city || 'Araras';
-          const state = s.address?.state || s.customer?.address?.state || 'SP';
-          return `${city} - ${state}`;
-        });
-        const origin = locations[0] || 'Origem';
-        const destination = locations[locations.length - 1] || 'Destino';
 
         const equipmentsList = [];
         if (t.equipamentGroup?.equipament1?.plate) equipmentsList.push(t.equipamentGroup.equipament1.plate);
@@ -197,7 +199,7 @@ const TransportPage = () => {
       await fetchTransports(); // This updates both transports and shipments
     } catch (error) {
       console.error('Erro ao salvar entrega:', error);
-      showToast(id ? 'Erro ao atualizar registro.' : 'Erro ao criar remessa.', 'error');
+      showToast(extractErrorMessage(error, id ? 'Erro ao atualizar registro.' : 'Erro ao criar remessa.'), 'error');
     }
   };
 
@@ -229,7 +231,7 @@ const TransportPage = () => {
       await fetchTransports();
     } catch (error) {
       console.error('Erro ao excluir registro:', error);
-      showToast('Erro ao excluir registro.', 'error');
+      showToast(extractErrorMessage(error, 'Erro ao excluir registro.'), 'error');
     } finally {
       setShipmentToDelete(null);
     }
@@ -268,19 +270,6 @@ const TransportPage = () => {
     setSelectedOccs(item.occurrences || []);
     setSelectedOccsTransportId(item.id);
     setIsOccModalOpen(true);
-  };
-
-  const renderStatusBadge = (status) => {
-    let className = 'badge-travel'; // Em viagem
-    if (status === 'Atrasado') className = 'badge-delayed';
-    if (status === 'Em entrega') className = 'badge-delivery';
-
-    return (
-      <span className={`transport-badge ${className}`}>
-        {status === 'Atrasado' && <span className="warning-icon">⚠</span>}
-        {status}
-      </span>
-    );
   };
 
   const renderStepper = (steps, onItemClick) => {
@@ -484,9 +473,19 @@ const TransportPage = () => {
               </button>
             </>
           ) : (
-            <button className="btn btn-primary" onClick={handleNewShipment}>
-              <Plus size={18} /> Nova Remessa
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                onClick={() => setIsImportModalOpen(true)}
+              >
+                <FileUp size={18} />
+                Importar NF-e (ERP)
+              </button>
+              <button className="btn btn-primary" onClick={handleNewShipment}>
+                <Plus size={18} /> Nova Remessa
+              </button>
+            </div>
           )}
         </div>
       </PageHeader>
@@ -654,8 +653,12 @@ const TransportPage = () => {
                             <span>Tempo Estimado: <strong>{Math.floor((item.rawTransport?.totalTimeCalculed || 0) / 3600)}h {Math.floor(((item.rawTransport?.totalTimeCalculed || 0) % 3600) / 60)}m</strong></span>
                           </div>
                           <div className="tms-metric-pill green">
-                            <Leaf size={16} color="var(--status-active-text)" />
-                            <span>Emissão CO₂: <strong>{(item.rawTransport?.totalCostCalculed || 0).toFixed(2)} kg</strong></span>
+                            <DollarSign size={16} color="var(--status-active-text)" />
+                            <span>Custo Estimado: <strong>R$ {(item.rawTransport?.totalCostCalculed || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span>
+                          </div>
+                          <div className="tms-metric-pill">
+                            <Leaf size={16} color="#059669" />
+                            <span>CO₂ Estimado: <strong>{(((item.rawTransport?.calculedDistance || 0) / 1000) * 0.85).toFixed(1)} kg</strong></span>
                           </div>
                         </div>
 
@@ -731,6 +734,14 @@ const TransportPage = () => {
         onClose={() => { setIsShipmentModalOpen(false); setEditingShipment(null); }}
         onSave={handleSaveShipment}
         initialData={editingShipment}
+      />
+
+      <ImportInvoicesModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          fetchTransports();
+        }}
       />
 
       {/* Confirmação de exclusão de entrega/coleta */}

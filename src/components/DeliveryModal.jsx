@@ -57,7 +57,6 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
   const isEditing = !!initialData;
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
 
-  const [users, setUsers] = useState([]);
   const [shipmentTypes, setShipmentTypes] = useState([]);
   const [typeTransports, setTypeTransports] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -79,7 +78,6 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
           deliveryService.getAll()
         ]);
         const userList = usersData || [];
-        setUsers(userList);
         setShipmentTypes(typesData || []);
         setTypeTransports(transData || []);
         setCompanies(compsData || []);
@@ -107,7 +105,21 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    let next = { ...formData, [name]: value };
+
+    if (name === 'customerDeliveryId' && value) {
+      const selectedComp = companies.find(c => c.id === value);
+      if (selectedComp?.address?.id) {
+        next.destinationAddressId = selectedComp.address.id;
+      }
+    } else if (name === 'customerCollectsId' && value) {
+      const selectedComp = companies.find(c => c.id === value);
+      if (selectedComp?.address?.id) {
+        next.originAdrressId = selectedComp.address.id;
+      }
+    }
+
+    setFormData(next);
   };
 
   const handleSubmit = (e) => {
@@ -160,12 +172,17 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                 </select>
               </div>
 
-              {/* Coleta de origem: vincula a entrega à coleta que a originou */}
-              {formData.typeOperation === 'ENTREGA' ? (
+              {/* Coleta de origem se for ENTREGA, ou Data de Coleta se for COLETA */}
+              {isColeta ? (
+                <div className="form-group">
+                  <label className="form-label">Coleta Agendada</label>
+                  <input type="datetime-local" name="scheduledCollection" value={formData.scheduledCollection} onChange={handleInputChange} className="form-input" required />
+                </div>
+              ) : (
                 <div className="form-group">
                   <label className="form-label">Coleta de Origem (Opcional)</label>
                   <select name="operationOrigemId" value={formData.operationOrigemId} onChange={handleInputChange} className="form-select">
-                    <option value="">Nenhuma...</option>
+                    <option value="">Nenhuma (Entrega avulsa)...</option>
                     {collections.map(c => (
                       <option key={c.id} value={c.id}>
                         #{c.id.substring(0, 8)} - {c.customer?.legalName || 'Cliente'} ({c.weight || 0}kg / {c.volume || 0}m³)
@@ -173,7 +190,7 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                     ))}
                   </select>
                 </div>
-              ) : <div />}
+              )}
 
               {/* Peso e volume só na ENTREGA. Na COLETA são atribuídos pela API quando uma entrega é vinculada a ela. */}
               {!isColeta && (
@@ -189,20 +206,12 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                 </>
               )}
 
-              {isColeta && (
-                <div className="form-group">
-                  <label className="form-label">Coleta Agendada</label>
-                  <input type="datetime-local" name="scheduledCollection" value={formData.scheduledCollection} onChange={handleInputChange} className="form-input" required />
-                </div>
-              )}
               {!isColeta && (
                 <div className="form-group">
                   <label className="form-label">Entrega Agendada</label>
                   <input type="datetime-local" name="scheduledDelivery" value={formData.scheduledDelivery} onChange={handleInputChange} className="form-input" required />
                 </div>
               )}
-
-
 
               <div className="form-group">
                 <label className="form-label">Tipo de Carga / Entrega</label>
@@ -214,7 +223,7 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${isColeta ? '' : ''}`}>
                 <label className="form-label">Tipo de Modal / Transporte</label>
                 <select name="typeTransportId" value={formData.typeTransportId} onChange={handleInputChange} className="form-select" required>
                   <option value="">Selecione o tipo de transporte...</option>
@@ -225,7 +234,7 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
               </div>
 
               {/* Vínculos Geográficos — o rótulo muda conforme a operação */}
-              <div className="form-group">
+              <div className={`form-group ${isColeta ? '' : ''}`}>
                 <label className="form-label">{isColeta ? 'Empresa / Cliente (Coleta)' : 'Empresa / Destinatário (Entrega)'}</label>
                 <select
                   name={isColeta ? 'customerCollectsId' : 'customerDeliveryId'}
@@ -241,8 +250,8 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">{isColeta ? 'Endereço (Coleta)' : 'Endereço (Entrega)'}</label>
+              <div className="form-group col-span-2">
+                <label className="form-label">{isColeta ? 'Endereço de Coleta' : 'Endereço de Entrega'}</label>
                 <select
                   name={isColeta ? 'originAdrressId' : 'destinationAddressId'}
                   value={isColeta ? formData.originAdrressId : formData.destinationAddressId}

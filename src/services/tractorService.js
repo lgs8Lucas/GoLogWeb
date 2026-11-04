@@ -24,8 +24,7 @@ export const tractorService = {
   },
 
   deleteTractor: async (id) => {
-    // The OpenAPI spec for Tractor has DELETE mapped to /tractor with an 'id' query parameter
-    const response = await apiClient.delete('/tractor', { params: { id } });
+    const response = await apiClient.delete(`/tractor/${id}`);
     return response.data;
   },
 

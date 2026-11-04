@@ -80,7 +80,7 @@ const ImportInvoicesModal = ({ isOpen, onClose, onSuccess }) => {
     let parsed;
     try {
       parsed = JSON.parse(jsonText);
-    } catch (e) {
+    } catch {
       showToast('JSON inválido: verifique a sintaxe.', 'error');
       return;
     }

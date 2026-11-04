@@ -12,6 +12,7 @@ import { authService } from '../services/authService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { translateStatus, translateVehicleType, translateFuel } from '../utils/enumTranslations';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 const FleetPage = () => {
   const [searchParams] = useSearchParams();
@@ -150,20 +151,7 @@ const FleetPage = () => {
       fetchFleet();
     } catch (error) {
       console.error('Erro ao salvar veículo:', error.response?.data ?? error);
-      const data = error.response?.data;
-      let mensagens = 'Erro ao salvar veículo. Verifique se o UUID da empresa está correto e se preencheu todos os campos requeridos.';
-      if (Array.isArray(data)) {
-        mensagens = data.join('\n');
-      } else if (typeof data === 'string' && data.trim()) {
-        mensagens = data;
-      } else if (data?.message) {
-        mensagens = data.message;
-      } else if (data?.detail) {
-        mensagens = data.detail;
-      } else if (data?.error) {
-        mensagens = data.error;
-      }
-      showToast(mensagens, 'error');
+      showToast(extractErrorMessage(error, 'Erro ao salvar veículo.'), 'error');
     }
   };
 
@@ -202,8 +190,7 @@ const FleetPage = () => {
       fetchFleet();
     } catch (error) {
       console.error('Erro ao deletar veículo:', error);
-      const msg = error.response?.data?.message || 'Erro ao excluir veículo.';
-      showToast(msg, 'error');
+      showToast(extractErrorMessage(error, 'Erro ao excluir veículo.'), 'error');
     } finally {
       setDeleteConfirmOpen(false);
       setVehicleToDelete(null);
@@ -458,7 +445,7 @@ const FleetPage = () => {
                   </div>
 
                   {formData.tipo === 'carreta' && (
-                    <div className="form-group">
+                    <div className="form-group col-span-2">
                       <label className="form-label">Volume Máximo (m³)</label>
                       <input 
                         type="number" 

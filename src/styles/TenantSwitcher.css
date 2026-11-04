@@ -77,7 +77,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 998;
+  z-index: 1001;
 }
 
 /* Dropdown Menu - Claro, Elegante e com Alto Contraste */
@@ -86,11 +86,12 @@
   top: calc(100% + 8px);
   right: 0;
   width: 310px;
+  max-width: calc(100vw - 1.5rem);
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
-  z-index: 999;
+  z-index: 1002;
   overflow: hidden;
   animation: fadeInDown 0.15s ease-out;
 }
@@ -249,4 +250,18 @@
 
 .tenant-badge-client .tenant-icon {
   color: var(--secondary-color);
+}
+
+@media (max-width: 640px) {
+  .tenant-switcher-val {
+    max-width: 105px;
+    font-size: 0.78rem;
+  }
+  .tenant-switcher-btn {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+  .tenant-dropdown-menu {
+    width: 290px;
+  }
 }

@@ -9,6 +9,7 @@ import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 const CompanyPage = () => {
   const [searchParams] = useSearchParams();
@@ -160,18 +161,32 @@ const CompanyPage = () => {
     try {
       let addressId = editingAddressId;
 
+      const cleanCep = (formData.cep || '').replace(/\D/g, '');
+      const cleanState = (formData.state || '').trim().toUpperCase();
+      const cleanCnpjCpf = (formData.cnpjCpf || '').replace(/\D/g, '');
+      const rawPhone = (formData.phoneNumber || '').replace(/\D/g, '');
+      let formattedPhone = formData.phoneNumber?.trim() || '';
+      if (rawPhone.length === 11) {
+        formattedPhone = `(${rawPhone.slice(0, 2)})${rawPhone.slice(2, 7)}-${rawPhone.slice(7)}`;
+      } else if (rawPhone.length === 10) {
+        formattedPhone = `(${rawPhone.slice(0, 2)})${rawPhone.slice(2, 6)}-${rawPhone.slice(6)}`;
+      }
+
       const addressPayload = {
-        cep: formData.cep,
-        street: formData.street,
-        number: formData.number,
-        district: formData.district,
-        city: formData.city,
-        state: formData.state,
-        country: formData.country,
-        complement: formData.complement,
+        cep: cleanCep || formData.cep?.trim() || '',
+        street: formData.street?.trim() || '',
+        number: formData.number?.trim() || '',
+        district: formData.district?.trim() || '',
+        city: formData.city?.trim() || '',
+        state: cleanState,
+        country: formData.country?.trim() || 'Brasil',
         latitude: "-23.550520",
         longitude: "-46.633308"
       };
+
+      if (formData.complement && formData.complement.trim() !== '') {
+        addressPayload.complement = formData.complement.trim();
+      }
 
       if (editingId && addressId) {
         await addressService.updateAddress(addressId, addressPayload);
@@ -181,10 +196,10 @@ const CompanyPage = () => {
       }
 
       const companyPayload = {
-        legalName: formData.legalName,
-        cnpjCpf: formData.cnpjCpf,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
+        legalName: formData.legalName?.trim() || '',
+        cnpjCpf: cleanCnpjCpf || formData.cnpjCpf?.trim() || '',
+        email: formData.email?.trim() || '',
+        phoneNumber: formattedPhone,
         isCliente: formData.isCliente,
         addressId: addressId
       };
@@ -221,7 +236,7 @@ const CompanyPage = () => {
       fetchCompanies();
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      showToast(error.response?.data?.message || 'Falha ao salvar dados.', 'error');
+      showToast(extractErrorMessage(error, 'Falha ao salvar dados.'), 'error');
     }
   };
 
@@ -383,7 +398,7 @@ const CompanyPage = () => {
               <div className="modal-body">
                 <div className="form-grid form-grid-2">
 
-                  <div className="form-group">
+                  <div className="form-group col-span-2">
                     <label className="form-label">Razão Social / Nome</label>
                     <input
                       type="text"
@@ -407,31 +422,7 @@ const CompanyPage = () => {
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">E-mail de Contato</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Telefone / Celular</label>
-                    <input
-                      type="text"
-                      name="phoneNumber"
-                      value={formData.phoneNumber}
-                      onChange={handleInputChange}
-                      className="form-input"
-                      required
-                    />
-                  </div>
-
-                  {!isOperator && (
+                  {!isOperator ? (
                     <div className="form-group">
                       <label className="form-label">Tipo de Cadastro</label>
                       <select
@@ -443,6 +434,44 @@ const CompanyPage = () => {
                         <option value="true">Cliente / Destinatário</option>
                         <option value="false">Transportadora / Parceira</option>
                       </select>
+                    </div>
+                  ) : (
+                    <div className="form-group">
+                      <label className="form-label">Telefone / Celular</label>
+                      <input
+                        type="text"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleInputChange}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div className={`form-group ${isOperator ? 'col-span-2' : ''}`}>
+                    <label className="form-label">E-mail de Contato</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+
+                  {!isOperator && (
+                    <div className="form-group">
+                      <label className="form-label">Telefone / Celular</label>
+                      <input
+                        type="text"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleInputChange}
+                        className="form-input"
+                        required
+                      />
                     </div>
                   )}
 

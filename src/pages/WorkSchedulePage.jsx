@@ -11,6 +11,7 @@ import { equipamentGroupService } from '../services/equipamentGroupService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { translateStatus } from '../utils/enumTranslations';
+import { extractErrorMessage } from '../utils/errorUtils';
 import '../styles/Profiles.css';
 
 const STATUS_LABELS = {
@@ -209,20 +210,7 @@ const WorkSchedulePage = () => {
       fetchSchedules();
     } catch (error) {
       console.error('Erro ao salvar escala de trabalho:', error.response?.data ?? error);
-      const data = error.response?.data;
-      let mensagens = 'Erro ao salvar escala de trabalho. Verifique se os campos foram preenchidos corretamente.';
-      if (Array.isArray(data)) {
-        mensagens = data.join('\n');
-      } else if (typeof data === 'string' && data.trim()) {
-        mensagens = data;
-      } else if (data?.message) {
-        mensagens = data.message;
-      } else if (data?.detail) {
-        mensagens = data.detail;
-      } else if (data?.error) {
-        mensagens = data.error;
-      }
-      showToast(mensagens, 'error');
+      showToast(extractErrorMessage(error, 'Erro ao salvar escala de trabalho.'), 'error');
     }
   };
 
@@ -249,8 +237,7 @@ const WorkSchedulePage = () => {
       fetchTemplates();
     } catch (error) {
       console.error('Erro ao criar modelo de turno:', error);
-      const msg = error.response?.data?.message || 'Erro ao cadastrar modelo de turno.';
-      showToast(msg, 'error');
+      showToast(extractErrorMessage(error, 'Erro ao cadastrar modelo de turno.'), 'error');
     }
   };
 
@@ -287,8 +274,7 @@ const WorkSchedulePage = () => {
       fetchSchedules();
     } catch (error) {
       console.error('Erro ao excluir escala de trabalho:', error);
-      const msg = error.response?.data?.message || 'Erro ao excluir escala de trabalho.';
-      showToast(msg, 'error');
+      showToast(extractErrorMessage(error, 'Erro ao excluir escala de trabalho.'), 'error');
     } finally {
       setDeleteConfirmOpen(false);
       setScheduleToDelete(null);
@@ -765,8 +751,8 @@ const WorkSchedulePage = () => {
                     </select>
                   </div>
 
-                  <div className="form-group" style={{ display: 'flex', alignItems: 'center', paddingTop: '1.8rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '0.625rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
                       <input
                         type="checkbox"
                         checked={templateFormData.isDefault}

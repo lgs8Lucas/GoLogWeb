@@ -9,6 +9,7 @@ import { deliveryService } from '../services/deliveryService';
 import { userService } from '../services/userService';
 import { authService } from '../services/authService';
 import { useToast } from '../components/ToastContext';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 const OccurrencePage = () => {
   const [occurrences, setOccurrences] = useState([]);
@@ -88,7 +89,7 @@ const OccurrencePage = () => {
       fetchOccurrences();
     } catch (error) {
       console.error('Erro ao salvar ocorrência:', error);
-      showToast('Erro ao registrar ocorrência.', 'error');
+      showToast(extractErrorMessage(error, 'Erro ao registrar ocorrência.'), 'error');
     }
   };
 
@@ -234,7 +235,7 @@ const OccurrencePage = () => {
                     </select>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group col-span-2">
                     <label className="form-label">Entrega (Opcional)</label>
                     <select 
                       name="shipmentId" 
@@ -251,7 +252,7 @@ const OccurrencePage = () => {
                     </select>
                   </div>
 
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <div className="form-group col-span-2">
                     <label className="form-label">Descrição Detalhada do Ocorrido</label>
                     <textarea 
                       name="description" 
@@ -264,7 +265,7 @@ const OccurrencePage = () => {
                     />
                   </div>
 
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <div className="form-group col-span-2">
                     <label className="form-label">Link ou Caminho do Anexo (Foto / Boletim)</label>
                     <input 
                       type="text" 

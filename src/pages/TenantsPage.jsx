@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Building2, 
   Plus, 
@@ -21,6 +22,7 @@ import PageHeader from '../components/PageHeader';
 import { tenantService } from '../services/tenantService';
 import { authService } from '../services/authService';
 import { useToast } from '../components/ToastContext';
+import { extractErrorMessage } from '../utils/errorUtils';
 import '../styles/TenantsPage.css';
 
 const initialFormData = {
@@ -138,8 +140,7 @@ const TenantsPage = () => {
       loadData();
     } catch (err) {
       console.error('Erro ao criar tenant:', err);
-      const msg = err.response?.data?.message || err.response?.data?.erro || 'Erro ao provisionar novo tenant.';
-      addToast(msg, 'error');
+      addToast(extractErrorMessage(err, 'Erro ao provisionar novo tenant.'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -337,8 +338,8 @@ const TenantsPage = () => {
       )}
 
       {/* Modal de Provisionamento de Novo Tenant */}
-      {isModalOpen && (
-        <div className="modal-overlay">
+      {isModalOpen && createPortal(
+        <div className="modal-overlay fade-in">
           <div className="modal-box tenant-modal">
             <div className="modal-header">
               <div className="modal-title-row">
@@ -601,7 +602,8 @@ const TenantsPage = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

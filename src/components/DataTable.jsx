@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Edit, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Search, Database } from 'lucide-react';
 import SmartFilterBar from './SmartFilterBar';
 
@@ -19,9 +19,15 @@ const DataTable = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState({});
 
-  useEffect(() => {
+  const handleSearchChange = (val) => {
+    setSearchTerm(val);
     setCurrentPage(1);
-  }, [data.length, searchTerm, activeFilters]);
+  };
+
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+    setCurrentPage(1);
+  };
 
   // Filter data based on search term AND active smart filters
   const filteredData = useMemo(() => {
@@ -88,9 +94,10 @@ const DataTable = ({
   }, [filteredData, sortConfig]);
 
   const totalPages = Math.ceil(sortedData.length / itemsPerPage) || 1;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
   const currentTableData = sortedData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    (safeCurrentPage - 1) * itemsPerPage,
+    safeCurrentPage * itemsPerPage
   );
 
   return (
@@ -100,8 +107,8 @@ const DataTable = ({
           filterConfigs={filterConfigs}
           data={data}
           selectedFilters={activeFilters}
-          onFilterChange={setActiveFilters}
-          onClear={() => setActiveFilters({})}
+          onFilterChange={handleFilterChange}
+          onClear={() => handleFilterChange({})}
         />
       )}
 
@@ -115,7 +122,7 @@ const DataTable = ({
               style={{ paddingLeft: '36px', height: '40px' }}
               placeholder={searchPlaceholder}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
           <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: 600 }}>

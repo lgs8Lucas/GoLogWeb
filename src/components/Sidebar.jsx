@@ -5,6 +5,7 @@ import {
   Users,
   Truck,
   Package,
+  Route,
   MapPin,
   Building2,
   Map,
@@ -83,13 +84,23 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
           </NavLink>
 
           <NavLink 
+            to="/cargas" 
+            className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
+            onClick={handleLinkClick}
+            title="Cargas & Remessas"
+          >
+            <Package size={20} />
+            <span>Cargas & Remessas</span>
+          </NavLink>
+
+          <NavLink 
             to="/transporte" 
             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
             onClick={handleLinkClick}
-            title="Transportes & Cargas"
+            title="Viagens & Roteirização"
           >
-            <Package size={20} />
-            <span>Transportes & Cargas</span>
+            <Route size={20} />
+            <span>Viagens & Rotas</span>
           </NavLink>
 
           <NavLink 

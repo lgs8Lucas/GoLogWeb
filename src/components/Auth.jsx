@@ -5,6 +5,8 @@ import { authService } from '../services/authService';
 import '../styles/Auth.css';
 import LogoBranco from '../assets/LogoBranco.png';
 
+import { extractErrorMessage } from '../utils/errorUtils';
+
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,12 +21,14 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      localStorage.removeItem('golog_selected_tenant');
       const token = await authService.login(email, password);
       localStorage.setItem('golog_token', token);
       navigate('/');
     } catch (error) {
       console.error("Erro na autenticação:", error);
-      setErrorMsg(error.response?.data?.message || 'Credenciais inválidas. Verifique seu e-mail e senha.');
+      const friendlyMsg = extractErrorMessage(error, 'Credenciais inválidas. Verifique seu e-mail e senha.');
+      setErrorMsg(friendlyMsg);
     } finally {
       setIsLoading(false);
     }

@@ -6,8 +6,10 @@ import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentGroupService } from '../services/equipamentGroupService';
 import { equipamentService } from '../services/equipamentService';
+import { companyService } from '../services/companyService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 const EquipamentGroupPage = () => {
   const [searchParams] = useSearchParams();
@@ -25,10 +27,12 @@ const EquipamentGroupPage = () => {
     observation: '',
     equipament1Id: '',
     equipament2Id: '',
-    equipament3Id: ''
+    equipament3Id: '',
+    companyId: ''
   };
   const [formData, setFormData] = useState(initialFormState);
   const [equipments, setEquipments] = useState([]);
+  const [companies, setCompanies] = useState([]);
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -52,20 +56,34 @@ const EquipamentGroupPage = () => {
 
   useEffect(() => {
     fetchGroups();
-    const loadEquipments = async () => {
+    const loadData = async () => {
       try {
-        const data = await equipamentService.getAll();
-        setEquipments(data || []);
+        const [equipsData, compsData] = await Promise.all([
+          equipamentService.getAll(),
+          companyService.getAllCompanies()
+        ]);
+        setEquipments(equipsData || []);
+        setCompanies(compsData || []);
       } catch (err) {
-        console.error("Erro ao carregar equipamentos:", err);
+        console.error("Erro ao carregar dados auxiliares:", err);
       }
     };
-    loadEquipments();
+    loadData();
   }, [editParamId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    let nextForm = { ...formData, [name]: value };
+
+    // Se selecionou o equipamento 1 e ainda não tem empresa definida, auto-seleciona a empresa dele
+    if (name === 'equipament1Id' && value) {
+      const selectedEq = equipments.find(eq => eq.id === value);
+      if (selectedEq && (selectedEq.companyId || selectedEq.company?.id)) {
+        nextForm.companyId = selectedEq.companyId || selectedEq.company?.id;
+      }
+    }
+
+    setFormData(nextForm);
   };
 
   const handleSubmit = async (e) => {
@@ -75,7 +93,8 @@ const EquipamentGroupPage = () => {
         observation: formData.observation,
         equipament1Id: formData.equipament1Id,
         equipament2Id: formData.equipament2Id || null,
-        equipament3Id: formData.equipament3Id || null
+        equipament3Id: formData.equipament3Id || null,
+        companyId: formData.companyId || null
       };
       if (editingId) {
         await equipamentGroupService.update(editingId, payload);
@@ -88,7 +107,7 @@ const EquipamentGroupPage = () => {
       fetchGroups();
     } catch (error) {
       console.error('Erro ao salvar:', error);
-      showToast('Erro ao salvar conjunto.', 'error');
+      showToast(extractErrorMessage(error, 'Erro ao salvar conjunto.'), 'error');
     }
   };
 
@@ -98,7 +117,8 @@ const EquipamentGroupPage = () => {
       observation: row.observation || '',
       equipament1Id: row.equipament1?.id || '',
       equipament2Id: row.equipament2?.id || '',
-      equipament3Id: row.equipament3?.id || ''
+      equipament3Id: row.equipament3?.id || '',
+      companyId: row.company?.id || ''
     });
     setIsModalOpen(true);
   };
@@ -116,7 +136,7 @@ const EquipamentGroupPage = () => {
       fetchGroups();
     } catch (error) {
       console.error('Erro ao deletar conjunto:', error);
-      showToast('Erro ao excluir conjunto.', 'error');
+      showToast(extractErrorMessage(error, 'Erro ao excluir conjunto.'), 'error');
     } finally {
       setDeleteConfirmOpen(false);
       setGroupToDelete(null);
@@ -251,69 +271,88 @@ const EquipamentGroupPage = () => {
 
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label">Identificação / Observação *</label>
-                  <input 
-                    type="text" 
-                    name="observation" 
-                    value={formData.observation} 
-                    onChange={handleInputChange} 
-                    className="form-input" 
-                    placeholder="Ex: Bitrem Graneleiro 01 ou Conjunto Rota Sul"
-                    required 
-                  />
-                </div>
+                <div className="form-grid form-grid-2">
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Identificação / Observação *</label>
+                    <input 
+                      type="text" 
+                      name="observation" 
+                      value={formData.observation} 
+                      onChange={handleInputChange} 
+                      className="form-input" 
+                      placeholder="Ex: Bitrem Graneleiro 01 ou Conjunto Rota Sul"
+                      required 
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label className="form-label">Caminhão Trator / Cavalo Mecânico (Equipamento 1) *</label>
-                  <select 
-                    name="equipament1Id" 
-                    value={formData.equipament1Id} 
-                    onChange={handleInputChange} 
-                    className="form-select" 
-                    required
-                  >
-                    <option value="">Selecione o veículo de tração...</option>
-                    {equipments.map(eq => (
-                      <option key={eq.id} value={eq.id}>
-                        {eq.plate} - {eq.model || 'Veículo'} ({eq.maximumVolume != null ? 'Carreta' : 'Cavalo/Truck'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div className="form-group">
+                    <label className="form-label">Caminhão Trator / Cavalo Mecânico (Equipamento 1) *</label>
+                    <select 
+                      name="equipament1Id" 
+                      value={formData.equipament1Id} 
+                      onChange={handleInputChange} 
+                      className="form-select" 
+                      required
+                    >
+                      <option value="">Selecione o veículo de tração...</option>
+                      {equipments.map(eq => (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.plate} - {eq.model || 'Veículo'} ({eq.maximumVolume != null ? 'Carreta' : 'Cavalo/Truck'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="form-group">
-                  <label className="form-label">Carreta / Semirreboque 1 (Equipamento 2 - Opcional)</label>
-                  <select 
-                    name="equipament2Id" 
-                    value={formData.equipament2Id} 
-                    onChange={handleInputChange} 
-                    className="form-select"
-                  >
-                    <option value="">Nenhum (ou semicarreta)...</option>
-                    {equipments.filter(e => e.id !== formData.equipament1Id).map(eq => (
-                      <option key={eq.id} value={eq.id}>
-                        {eq.plate} - {eq.model || 'Implemento'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div className="form-group">
+                    <label className="form-label">Empresa Proprietária / Operadora</label>
+                    <select 
+                      name="companyId" 
+                      value={formData.companyId} 
+                      onChange={handleInputChange} 
+                      className="form-select"
+                    >
+                      <option value="">Selecione a empresa (ou herdado do caminhão)...</option>
+                      {companies.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.legalName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="form-group">
-                  <label className="form-label">Carreta 2 / Segundo Reboque (Equipamento 3 - Opcional)</label>
-                  <select 
-                    name="equipament3Id" 
-                    value={formData.equipament3Id} 
-                    onChange={handleInputChange} 
-                    className="form-select"
-                  >
-                    <option value="">Nenhum (Composição simples)...</option>
-                    {equipments.filter(e => e.id !== formData.equipament1Id && e.id !== formData.equipament2Id).map(eq => (
-                      <option key={eq.id} value={eq.id}>
-                        {eq.plate} - {eq.model || 'Implemento'}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="form-group">
+                    <label className="form-label">Carreta / Semirreboque 1 (Equipamento 2 - Opcional)</label>
+                    <select 
+                      name="equipament2Id" 
+                      value={formData.equipament2Id} 
+                      onChange={handleInputChange} 
+                      className="form-select"
+                    >
+                      <option value="">Nenhum (ou semicarreta)...</option>
+                      {equipments.filter(e => e.id !== formData.equipament1Id).map(eq => (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.plate} - {eq.model || 'Implemento'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Carreta 2 / Segundo Reboque (Equipamento 3 - Opcional)</label>
+                    <select 
+                      name="equipament3Id" 
+                      value={formData.equipament3Id} 
+                      onChange={handleInputChange} 
+                      className="form-select"
+                    >
+                      <option value="">Nenhum (Composição simples)...</option>
+                      {equipments.filter(e => e.id !== formData.equipament1Id && e.id !== formData.equipament2Id).map(eq => (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.plate} - {eq.model || 'Implemento'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -321,7 +360,7 @@ const EquipamentGroupPage = () => {
                 <button type="button" className="btn btn-outline" onClick={handleCloseModal}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-save">
+                <button type="submit" className="btn btn-primary">
                   <Save size={16} /> Salvar Conjunto
                 </button>
               </div>

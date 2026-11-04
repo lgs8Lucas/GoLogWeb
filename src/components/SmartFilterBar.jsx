@@ -30,9 +30,7 @@ const SmartFilterBar = ({
   selectedFilters = {},
   onFilterChange,
   onClear,
-  searchQuery = '',
-  onSearchChange,
-  searchPlaceholder = 'Filtrar registros...'
+  onSearchChange
 }) => {
   const [openDropdown, setOpenDropdown] = useState(null);
 

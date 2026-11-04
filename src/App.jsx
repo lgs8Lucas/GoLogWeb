@@ -17,6 +17,7 @@ import OccurrencePage from './pages/OccurrencePage';
 import WorkSchedulePage from './pages/WorkSchedulePage';
 import OptimizationRulesPage from './pages/OptimizationRulesPage';
 import TenantsPage from './pages/TenantsPage';
+import ShipmentPage from './pages/ShipmentPage';
 import { ToastProvider } from './components/ToastContext';
 
 function App() {
@@ -49,7 +50,7 @@ function App() {
             <Route path="frota" element={<FleetPage />} />
             <Route path="transporte" element={<TransportPage />} />
             <Route path="monitoramento" element={<MonitoringPage />} />
-            <Route path="entregas" element={<Navigate to="/transporte" replace />} />
+            <Route path="entregas" element={<ShipmentPage />} />
           </Route>
         </Route>
 

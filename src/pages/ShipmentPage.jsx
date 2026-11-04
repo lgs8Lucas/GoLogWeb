@@ -1,74 +1,145 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Trash2, Search, FileUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Package, FileUp, Plus } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import ImportInvoicesModal from '../components/ImportInvoicesModal';
+import DeliveryModal from '../components/DeliveryModal';
+import ConfirmModal from '../components/ConfirmModal';
+import { useToast } from '../components/ToastContext';
 import { deliveryService } from '../services/deliveryService';
+import { extractErrorMessage } from '../utils/errorUtils';
 import '../styles/Profiles.css'; // Reusing standard styles
 
 const ShipmentPage = () => {
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
+  const [editingDelivery, setEditingDelivery] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deliveryToDelete, setDeliveryToDelete] = useState(null);
+  const { showToast } = useToast();
 
-  const fetchShipments = async () => {
+  const fetchShipments = useCallback(async () => {
     setLoading(true);
     try {
       const data = await deliveryService.getAll();
-      setShipments(data);
+      setShipments(data || []);
     } catch (error) {
       console.error('Erro ao carregar entregas:', error);
+      showToast('Erro ao carregar entregas.', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchShipments();
-  }, []);
+  }, [fetchShipments]);
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta entrega?')) {
-      try {
-        await deliveryService.delete(id);
-        alert('Entrega excluída com sucesso!');
-        fetchShipments();
-      } catch (error) {
-        console.error('Erro ao excluir entrega:', error);
-        alert('Erro ao excluir entrega.');
+  const handleSaveDelivery = async (deliveryData, id) => {
+    try {
+      if (id) {
+        await deliveryService.update(id, deliveryData);
+        showToast('Remessa atualizada com sucesso!', 'success');
+      } else {
+        await deliveryService.create(deliveryData);
+        showToast('Remessa cadastrada com sucesso!', 'success');
       }
+      setIsDeliveryModalOpen(false);
+      setEditingDelivery(null);
+      fetchShipments();
+    } catch (error) {
+      console.error('Erro ao salvar remessa:', error);
+      showToast(extractErrorMessage(error, 'Erro ao salvar remessa.'), 'error');
     }
   };
 
-  const filteredShipments = shipments.filter(item => 
-    (item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.status || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.typeOperation || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleEdit = (row) => {
+    setEditingDelivery(row);
+    setIsDeliveryModalOpen(true);
+  };
 
-  const columns = [
-    { label: 'Código', key: 'id', render: (row) => row.id ? row.id.substring(0, 8) : 'N/A' },
-    { label: 'Operação', key: 'typeOperation', render: (row) => row.typeOperation || 'ENTREGA' },
-    { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
-    { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
-    { label: 'Agendamento', key: 'schedulind', render: (row) => row.schedulind ? new Date(row.schedulind).toLocaleString('pt-BR') : '-' },
-    { label: 'Status', key: 'status', render: (row) => row.status || 'PENDENTE' },
-    { 
-      label: 'Ações', 
-      key: 'actions', 
-      render: (row) => (
-        <button 
-          onClick={() => handleDelete(row.id)} 
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--danger-color)' }}
-          title="Excluir Entrega"
-        >
-          <Trash2 size={18} />
-        </button>
-      ) 
+  const handleDelete = (row) => {
+    setDeliveryToDelete(row);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deliveryToDelete) return;
+    try {
+      await deliveryService.delete(deliveryToDelete.id);
+      showToast('Entrega excluída com sucesso!', 'success');
+      fetchShipments();
+    } catch (error) {
+      console.error('Erro ao excluir entrega:', error);
+      showToast(extractErrorMessage(error, 'Erro ao excluir entrega.'), 'error');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setDeliveryToDelete(null);
+    }
+  };
+
+  const shipmentFilterConfigs = [
+    {
+      key: 'typeOperation',
+      label: 'Operação',
+      options: [
+        { label: 'Entrega', value: 'ENTREGA' },
+        { label: 'Coleta', value: 'COLETA' }
+      ]
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { label: 'Pendente', value: 'PENDENTE' },
+        { label: 'Em Transporte', value: 'EM_TRANSPORTE' },
+        { label: 'Entregue / Concluído', value: 'FINALIZADO' }
+      ]
     }
   ];
 
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const columns = [
+    { 
+      label: 'Código', 
+      key: 'id', 
+      render: (row) => (
+        <span 
+          style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary-color)' }}
+          onClick={() => handleEdit(row)}
+          title="Clique para editar"
+        >
+          {row.id ? `#${row.id.substring(0, 8)}` : 'N/A'}
+        </span>
+      )
+    },
+    { 
+      label: 'Operação', 
+      key: 'typeOperation', 
+      render: (row) => (
+        <span className={`status-chip ${row.typeOperation === 'COLETA' ? 'warning' : 'info'}`}>
+          {row.typeOperation || 'ENTREGA'}
+        </span>
+      ) 
+    },
+    { label: 'Cliente / Parceiro', key: 'customer', render: (row) => row.customer?.legalName || '-' },
+    { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
+    { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
+    { label: 'Agendamento', key: 'schedulind', render: (row) => row.schedulind ? new Date(row.schedulind).toLocaleString('pt-BR') : '-' },
+    { 
+      label: 'Status', 
+      key: 'status', 
+      render: (row) => {
+        const s = (row.status || 'PENDENTE').toLowerCase();
+        let chipClass = 'info';
+        if (s.includes('finaliz') || s.includes('concl') || s.includes('entreg')) chipClass = 'active';
+        else if (s.includes('pend') || s.includes('espera')) chipClass = 'warning';
+        else if (s.includes('cancel') || s.includes('erro')) chipClass = 'danger';
+        return <span className={`status-chip ${chipClass}`}>{row.status || 'PENDENTE'}</span>;
+      }
+    }
+  ];
 
   return (
     <div className="profiles-container fade-in">
@@ -78,16 +149,40 @@ const ShipmentPage = () => {
         icon={Package}
         onBack={true}
       >
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => setIsImportModalOpen(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-        >
-          <FileUp size={16} />
-          Importar NF-e / Cargas (ERP)
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setEditingDelivery(null);
+              setIsDeliveryModalOpen(true);
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <Plus size={16} />
+            Nova Carga / Remessa
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setIsImportModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <FileUp size={16} />
+            Importar NF-e (ERP)
+          </button>
+        </div>
       </PageHeader>
+
+      <DeliveryModal
+        isOpen={isDeliveryModalOpen}
+        onClose={() => {
+          setIsDeliveryModalOpen(false);
+          setEditingDelivery(null);
+        }}
+        onSave={handleSaveDelivery}
+        initialData={editingDelivery}
+      />
 
       <ImportInvoicesModal
         isOpen={isImportModalOpen}
@@ -97,28 +192,28 @@ const ShipmentPage = () => {
         }}
       />
 
-      <div className="profiles-table-container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
-          <div className="search-input-wrapper" style={{ minWidth: '300px' }}>
-            <input
-              type="text"
-              placeholder="Pesquisar por ID, status ou tipo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="profiles-input"
-              style={{ width: '100%', paddingRight: '2.5rem' }}
-            />
-            <Search className="search-icon" size={18} style={{ position: 'absolute', right: '12px' }} />
-          </div>
-          <span className="profiles-count" style={{ margin: 0 }}>{filteredShipments.length} resultados</span>
-        </div>
-        
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => {
+          setDeleteConfirmOpen(false);
+          setDeliveryToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Excluir Entrega"
+        message={`Tem certeza que deseja excluir esta entrega${deliveryToDelete?.id ? ` (#${deliveryToDelete.id.substring(0, 8)})` : ''}?`}
+      />
+
+      <div className="card">
         <DataTable 
           columns={columns} 
-          data={filteredShipments} 
+          data={shipments} 
           loading={loading}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
           emptyMessage="Nenhuma entrega registrada."
           itemsPerPage={15}
+          filterConfigs={shipmentFilterConfigs}
+          searchPlaceholder="Pesquisar por código, cliente, operação ou status..."
         />
       </div>
     </div>

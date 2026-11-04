@@ -8,5 +8,17 @@ export default defineConfig({
     fs: {
       allow: ['..', '/home/fgsl/.gemini']
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-leaflet': ['leaflet'],
+          'vendor-lucide': ['lucide-react']
+        }
+      }
+    }
   }
 })

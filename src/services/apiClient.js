@@ -1,10 +1,7 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
-  if (import.meta.env.VITE_ADDRESS_IP) {
-    return import.meta.env.VITE_ADDRESS_IP;
-  }
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
     // Se estiver rodando localmente (localhost, 127.0.0.1 ou rede privada)
     if (
@@ -16,6 +13,9 @@ const getBaseUrl = () => {
     ) {
       return `http://${host}:8081`;
     }
+  }
+  if (import.meta.env.VITE_ADDRESS_IP) {
+    return import.meta.env.VITE_ADDRESS_IP;
   }
   return 'http://147.15.18.21:8081';
 };

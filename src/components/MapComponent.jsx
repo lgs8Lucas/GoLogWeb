@@ -137,7 +137,7 @@ const MapComponent = ({
         styles: tmsMapStyle
       });
     }
-  }, [mapsLoaded, zoom, interactive]);
+  }, [mapsLoaded, zoom, interactive, center]);
 
   // Atualiza polylines, marcadores e fitBounds sempre que mudarem
   useEffect(() => {

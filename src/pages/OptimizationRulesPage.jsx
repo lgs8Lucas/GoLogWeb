@@ -23,7 +23,9 @@ import { visitTypeService } from '../services/visitTypeService';
 import { typeTransportService } from '../services/typeTransportService';
 import { shipmentTypeService } from '../services/shipmentTypeService';
 import { companyService } from '../services/companyService';
+import { authService } from '../services/authService';
 import { translateRuleType } from '../utils/enumTranslations';
+import { extractErrorMessage } from '../utils/errorUtils';
 import '../styles/OptimizationRules.css';
 
 const PRESET_TEMPLATES = [
@@ -153,7 +155,7 @@ const OptimizationRulesPage = () => {
   };
   const [shipmentTypeForm, setShipmentTypeForm] = useState(initialShipmentTypeForm);
 
-  // Estados de Regras de Morfologia
+  // Estados de Regras de Morfologia & Tipos de Visita
   const [rules, setRules] = useState([]);
   const [visitTypes, setVisitTypes] = useState([]);
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
@@ -165,6 +167,14 @@ const OptimizationRulesPage = () => {
     visitType2Id: ''
   };
   const [ruleForm, setRuleForm] = useState(initialRuleForm);
+
+  const [isVisitTypeModalOpen, setIsVisitTypeModalOpen] = useState(false);
+  const initialVisitTypeForm = {
+    code: '',
+    name: '',
+    description: ''
+  };
+  const [visitTypeForm, setVisitTypeForm] = useState(initialVisitTypeForm);
 
   // Exclusão
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -186,7 +196,13 @@ const OptimizationRulesPage = () => {
       const data = await companyService.getAllCompanies();
       setCompanies(data || []);
       if (data && data.length > 0) {
-        setSelectedCompanyId(data[0].id);
+        const currentTenant = authService.getSelectedTenant();
+        const tenantInfo = authService.getTenantInfo();
+        const preferredId = (currentTenant && currentTenant !== 'all') 
+          ? currentTenant 
+          : (tenantInfo?.companyId || data[0].id);
+        const match = data.find(c => c.id === preferredId);
+        setSelectedCompanyId(match ? match.id : data[0].id);
       }
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
@@ -232,7 +248,7 @@ const OptimizationRulesPage = () => {
     try {
       const payload = {
         ...profileForm,
-        companyId: selectedCompanyId,
+        companyId: selectedCompanyId || null,
         kmCostMultiplier: parseFloat(profileForm.kmCostMultiplier) || 1.0,
         hourCostMultiplier: parseFloat(profileForm.hourCostMultiplier) || 1.0,
         fixedCostPerVehicle: parseFloat(profileForm.fixedCostPerVehicle) || 0.0,
@@ -254,7 +270,7 @@ const OptimizationRulesPage = () => {
       loadTabData();
     } catch (err) {
       console.error('Erro ao salvar perfil:', err);
-      showToast('Erro ao salvar perfil de otimização.', 'error');
+      showToast(extractErrorMessage(err, 'Erro ao salvar perfil de otimização.'), 'error');
     }
   };
 
@@ -264,7 +280,7 @@ const OptimizationRulesPage = () => {
     try {
       const payload = {
         ...demandForm,
-        companyId: selectedCompanyId,
+        companyId: selectedCompanyId || null,
         code: demandForm.code.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_')
       };
 
@@ -284,7 +300,7 @@ const OptimizationRulesPage = () => {
       loadTabData();
     } catch (err) {
       console.error('Erro ao salvar tipo de demanda:', err);
-      showToast('Erro ao salvar tipo de demanda.', 'error');
+      showToast(extractErrorMessage(err, 'Erro ao salvar tipo de demanda.'), 'error');
     }
   };
 
@@ -294,7 +310,7 @@ const OptimizationRulesPage = () => {
     try {
       const payload = {
         ...transportForm,
-        name: transportForm.name.toUpperCase().replace(/[^A-Z ]/g, '')
+        name: transportForm.name.toUpperCase().replace(/[^A-Z0-9 _-]/g, '')
       };
       if (editingTransportId) {
         await typeTransportService.update(editingTransportId, payload);
@@ -308,7 +324,7 @@ const OptimizationRulesPage = () => {
       loadTabData();
     } catch (err) {
       console.error('Erro ao salvar tipo de transporte:', err);
-      showToast('Erro ao salvar tipo de transporte.', 'error');
+      showToast(extractErrorMessage(err, 'Erro ao salvar tipo de transporte.'), 'error');
     }
   };
 
@@ -328,7 +344,7 @@ const OptimizationRulesPage = () => {
       loadTabData();
     } catch (err) {
       console.error('Erro ao salvar tipo de carga:', err);
-      showToast('Erro ao salvar tipo de carga.', 'error');
+      showToast(extractErrorMessage(err, 'Erro ao salvar tipo de carga.'), 'error');
     }
   };
 
@@ -338,7 +354,7 @@ const OptimizationRulesPage = () => {
     try {
       const payload = {
         ...ruleForm,
-        companyId: selectedCompanyId
+        companyId: selectedCompanyId || null
       };
       await visitTypeService.createRule(payload);
       showToast('Regra de morfologia criada com sucesso!', 'success');
@@ -346,7 +362,28 @@ const OptimizationRulesPage = () => {
       loadTabData();
     } catch (err) {
       console.error('Erro ao salvar regra:', err);
-      showToast('Erro ao salvar regra de morfologia.', 'error');
+      showToast(extractErrorMessage(err, 'Erro ao salvar regra de morfologia.'), 'error');
+    }
+  };
+
+  // Visit Type Handler
+  const handleSaveVisitType = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        code: visitTypeForm.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_'),
+        name: visitTypeForm.name,
+        description: visitTypeForm.description,
+        companyId: selectedCompanyId || null
+      };
+      await visitTypeService.create(payload);
+      showToast('Rótulo / Tipo de visita criado com sucesso!', 'success');
+      setIsVisitTypeModalOpen(false);
+      setVisitTypeForm(initialVisitTypeForm);
+      loadTabData();
+    } catch (err) {
+      console.error('Erro ao salvar tipo de visita:', err);
+      showToast(extractErrorMessage(err, 'Erro ao salvar rótulo / tipo de visita.'), 'error');
     }
   };
 
@@ -369,6 +406,9 @@ const OptimizationRulesPage = () => {
       } else if (deleteType === 'rule') {
         await visitTypeService.deleteRule(itemToDelete.id);
         showToast('Regra excluída com sucesso!', 'success');
+      } else if (deleteType === 'visitType') {
+        await visitTypeService.delete(itemToDelete.id);
+        showToast('Rótulo / Tipo de visita excluído com sucesso!', 'success');
       }
       loadTabData();
     } catch (err) {
@@ -404,38 +444,53 @@ const OptimizationRulesPage = () => {
           </select>
         </div>
 
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            if (activeTab === 'profiles') {
-              setProfileForm(initialProfileForm);
-              setEditingProfileId(null);
-              setIsProfileModalOpen(true);
-            } else if (activeTab === 'demands') {
-              setDemandForm(initialDemandForm);
-              setEditingDemandId(null);
-              setIsDemandModalOpen(true);
-            } else if (activeTab === 'transports') {
-              setTransportForm(initialTransportForm);
-              setEditingTransportId(null);
-              setIsTransportModalOpen(true);
-            } else if (activeTab === 'shipments') {
-              setShipmentTypeForm(initialShipmentTypeForm);
-              setEditingShipmentTypeId(null);
-              setIsShipmentTypeModalOpen(true);
-            } else {
-              setRuleForm(initialRuleForm);
-              setIsRuleModalOpen(true);
-            }
-          }}
-        >
-          <Plus size={18} />
-          {activeTab === 'profiles' && 'Novo Perfil de Cálculo'}
-          {activeTab === 'demands' && 'Nova Métrica de Demanda'}
-          {activeTab === 'transports' && 'Novo Tipo de Transporte'}
-          {activeTab === 'shipments' && 'Novo Tipo de Carga'}
-          {activeTab === 'morphology' && 'Nova Regra de Incompatibilidade'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          {activeTab === 'morphology' && (
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => {
+                setVisitTypeForm(initialVisitTypeForm);
+                setIsVisitTypeModalOpen(true);
+              }}
+            >
+              <Plus size={16} />
+              Novo Rótulo / Tipo de Visita
+            </button>
+          )}
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              if (activeTab === 'profiles') {
+                setProfileForm(initialProfileForm);
+                setEditingProfileId(null);
+                setIsProfileModalOpen(true);
+              } else if (activeTab === 'demands') {
+                setDemandForm(initialDemandForm);
+                setEditingDemandId(null);
+                setIsDemandModalOpen(true);
+              } else if (activeTab === 'transports') {
+                setTransportForm(initialTransportForm);
+                setEditingTransportId(null);
+                setIsTransportModalOpen(true);
+              } else if (activeTab === 'shipments') {
+                setShipmentTypeForm(initialShipmentTypeForm);
+                setEditingShipmentTypeId(null);
+                setIsShipmentTypeModalOpen(true);
+              } else {
+                setRuleForm(initialRuleForm);
+                setIsRuleModalOpen(true);
+              }
+            }}
+          >
+            <Plus size={18} />
+            {activeTab === 'profiles' && 'Novo Perfil de Cálculo'}
+            {activeTab === 'demands' && 'Nova Métrica de Demanda'}
+            {activeTab === 'transports' && 'Novo Tipo de Transporte'}
+            {activeTab === 'shipments' && 'Novo Tipo de Carga'}
+            {activeTab === 'morphology' && 'Nova Regra de Incompatibilidade'}
+          </button>
+        </div>
       </div>
 
       <div className="opt-tabs">
@@ -729,63 +784,156 @@ const OptimizationRulesPage = () => {
         </div>
       )}
 
-      {/* Conteúdo Aba 5: Morfologia */}
+      {/* Conteúdo Aba 5: Morfologia & Rótulos */}
       {activeTab === 'morphology' && (
-        <div className="card">
-          <DataTable
-            loading={loading}
-            data={rules}
-            emptyMessage="Nenhuma regra de incompatibilidade cadastrada."
-            columns={[
-              {
-                label: 'Nome da Regra',
-                key: 'name',
-                render: (row) => <strong style={{ color: 'var(--primary-color)' }}>{row.name}</strong>
-              },
-              {
-                label: 'Tipo de Restrição',
-                key: 'ruleType',
-                render: (row) => (
-                  <span className="status-chip danger">{translateRuleType(row.ruleType)}</span>
-                )
-              },
-              {
-                label: 'Visita / Carga 1',
-                key: 'visitType1',
-                render: (row) => (
-                  <code style={{ background: 'var(--bg-hover)', padding: '0.2rem 0.5rem', borderRadius: '4px', color: 'var(--primary-color)', fontWeight: 600 }}>
-                    {row.visitType1?.name || row.visitType1?.code}
-                  </code>
-                )
-              },
-              {
-                label: 'Visita / Carga 2',
-                key: 'visitType2',
-                render: (row) => (
-                  <code style={{ background: 'var(--bg-hover)', padding: '0.2rem 0.5rem', borderRadius: '4px', color: 'var(--primary-color)', fontWeight: 600 }}>
-                    {row.visitType2?.name || row.visitType2?.code}
-                  </code>
-                )
-              },
-              {
-                label: 'Descrição',
-                key: 'description',
-                render: (row) => row.description || '-'
-              }
-            ]}
-            onDelete={(row) => {
-              setItemToDelete(row);
-              setDeleteType('rule');
-              setDeleteConfirmOpen(true);
-            }}
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Seção 1: Rótulos / Tipos de Visita Cadastrados */}
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Tags size={18} /> Rótulos & Características Especiais de Carga ({visitTypes.length})
+                </h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Tags morfológicas aplicadas a coletas e entregas para controle sanitário e restrições de compatibilidade.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => {
+                  setVisitTypeForm(initialVisitTypeForm);
+                  setIsVisitTypeModalOpen(true);
+                }}
+              >
+                <Plus size={16} /> Novo Rótulo
+              </button>
+            </div>
+
+            <DataTable
+              loading={loading}
+              data={visitTypes}
+              emptyMessage="Nenhum rótulo de visita cadastrado."
+              columns={[
+                {
+                  label: 'Código',
+                  key: 'code',
+                  render: (row) => (
+                    <code style={{ background: 'var(--bg-hover)', padding: '0.25rem 0.6rem', borderRadius: '4px', color: 'var(--primary-color)', fontWeight: 700 }}>
+                      {row.code}
+                    </code>
+                  )
+                },
+                {
+                  label: 'Nome de Exibição',
+                  key: 'name',
+                  render: (row) => <strong style={{ color: 'var(--primary-color)' }}>{row.name}</strong>
+                },
+                {
+                  label: 'Descrição / Cuidados',
+                  key: 'description',
+                  render: (row) => row.description || '-'
+                },
+                {
+                  label: 'Escopo',
+                  key: 'company',
+                  render: (row) => (
+                    <span className={row.company ? 'badge-custom' : 'badge-system'}>
+                      {row.company ? 'Customizado' : 'Sistema (Global)'}
+                    </span>
+                  )
+                }
+              ]}
+              onDelete={(row) => {
+                if (!row.company) {
+                  showToast('Rótulos padrão do sistema não podem ser excluídos.', 'warning');
+                  return;
+                }
+                setItemToDelete(row);
+                setDeleteType('visitType');
+                setDeleteConfirmOpen(true);
+              }}
+            />
+          </div>
+
+          {/* Seção 2: Regras de Incompatibilidade Morfológica */}
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ShieldAlert size={18} /> Matriz de Incompatibilidade de Carregamento ({rules.length})
+                </h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Restrições estritas que impedem o motor de alocar duas cargas conflitantes no mesmo compartimento/veículo.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setRuleForm(initialRuleForm);
+                  setIsRuleModalOpen(true);
+                }}
+              >
+                <Plus size={16} /> Nova Regra
+              </button>
+            </div>
+
+            <DataTable
+              loading={loading}
+              data={rules}
+              emptyMessage="Nenhuma regra de incompatibilidade cadastrada para esta empresa."
+              columns={[
+                {
+                  label: 'Nome da Regra',
+                  key: 'name',
+                  render: (row) => <strong style={{ color: 'var(--primary-color)' }}>{row.name}</strong>
+                },
+                {
+                  label: 'Tipo de Restrição',
+                  key: 'ruleType',
+                  render: (row) => (
+                    <span className="status-chip danger">{translateRuleType(row.ruleType)}</span>
+                  )
+                },
+                {
+                  label: 'Visita / Carga 1',
+                  key: 'visitType1',
+                  render: (row) => (
+                    <code style={{ background: 'var(--bg-hover)', padding: '0.2rem 0.5rem', borderRadius: '4px', color: 'var(--primary-color)', fontWeight: 600 }}>
+                      {row.visitType1?.name || row.visitType1?.code}
+                    </code>
+                  )
+                },
+                {
+                  label: 'Visita / Carga 2',
+                  key: 'visitType2',
+                  render: (row) => (
+                    <code style={{ background: 'var(--bg-hover)', padding: '0.2rem 0.5rem', borderRadius: '4px', color: 'var(--primary-color)', fontWeight: 600 }}>
+                      {row.visitType2?.name || row.visitType2?.code}
+                    </code>
+                  )
+                },
+                {
+                  label: 'Descrição',
+                  key: 'description',
+                  render: (row) => row.description || '-'
+                }
+              ]}
+              onDelete={(row) => {
+                setItemToDelete(row);
+                setDeleteType('rule');
+                setDeleteConfirmOpen(true);
+              }}
+            />
+          </div>
         </div>
       )}
 
       {/* Modal Profile */}
       {isProfileModalOpen && createPortal(
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="modal-content" style={{ maxWidth: '680px' }}>
             <div className="modal-header">
               <h2>{editingProfileId ? 'Editar Perfil de Cálculo' : 'Novo Perfil de Otimização'}</h2>
               <button className="modal-close-btn" onClick={() => setIsProfileModalOpen(false)} aria-label="Fechar">
@@ -962,7 +1110,7 @@ const OptimizationRulesPage = () => {
                 <button type="button" className="btn btn-outline" onClick={() => setIsProfileModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-save">
+                <button type="submit" className="btn btn-primary">
                   <Save size={16} /> Salvar Perfil
                 </button>
               </div>
@@ -1037,7 +1185,7 @@ const OptimizationRulesPage = () => {
                 <button type="button" className="btn btn-outline" onClick={() => setIsDemandModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-save">
+                <button type="submit" className="btn btn-primary">
                   <Save size={16} /> Salvar Demanda
                 </button>
               </div>
@@ -1095,7 +1243,7 @@ const OptimizationRulesPage = () => {
                 <button type="button" className="btn btn-outline" onClick={() => setIsTransportModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-save">
+                <button type="submit" className="btn btn-primary">
                   <Save size={16} /> Salvar Tipo de Transporte
                 </button>
               </div>
@@ -1153,7 +1301,7 @@ const OptimizationRulesPage = () => {
                 <button type="button" className="btn btn-outline" onClick={() => setIsShipmentTypeModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-save">
+                <button type="submit" className="btn btn-primary">
                   <Save size={16} /> Salvar Tipo de Carga
                 </button>
               </div>
@@ -1246,8 +1394,73 @@ const OptimizationRulesPage = () => {
                 <button type="button" className="btn btn-outline" onClick={() => setIsRuleModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-save">
+                <button type="submit" className="btn btn-primary">
                   <Save size={16} /> Salvar Regra
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Visit Type */}
+      {isVisitTypeModalOpen && createPortal(
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h2>Novo Rótulo / Tipo de Carga Especial</h2>
+              <button className="modal-close-btn" onClick={() => setIsVisitTypeModalOpen(false)} aria-label="Fechar">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveVisitType}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">Código da Característica *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: QUIMICOS, ALIMENTOS, CONGELADOS"
+                    className="form-input"
+                    value={visitTypeForm.code}
+                    onChange={(e) => setVisitTypeForm({ ...visitTypeForm, code: e.target.value })}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Utilizado pelo motor do Google para validação de compatibilidade.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Nome de Exibição *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Produtos Químicos e Inflamáveis"
+                    className="form-input"
+                    value={visitTypeForm.name}
+                    onChange={(e) => setVisitTypeForm({ ...visitTypeForm, name: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Descrição / Observação</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Ex: Exige isolamento e não pode ser misturado com gêneros alimentícios."
+                    className="form-textarea"
+                    value={visitTypeForm.description}
+                    onChange={(e) => setVisitTypeForm({ ...visitTypeForm, description: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setIsVisitTypeModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  <Save size={16} /> Salvar Rótulo
                 </button>
               </div>
             </form>

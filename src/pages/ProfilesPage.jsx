@@ -11,6 +11,7 @@ import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { translateUserRole } from '../utils/enumTranslations';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 const ProfilesPage = () => {
   const [searchParams] = useSearchParams();
@@ -89,7 +90,7 @@ const ProfilesPage = () => {
           name: formData.name,
           email: formData.email,
           cpf: formData.cpf,
-          password: formData.password || 'Senha@123',
+          ...(formData.password && formData.password.trim() ? { password: formData.password } : {}),
           "User Profile": formData.userProfile,
           userProfile: formData.userProfile,
           companyId: formData.companyId
@@ -113,10 +114,15 @@ const ProfilesPage = () => {
       }
 
       if (formData.userProfile === 'DRIVER' && savedUserId && !editingId) {
+        let expDate = formData.cnhExpiration;
+        if (expDate && expDate.includes('-')) {
+          const [y, m, d] = expDate.split('-');
+          expDate = `${d}/${m}/${y}`;
+        }
         await driverService.createDriver({
           cnhNumber: formData.cnhNumber,
-          cnhExpiration: formData.cnhExpiration,
-          costPerHour: parseFloat(formData.costPerHour || 0),
+          cnhExpiration: expDate,
+          costPerHour: parseFloat(formData.costPerHour) || 25.0,
           userId: savedUserId
         });
       }
@@ -125,7 +131,7 @@ const ProfilesPage = () => {
       fetchProfiles();
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      showToast(error.response?.data?.message || 'Erro ao processar usuário.', "error");
+      showToast(extractErrorMessage(error, 'Erro ao processar usuário.'), "error");
     }
   };
 
@@ -157,7 +163,7 @@ const ProfilesPage = () => {
       fetchProfiles();
     } catch (error) {
       console.error("Erro ao deletar:", error);
-      showToast("Erro ao excluir usuário.", "error");
+      showToast(extractErrorMessage(error, "Erro ao excluir usuário."), "error");
     } finally {
       setDeleteConfirmOpen(false);
       setUserToDelete(null);
@@ -406,7 +412,7 @@ const ProfilesPage = () => {
                           required 
                         />
                       </div>
-                      <div className="form-group">
+                      <div className="form-group col-span-2">
                         <label className="form-label">Custo por Hora (R$)</label>
                         <input 
                           type="number" 
