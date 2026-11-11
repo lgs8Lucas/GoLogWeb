@@ -14,6 +14,20 @@ import { translateStatus, translateVehicleType, translateFuel } from '../utils/e
 import { extractErrorMessage } from '../utils/errorUtils';
 import { loadTenantOptions, defaultTenantId, tenantLabel } from '../utils/tenantOptions';
 
+// Categorias de veículo da API (VehicleType). Rígidos operam sozinhos: a API cria o conjunto automaticamente.
+const VEHICLE_TYPE_OPTIONS = {
+  carreta: 'Carreta / Reboque (acopla em cavalo)',
+  MOTO: 'Moto',
+  CARRO: 'Carro de passeio',
+  UTILITARIO: 'Utilitário leve (Fiorino/Saveiro)',
+  VAN: 'Van / Furgão',
+  VUC: 'VUC',
+  TOCO: 'Caminhão Toco (3/4)',
+  TRUCK: 'Caminhão Truck',
+  BITRUCK: 'Caminhão Bitruck',
+  CAVALO_MECANICO: 'Cavalo Mecânico'
+};
+
 const FleetPage = () => {
   const [searchParams] = useSearchParams();
   const editParamId = searchParams.get('edit');
@@ -38,6 +52,7 @@ const FleetPage = () => {
     typeFuel: 'DIESEL',
     costPerKilometer: '',
     maximumVolume: '100',
+    cargoVolume: '',
     companyId: ''
   });
 
@@ -74,7 +89,7 @@ const FleetPage = () => {
           renavam: item.renavam,
           marca: item.model || 'Volvo FH',
           capacidade: `${item.maximumCapacity || 0} kg`,
-          tipo: isTrailer ? 'Carreta / Reboque' : 'Cavalo Mecânico',
+          tipo: isTrailer ? 'Carreta / Reboque' : (VEHICLE_TYPE_OPTIONS[item.vehicleType || 'CAVALO_MECANICO'] || 'Cavalo Mecânico'),
           isTrailer: isTrailer,
           custoKm: !isTrailer && item.costPerKilometer != null
             ? item.costPerKilometer.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -143,7 +158,8 @@ const FleetPage = () => {
         const tractorPayload = {
           ...commonPayload,
           typeFuel: formData.typeFuel,
-          "Type Fuel": formData.typeFuel,
+          vehicleType: formData.tipo,
+          cargoVolume: formData.cargoVolume !== '' && formData.cargoVolume != null ? parseFloat(formData.cargoVolume) : null,
           costPerKilometer: parseFloat(formData.costPerKilometer || 0)
         };
         if (editingId) {
@@ -171,7 +187,8 @@ const FleetPage = () => {
       model: row.raw.model || '',
       maximumCapacity: row.raw.maximumCapacity?.toString() || '',
       numberAxles: row.raw.numberAxles?.toString() || '2',
-      tipo: row.isTrailer ? 'carreta' : 'truck',
+      tipo: row.isTrailer ? 'carreta' : (row.raw.vehicleType || 'CAVALO_MECANICO'),
+      cargoVolume: row.raw.cargoVolume?.toString() || '',
       typeFuel: row.raw.typeFuel || 'DIESEL',
       costPerKilometer: row.raw.costPerKilometer?.toString() || '',
       maximumVolume: row.raw.maximumVolume?.toString() || '100',
@@ -218,6 +235,7 @@ const FleetPage = () => {
       typeFuel: 'DIESEL',
       costPerKilometer: '',
       maximumVolume: '100',
+    cargoVolume: '',
       companyId: defaultTenantId(tenants)
     });
   };
@@ -288,6 +306,7 @@ const FleetPage = () => {
       typeFuel: 'DIESEL',
       costPerKilometer: '',
       maximumVolume: '100',
+    cargoVolume: '',
       companyId: defaultCompId
     });
     setIsModalOpen(true);
@@ -443,10 +462,9 @@ const FleetPage = () => {
                       disabled={!!editingId}
                       title={editingId ? 'O tipo do veículo não pode ser alterado após o cadastro' : undefined}
                     >
-                      <option value="carreta">Carreta (Trailer)</option>
-                      <option value="truck">Caminhão - Truck (Tractor)</option>
-                      <option value="toco">Caminhão - Toco (Tractor)</option>
-                      <option value="vuc">Caminhão - VUC (Tractor)</option>
+                      {Object.entries(VEHICLE_TYPE_OPTIONS).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -479,8 +497,26 @@ const FleetPage = () => {
                           <option value="DIESEL">Diesel</option>
                           <option value="GASOLINA">Gasolina</option>
                           <option value="ETANOL">Etanol</option>
+                          <option value="FLEX">Flex</option>
+                          <option value="GNV">GNV</option>
+                          <option value="ELETRICO">Elétrico</option>
                         </select>
                       </div>
+                      {formData.tipo !== 'CAVALO_MECANICO' && (
+                        <div className="form-group">
+                          <label className="form-label">Volume útil da carroceria (m³)</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            name="cargoVolume"
+                            value={formData.cargoVolume}
+                            onChange={handleInputChange}
+                            className="form-input"
+                            placeholder="Ex.: 12"
+                          />
+                        </div>
+                      )}
                       <div className="form-group">
                         <label className="form-label">Custo por Km (R$)</label>
                         <input
