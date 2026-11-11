@@ -2,16 +2,12 @@ import { apiClient } from './apiClient';
 
 export const transportService = {
   create: async (transportData) => {
+    // Viagem manual: só os vínculos. Métricas realizadas (km, tempo, rota concluída) são preenchidas
+    // na execução — enviar zeros/textos aqui fazia a API rejeitar (@Positive) ou marcar a viagem como concluída.
     const payload = {
       driverId: transportData.driverId,
-      transporterId: transportData.transporterId,
-      equipamentGroupId: transportData.equipamentGroupId,
-      routeCompleted: transportData.routeReturnCompleted || 'Ainda não concluída',
-      routePlanned: transportData.routeReturnPlanned || 'Rota de Retorno Padrão',
-      deliveryQuantity: parseInt(transportData.deliveryQuantity || 0, 10),
-      distanceTraveled: parseInt(transportData.totalKilometer || transportData.distanceTraveled || 0, 10),
-      timeStopped: parseFloat(transportData.timeStopped || 0.0),
-      totalTime: parseFloat(transportData.totalTime || 0.0)
+      transporterId: transportData.transporterId || null,
+      equipamentGroupId: transportData.equipamentGroupId
     };
     const response = await apiClient.post('/transport', payload);
     return response.data;

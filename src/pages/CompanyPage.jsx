@@ -10,6 +10,7 @@ import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { geocodeAddress, PRECISION_LABEL } from '../utils/geocode';
 
 const CompanyPage = () => {
   const [searchParams] = useSearchParams();
@@ -51,10 +52,22 @@ const CompanyPage = () => {
     fetchCompanies();
   }, [editParamId]);
 
-  const handleEditClick = (company) => {
+  // Endereço original da empresa em edição: só re-geocodifica se o operador mudar o endereço
+  const [originalAddress, setOriginalAddress] = useState({});
+
+  const handleEditClick = async (listItem) => {
+    // A listagem não traz endereço nem webhook: carrega o cadastro completo antes de abrir o formulário
+    let company = listItem;
+    try {
+      company = await companyService.getCompanyById(listItem.id);
+    } catch (err) {
+      showToast(extractErrorMessage(err, 'Não foi possível carregar a empresa.'), 'error');
+      return;
+    }
     setEditingId(company.id);
     const addr = company.address || {};
     setEditingAddressId(addr.id || null);
+    setOriginalAddress({ street: addr.street || '', number: addr.number || '', city: addr.city || '', state: addr.state || '', cep: addr.cep || '' });
 
     setFormData({
       legalName: company.legalName || '',
@@ -70,6 +83,8 @@ const CompanyPage = () => {
       state: addr.state || '',
       country: addr.country || 'Brasil',
       complement: addr.complement || '',
+      latitude: addr.latitude || '',
+      longitude: addr.longitude || '',
       webhookUrl: company.webhookUrl || '',
       webhookSecret: company.webhookSecret || '',
       webhookActive: company.webhookActive ?? true
@@ -180,9 +195,26 @@ const CompanyPage = () => {
         city: formData.city?.trim() || '',
         state: cleanState,
         country: formData.country?.trim() || 'Brasil',
-        latitude: "-23.550520",
-        longitude: "-46.633308"
+        latitude: formData.latitude || '',
+        longitude: formData.longitude || ''
       };
+
+      // Coordenadas reais do endereço (antes era fixo o centro de São Paulo para toda empresa,
+      // o que fazia o otimizador planejar clientes de outras cidades como se estivessem em SP)
+      const addressChanged = !editingId || ['street', 'number', 'city', 'state', 'cep']
+        .some(k => (formData[k] || '') !== (originalAddress[k] || ''));
+      if (addressChanged || !addressPayload.latitude) {
+        const geo = await geocodeAddress(addressPayload);
+        if (!geo) {
+          showToast('Não foi possível localizar este endereço no mapa. Confira rua, cidade, UF e CEP.', 'error');
+          return;
+        }
+        addressPayload.latitude = geo.latitude;
+        addressPayload.longitude = geo.longitude;
+        if (geo.precision === 'cidade' || geo.precision === 'cep') {
+          showToast(`Endereço localizado pelo ${PRECISION_LABEL[geo.precision]}. Para rotas precisas, ajuste as coordenadas em Endereços.`, 'warning');
+        }
+      }
 
       if (formData.complement && formData.complement.trim() !== '') {
         addressPayload.complement = formData.complement.trim();
@@ -307,7 +339,7 @@ const CompanyPage = () => {
     {
       label: 'Cidade / UF',
       key: 'address',
-      render: (row) => row.address ? `${row.address.city || '-'} (${row.address.state || '-'})` : '-'
+      render: (row) => (row.city || row.address?.city) ? `${row.city || row.address.city} (${row.state || row.address?.state || '-'})` : '-'
     },
     {
       label: 'Webhook ERP',
@@ -432,7 +464,7 @@ const CompanyPage = () => {
                         className="form-select"
                       >
                         <option value="true">Cliente / Destinatário</option>
-                        <option value="false">Transportadora / Parceira</option>
+                        <option value="false">Fornecedor / Parceiro</option>
                       </select>
                     </div>
                   ) : (

@@ -83,7 +83,10 @@ const OccurrencePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await occurrenceService.create(formData);
+      // dateTime é obrigatório na API: registra o momento local do lançamento (sem fuso, padrão LocalDateTime)
+      const now = new Date();
+      const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+      await occurrenceService.create({ ...formData, dateTime: localIso });
       showToast('Ocorrência registrada com sucesso!', 'success');
       handleCloseModal();
       fetchOccurrences();
@@ -95,14 +98,15 @@ const OccurrencePage = () => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setFormData({
+    setFormData(prev => ({
       type: 'ATRASO',
       description: '',
       attachment: 'Sem anexo',
       shipmentId: '',
       transportId: '',
-      senderId: ''
-    });
+      // Mantém o emissor (usuário logado) para o próximo lançamento
+      senderId: prev.senderId
+    }));
   };
 
   const filteredShipments = formData.transportId 

@@ -100,13 +100,13 @@
   box-shadow: var(--shadow-sm);
 }
 
-.search-input-wrapper {
+.tenants-filter-bar .search-input-wrapper {
   position: relative;
   flex: 1;
   max-width: 450px;
 }
 
-.search-input-wrapper .search-icon {
+.tenants-filter-bar .search-input-wrapper .search-icon {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -114,7 +114,7 @@
   color: var(--text-muted);
 }
 
-.search-input-wrapper input {
+.tenants-filter-bar .search-input-wrapper input {
   width: 100%;
   background-color: var(--bg-hover);
   border: 1px solid var(--border-color);
@@ -126,7 +126,7 @@
   transition: var(--transition);
 }
 
-.search-input-wrapper input:focus {
+.tenants-filter-bar .search-input-wrapper input:focus {
   outline: none;
   border-color: var(--secondary-color);
   background-color: var(--bg-surface);

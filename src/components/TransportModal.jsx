@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Package, FastForward, Save, Truck } from 'lucide-react';
+import { X, Plus, Save, Truck } from 'lucide-react';
 import '../styles/TransportModal.css';
 import MapComponent from './MapComponent';
 import DeliveryModal from './DeliveryModal';
 import { transportService } from '../services/transportService';
 import { deliveryService } from '../services/deliveryService';
 import { driverService } from '../services/driverService';
-import { companyService } from '../services/companyService';
+import { extractErrorMessage } from '../utils/errorUtils';
+import { loadTenantOptions, defaultTenantId, tenantLabel } from '../utils/tenantOptions';
 import { equipamentGroupService } from '../services/equipamentGroupService';
 import { useToast } from './ToastContext';
 
@@ -51,14 +52,15 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
 
     const loadModalData = async () => {
       try {
-        const [driversData, companiesData, groupsData] = await Promise.all([
+        const [driversData, tenantList, groupsData] = await Promise.all([
           driverService.getAll(),
-          companyService.getAllCompanies(),
+          loadTenantOptions(),
           equipamentGroupService.getAll()
         ]);
         setDrivers(driversData || []);
-        setCompanies((companiesData || []).filter(c => !c.isCliente));
+        setCompanies(tenantList);
         setEquipGroups(groupsData || []);
+        setTransportFormData(prev => ({ ...prev, transporterId: prev.transporterId || defaultTenantId(tenantList) }));
       } catch (err) {
         console.error("Erro ao carregar dados do modal de transporte:", err);
       }
@@ -75,6 +77,10 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleCreateTransport = async () => {
+    if (!transportFormData.driverId || !transportFormData.equipamentGroupId) {
+      showToast('Selecione o motorista e o conjunto de equipamentos.', 'error');
+      return;
+    }
     try {
       await transportService.create(transportFormData);
       showToast('Viagem salva com sucesso!', 'success');
@@ -82,7 +88,7 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
       onClose();
     } catch (error) {
       console.error('Erro ao salvar viagem:', error);
-      showToast('Erro ao salvar viagem. Verifique se os dados estão corretos.', 'error');
+      showToast(extractErrorMessage(error, 'Erro ao salvar viagem.'), 'error');
     }
   };
 
@@ -95,19 +101,7 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Erro ao salvar entrega:', error);
-      showToast('Erro ao salvar entrega.', 'error');
-    }
-  };
-
-  const handleOptimize = async () => {
-    try {
-      await transportService.optimizeRoutes();
-      showToast('Otimização de rotas concluída com sucesso!', 'success');
-      if (onSuccess) onSuccess();
-      onClose();
-    } catch (err) {
-      console.error("Erro ao otimizar rotas no modal:", err);
-      showToast("Erro ao otimizar rotas.", 'error');
+      showToast(extractErrorMessage(error, 'Erro ao salvar entrega.'), 'error');
     }
   };
 
@@ -133,7 +127,7 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
                 <option value="">Selecione o motorista...</option>
                 {drivers.map(d => (
                   <option key={d.id} value={d.id}>
-                    {d.user?.name || `Motorista #${d.id.substring(0,8)}`}
+                    {d.name || d.user?.name || `Motorista #${d.id.substring(0,8)}`}
                   </option>
                 ))}
               </select>
@@ -145,7 +139,7 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
                 <option value="">Selecione a transportadora...</option>
                 {companies.map(c => (
                   <option key={c.id} value={c.id}>
-                    {c.legalName}
+                    {tenantLabel(c)}
                   </option>
                 ))}
               </select>
@@ -218,9 +212,6 @@ const TransportModal = ({ isOpen, onClose, onSuccess }) => {
         <div className="modal-footer">
           <button type="button" className="btn btn-outline" onClick={onClose}>
             Cancelar
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={handleOptimize}>
-            <FastForward size={16} /> Otimizar Rotas
           </button>
           <button type="button" className="btn btn-primary" onClick={handleCreateTransport}>
             <Save size={16} /> Salvar Viagem

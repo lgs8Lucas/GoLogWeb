@@ -84,7 +84,7 @@ const Sidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
           </NavLink>
 
           <NavLink 
-            to="/cargas" 
+            to="/entregas" 
             className={({ isActive }) => isActive ? "sidebar-link active" : "sidebar-link"}
             onClick={handleLinkClick}
             title="Cargas & Remessas"

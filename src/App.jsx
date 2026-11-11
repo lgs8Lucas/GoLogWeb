@@ -51,6 +51,7 @@ function App() {
             <Route path="transporte" element={<TransportPage />} />
             <Route path="monitoramento" element={<MonitoringPage />} />
             <Route path="entregas" element={<ShipmentPage />} />
+            <Route path="cargas" element={<Navigate to="/entregas" replace />} />
           </Route>
         </Route>
 

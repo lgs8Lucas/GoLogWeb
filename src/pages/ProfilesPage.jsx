@@ -4,14 +4,13 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Users, Plus, Save, X, Building2 } from 'lucide-react';
 import { userService } from '../services/userService';
 import { driverService } from '../services/driverService';
-import { companyService } from '../services/companyService';
-import { authService } from '../services/authService';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { translateUserRole } from '../utils/enumTranslations';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { loadTenantOptions, defaultTenantId, tenantLabel } from '../utils/tenantOptions';
 
 const ProfilesPage = () => {
   const [searchParams] = useSearchParams();
@@ -58,21 +57,36 @@ const ProfilesPage = () => {
     }
   };
 
+  // Usuários pertencem a um tenant (matriz/filial) — nunca a um cliente
   const fetchCompanies = async () => {
+    const tenantList = await loadTenantOptions();
+    setCompanies(tenantList);
+    setFormData(prev => ({ ...prev, companyId: prev.companyId || defaultTenantId(tenantList) }));
+  };
+
+  const [drivers, setDrivers] = useState([]);
+  const fetchDrivers = async () => {
     try {
-      const data = await companyService.getAllCompanies();
-      setCompanies(data || []);
-      if (data && data.length > 0) {
-        setFormData(prev => ({ ...prev, companyId: data[0].id }));
-      }
-    } catch (err) {
-      console.error("Erro ao puxar empresas: ", err);
+      setDrivers((await driverService.getAllDrivers()) || []);
+    } catch {
+      setDrivers([]);
     }
+  };
+  const driverOfUser = (userId) => drivers.find(d => d.userId === userId);
+
+  // <input type="date"> usa yyyy-MM-dd; a API de motoristas usa dd/MM/yyyy
+  const toApiDate = (value) => {
+    if (value && value.includes('-')) {
+      const [y, m, d] = value.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    return value;
   };
 
   useEffect(() => {
     fetchProfiles();
     fetchCompanies();
+    fetchDrivers();
   }, []);
 
   const handleInputChange = (e) => {
@@ -82,55 +96,65 @@ const ProfilesPage = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const isDriverProfile = formData.userProfile === 'DRIVER';
+    const existingDriver = editingId ? driverOfUser(editingId) : null;
+
+    if (isDriverProfile && !existingDriver && (!formData.cnhNumber || !formData.cnhExpiration)) {
+      showToast('Para o perfil Motorista informe o número e a validade da CNH.', 'error');
+      return;
+    }
+
+    let createdUserId = null;
     try {
       let savedUserId;
+      const basePayload = {
+        name: formData.name,
+        email: formData.email,
+        cpf: formData.cpf.replace(/\D/g, ''),
+        userProfile: formData.userProfile,
+        companyId: formData.companyId
+      };
 
       if (editingId) {
-        const payload = {
-          name: formData.name,
-          email: formData.email,
-          cpf: formData.cpf,
-          ...(formData.password && formData.password.trim() ? { password: formData.password } : {}),
-          "User Profile": formData.userProfile,
-          userProfile: formData.userProfile,
-          companyId: formData.companyId
-        };
-        await userService.updateUser(editingId, payload);
+        await userService.updateUser(editingId, {
+          ...basePayload,
+          ...(formData.password && formData.password.trim() ? { password: formData.password } : {})
+        });
         savedUserId = editingId;
-        showToast("Usuário atualizado com sucesso!", "success");
       } else {
-        const payload = {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          cpf: formData.cpf,
-          "User Profile": formData.userProfile,
-          userProfile: formData.userProfile,
-          companyId: formData.companyId
-        };
-        const newUserResponse = await userService.createUser(payload);
+        const newUserResponse = await userService.createUser({ ...basePayload, password: formData.password });
         savedUserId = newUserResponse?.id;
-        showToast("Usuário cadastrado com sucesso!", "success");
+        createdUserId = savedUserId;
       }
 
-      if (formData.userProfile === 'DRIVER' && savedUserId && !editingId) {
-        let expDate = formData.cnhExpiration;
-        if (expDate && expDate.includes('-')) {
-          const [y, m, d] = expDate.split('-');
-          expDate = `${d}/${m}/${y}`;
-        }
-        await driverService.createDriver({
+      if (isDriverProfile && savedUserId) {
+        const driverPayload = {
           cnhNumber: formData.cnhNumber,
-          cnhExpiration: expDate,
+          cnhExpiration: toApiDate(formData.cnhExpiration),
           costPerHour: parseFloat(formData.costPerHour) || 25.0,
           userId: savedUserId
-        });
+        };
+        if (existingDriver) {
+          await driverService.patchDriver(existingDriver.id, {
+            ...(formData.cnhNumber ? { cnhNumber: formData.cnhNumber } : {}),
+            ...(formData.cnhExpiration ? { cnhExpiration: toApiDate(formData.cnhExpiration) } : {}),
+            ...(formData.costPerHour ? { costPerHour: parseFloat(formData.costPerHour) } : {})
+          });
+        } else {
+          await driverService.createDriver(driverPayload);
+        }
       }
 
+      showToast(editingId ? 'Usuário atualizado com sucesso!' : 'Usuário cadastrado com sucesso!', 'success');
       handleCloseModal();
       fetchProfiles();
+      fetchDrivers();
     } catch (error) {
       console.error("Erro ao salvar:", error);
+      // Usuário criado agora mas o cadastro de motorista falhou: desfaz para não deixar motorista sem CNH
+      if (createdUserId) {
+        try { await userService.deleteUser(createdUserId); } catch { /* ignora */ }
+      }
       showToast(extractErrorMessage(error, 'Erro ao processar usuário.'), "error");
     }
   };
@@ -143,9 +167,10 @@ const ProfilesPage = () => {
       cpf: row.cpf || '',
       password: '',
       userProfile: row.userProfile || row["User Profile"] || 'OPERATOR',
-      companyId: row.company?.id || row.companyId || (companies.length > 0 ? companies[0].id : ''),
-      cnhNumber: '',
-      cnhExpiration: ''
+      companyId: row.company?.id || row.companyId || defaultTenantId(companies),
+      cnhNumber: driverOfUser(row.id)?.cnhNumber || '',
+      cnhExpiration: driverOfUser(row.id)?.cnhExpiration || '',
+      costPerHour: driverOfUser(row.id)?.costPerHour ?? ''
     });
     setIsModalOpen(true);
   };
@@ -175,7 +200,7 @@ const ProfilesPage = () => {
     setEditingId(null);
     setFormData({
       ...initialFormState,
-      companyId: companies.length > 0 ? companies[0].id : ''
+      companyId: defaultTenantId(companies)
     });
   };
 
@@ -248,10 +273,7 @@ const ProfilesPage = () => {
   ];
 
   const handleOpenNewModal = () => {
-    const selectedTenant = authService.getSelectedTenant();
-    const defaultCompId = (selectedTenant && selectedTenant !== 'all') 
-      ? selectedTenant 
-      : (companies.length > 0 ? companies[0].id : '');
+    const defaultCompId = defaultTenantId(companies);
     setEditingId(null);
     setFormData({
       ...initialFormState,
@@ -381,14 +403,12 @@ const ProfilesPage = () => {
                     >
                       <option value="">Selecione a empresa...</option>
                       {companies.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.legalName}
-                        </option>
+                        <option key={c.id} value={c.id}>{tenantLabel(c)}</option>
                       ))}
                     </select>
                   </div>
 
-                  {formData.userProfile === 'DRIVER' && !editingId && (
+                  {formData.userProfile === 'DRIVER' && (
                     <>
                       <div className="form-group">
                         <label className="form-label">Número da CNH</label>

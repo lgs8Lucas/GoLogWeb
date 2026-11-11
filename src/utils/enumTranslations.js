@@ -7,6 +7,10 @@ export const STATUS_TRANSLATIONS = {
   // Transportes & Remessas
   PENDING: 'Pendente',
   PENDENTE: 'Pendente',
+  AGUARDANDO_INICIO: 'Aguardando início',
+  INICIADO: 'Em andamento',
+  EM_MANUTENCAO: 'Em manutenção',
+  INDISPONIVEL: 'Indisponível',
   IN_TRANSIT: 'Em trânsito',
   EM_TRANSITO: 'Em trânsito',
   EM_VIAGEM: 'Em viagem',

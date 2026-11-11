@@ -153,6 +153,7 @@ const TransportPage = () => {
         return {
           id: `#${t.codeTransport || (t.id ? t.id.substring(0, 8) : 'N/A')}`,
           rawId: t.id,
+          codeTransport: t.codeTransport || 0,
           origin: origin,
           currentDest: destination,
           equipments: equipments,
@@ -169,6 +170,8 @@ const TransportPage = () => {
         };
       });
 
+      // Viagens mais recentes primeiro (o código do transporte é sequencial)
+      mapped.sort((a, b) => b.codeTransport - a.codeTransport);
       setTransports(mapped);
       setBacklogShipments(safeBacklog);
       if (mapped.length > 0) {

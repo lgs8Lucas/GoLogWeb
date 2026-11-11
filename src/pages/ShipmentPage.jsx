@@ -1,3 +1,4 @@
+import { translateStatus } from '../utils/enumTranslations';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Package, FileUp, Plus } from 'lucide-react';
 import DataTable from '../components/DataTable';
@@ -126,7 +127,15 @@ const ShipmentPage = () => {
     { label: 'Cliente / Parceiro', key: 'customer', render: (row) => row.customer?.legalName || '-' },
     { label: 'Peso', key: 'weight', render: (row) => `${row.weight || 0} kg` },
     { label: 'Volume', key: 'volume', render: (row) => `${row.volume || 0} m³` },
-    { label: 'Agendamento', key: 'schedulind', render: (row) => row.schedulind ? new Date(row.schedulind).toLocaleString('pt-BR') : '-' },
+    {
+      label: 'Agendamento',
+      key: 'schedulind',
+      accessor: (row) => row.shedulind || row.schedulind || '',
+      render: (row) => {
+        const when = row.shedulind || row.schedulind;
+        return when ? new Date(when).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+      }
+    },
     { 
       label: 'Status', 
       key: 'status', 
@@ -136,7 +145,7 @@ const ShipmentPage = () => {
         if (s.includes('finaliz') || s.includes('concl') || s.includes('entreg')) chipClass = 'active';
         else if (s.includes('pend') || s.includes('espera')) chipClass = 'warning';
         else if (s.includes('cancel') || s.includes('erro')) chipClass = 'danger';
-        return <span className={`status-chip ${chipClass}`}>{row.status || 'PENDENTE'}</span>;
+        return <span className={`status-chip ${chipClass}`}>{translateStatus(row.status || 'PENDENTE')}</span>;
       }
     }
   ];

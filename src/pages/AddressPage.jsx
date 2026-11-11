@@ -1,3 +1,4 @@
+import { geocodeAddress, PRECISION_LABEL } from '../utils/geocode';
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Save, X, Search, Map } from 'lucide-react';
 import DataTable from '../components/DataTable';
@@ -21,26 +22,28 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
     longitude: ''
   });
   const [loadingCoords, setLoadingCoords] = useState(false);
+  const [geoMessage, setGeoMessage] = useState('');
 
   const fetchCoordinates = async () => {
     if (!formData.street || !formData.city || !formData.state) {
-      alert('Preencha Logradouro, Cidade e Estado para buscar as coordenadas.');
+      setGeoMessage('Preencha logradouro, cidade e UF para buscar as coordenadas.');
       return;
     }
     setLoadingCoords(true);
+    setGeoMessage('');
     try {
-      const query = `${formData.street}, ${formData.number ? formData.number + ', ' : ''}${formData.city}, ${formData.state}, Brasil`;
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        setFormData(prev => ({ ...prev, latitude: data[0].lat, longitude: data[0].lon }));
+      const geo = await geocodeAddress(formData);
+      if (geo) {
+        setFormData(prev => ({ ...prev, latitude: geo.latitude, longitude: geo.longitude }));
+        if (geo.precision !== 'endereco') {
+          setGeoMessage(`Localizado pelo ${PRECISION_LABEL[geo.precision]} — confira as coordenadas.`);
+        }
       } else {
-        alert('Coordenadas não encontradas. Tente ser mais específico no endereço.');
+        setGeoMessage('Coordenadas não encontradas. Revise o endereço ou informe latitude/longitude manualmente.');
       }
     } catch (error) {
       console.error('Erro ao buscar coordenadas:', error);
-      alert('Erro de rede ao buscar coordenadas.');
+      setGeoMessage('Erro de rede ao buscar coordenadas.');
     } finally {
       setLoadingCoords(false);
     }
@@ -83,9 +86,21 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { ...formData };
+    const payload = { ...formData, state: (formData.state || '').toUpperCase(), country: formData.country || 'Brasil' };
+    // Sem coordenadas o endereço não serve para roteirização: tenta localizar automaticamente
+    if (!payload.latitude || !payload.longitude) {
+      setLoadingCoords(true);
+      const geo = await geocodeAddress(payload).catch(() => null);
+      setLoadingCoords(false);
+      if (!geo) {
+        setGeoMessage('Não foi possível localizar o endereço. Informe latitude e longitude para salvar.');
+        return;
+      }
+      payload.latitude = geo.latitude;
+      payload.longitude = geo.longitude;
+    }
     if (!payload.complement || payload.complement.trim() === '') {
       delete payload.complement;
     }
@@ -159,8 +174,11 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
 
               <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-start' }}>
                 <button type="button" onClick={fetchCoordinates} disabled={loadingCoords} className="btn btn-outline" style={{ fontSize: '0.8125rem' }}>
-                  {loadingCoords ? 'Buscando GPS...' : '📍 Buscar Coordenadas via GPS'}
+                  {loadingCoords ? 'Buscando coordenadas…' : 'Buscar coordenadas pelo endereço'}
                 </button>
+                {geoMessage && (
+                  <span style={{ marginLeft: '0.75rem', alignSelf: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{geoMessage}</span>
+                )}
               </div>
 
             </div>

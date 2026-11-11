@@ -22,10 +22,9 @@ import { demandTypeService } from '../services/demandTypeService';
 import { visitTypeService } from '../services/visitTypeService';
 import { typeTransportService } from '../services/typeTransportService';
 import { shipmentTypeService } from '../services/shipmentTypeService';
-import { companyService } from '../services/companyService';
-import { authService } from '../services/authService';
 import { translateRuleType } from '../utils/enumTranslations';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { loadTenantOptions, defaultTenantId, tenantLabel } from '../utils/tenantOptions';
 import '../styles/OptimizationRules.css';
 
 const PRESET_TEMPLATES = [
@@ -193,17 +192,11 @@ const OptimizationRulesPage = () => {
 
   const loadCompanies = async () => {
     try {
-      const data = await companyService.getAllCompanies();
-      setCompanies(data || []);
-      if (data && data.length > 0) {
-        const currentTenant = authService.getSelectedTenant();
-        const tenantInfo = authService.getTenantInfo();
-        const preferredId = (currentTenant && currentTenant !== 'all') 
-          ? currentTenant 
-          : (tenantInfo?.companyId || data[0].id);
-        const match = data.find(c => c.id === preferredId);
-        setSelectedCompanyId(match ? match.id : data[0].id);
-      }
+      // Regras e perfis pertencem a um tenant (transportadora), nunca a um cliente
+      const data = await loadTenantOptions();
+      setCompanies(data);
+      const preferredId = defaultTenantId(data);
+      if (preferredId) setSelectedCompanyId(preferredId);
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
       showToast('Erro ao carregar lista de empresas.', 'error');
@@ -438,7 +431,7 @@ const OptimizationRulesPage = () => {
           >
             {companies.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.legalName || c.name || `Empresa #${c.id.substring(0, 8)}`}
+                {tenantLabel(c)}
               </option>
             ))}
           </select>

@@ -189,8 +189,12 @@
   border-color: var(--border-dark);
 }
 
-.search-input-wrapper {
+/* Escopo local: TenantsPage.css define .search-input-wrapper { flex: 1 } globalmente, o que esticava
+   o campo de busca e abria um vão vazio no topo do painel. */
+.floating-panel .search-input-wrapper {
   position: relative;
+  flex: 0 0 auto;
+  max-width: none;
 }
 
 .monitoring-search-input {

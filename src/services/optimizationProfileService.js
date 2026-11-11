@@ -1,6 +1,12 @@
 import { apiClient } from './apiClient';
 
 export const optimizationProfileService = {
+  /** Perfis do tenant ativo (na Visão Global do Master, de todos os tenants). */
+  getAll: async () => {
+    const response = await apiClient.get('/optimization-profile');
+    return response.data;
+  },
+
   getAllByCompany: async (companyId) => {
     if (!companyId) return [];
     const response = await apiClient.get(`/optimization-profile/company/${companyId}`);

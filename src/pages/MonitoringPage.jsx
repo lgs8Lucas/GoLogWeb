@@ -196,7 +196,7 @@ const MonitoringPage = () => {
                   <div className="vehicle-sub-badges">
                     <span className="badge-stops-count">{trip.shipments.length} paradas</span>
                     {trip.calculedDistance > 0 && (
-                      <span className="badge-distance-km">{trip.calculedDistance.toFixed(0)} km</span>
+                      <span className="badge-distance-km">{((trip.calculedDistance || 0) / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km</span>
                     )}
                   </div>
                 </div>

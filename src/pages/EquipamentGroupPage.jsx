@@ -6,7 +6,6 @@ import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { equipamentGroupService } from '../services/equipamentGroupService';
 import { equipamentService } from '../services/equipamentService';
-import { companyService } from '../services/companyService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { extractErrorMessage } from '../utils/errorUtils';
@@ -32,7 +31,6 @@ const EquipamentGroupPage = () => {
   };
   const [formData, setFormData] = useState(initialFormState);
   const [equipments, setEquipments] = useState([]);
-  const [companies, setCompanies] = useState([]);
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -58,18 +56,32 @@ const EquipamentGroupPage = () => {
     fetchGroups();
     const loadData = async () => {
       try {
-        const [equipsData, compsData] = await Promise.all([
-          equipamentService.getAll(),
-          companyService.getAllCompanies()
+        const [equipsData] = await Promise.all([
+          equipamentService.getAll()
         ]);
         setEquipments(equipsData || []);
-        setCompanies(compsData || []);
       } catch (err) {
         console.error("Erro ao carregar dados auxiliares:", err);
       }
     };
     loadData();
   }, [editParamId]);
+
+  // Tração = cavalo/caminhão (sem volume máximo); reboque = carreta. Equipamentos já usados em outro
+  // conjunto não aparecem (a API rejeitaria), exceto os do próprio conjunto em edição.
+  const usedByOtherGroups = new Set(
+    groups
+      .filter(g => g.id !== editingId)
+      .flatMap(g => [g.equipament1?.id, g.equipament2?.id, g.equipament3?.id])
+      .filter(Boolean)
+  );
+  const isTrailer = (eq) => eq.maximumVolume !== undefined && eq.maximumVolume !== null;
+  const tractorOptions = equipments.filter(eq => !isTrailer(eq) && !usedByOtherGroups.has(eq.id));
+  const trailerOptions = equipments.filter(eq => isTrailer(eq) && !usedByOtherGroups.has(eq.id));
+  const ownerOfTractor = (() => {
+    const eq = equipments.find(e => e.id === formData.equipament1Id);
+    return eq?.company?.legalName || '';
+  })();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -93,8 +105,7 @@ const EquipamentGroupPage = () => {
         observation: formData.observation,
         equipament1Id: formData.equipament1Id,
         equipament2Id: formData.equipament2Id || null,
-        equipament3Id: formData.equipament3Id || null,
-        companyId: formData.companyId || null
+        equipament3Id: formData.equipament3Id || null
       };
       if (editingId) {
         await equipamentGroupService.update(editingId, payload);
@@ -295,7 +306,8 @@ const EquipamentGroupPage = () => {
                       required
                     >
                       <option value="">Selecione o veículo de tração...</option>
-                      {equipments.map(eq => (
+                      {tractorOptions.length === 0 && <option value="" disabled>Nenhum cavalo/caminhão livre — cadastre na Frota</option>}
+                      {tractorOptions.map(eq => (
                         <option key={eq.id} value={eq.id}>
                           {eq.plate} - {eq.model || 'Veículo'} ({eq.maximumVolume != null ? 'Carreta' : 'Cavalo/Truck'})
                         </option>
@@ -305,19 +317,13 @@ const EquipamentGroupPage = () => {
 
                   <div className="form-group">
                     <label className="form-label">Empresa Proprietária / Operadora</label>
-                    <select 
-                      name="companyId" 
-                      value={formData.companyId} 
-                      onChange={handleInputChange} 
-                      className="form-select"
-                    >
-                      <option value="">Selecione a empresa (ou herdado do caminhão)...</option>
-                      {companies.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.legalName}
-                        </option>
-                      ))}
-                    </select>
+                    <input
+                      className="form-input"
+                      value={ownerOfTractor || 'Definida pelo cavalo/caminhão selecionado'}
+                      readOnly
+                      disabled
+                      title="O conjunto pertence à mesma empresa do veículo de tração"
+                    />
                   </div>
 
                   <div className="form-group">
@@ -329,7 +335,7 @@ const EquipamentGroupPage = () => {
                       className="form-select"
                     >
                       <option value="">Nenhum (ou semicarreta)...</option>
-                      {equipments.filter(e => e.id !== formData.equipament1Id).map(eq => (
+                      {trailerOptions.filter(e => e.id !== formData.equipament3Id).map(eq => (
                         <option key={eq.id} value={eq.id}>
                           {eq.plate} - {eq.model || 'Implemento'}
                         </option>
@@ -346,7 +352,7 @@ const EquipamentGroupPage = () => {
                       className="form-select"
                     >
                       <option value="">Nenhum (Composição simples)...</option>
-                      {equipments.filter(e => e.id !== formData.equipament1Id && e.id !== formData.equipament2Id).map(eq => (
+                      {trailerOptions.filter(e => e.id !== formData.equipament2Id).map(eq => (
                         <option key={eq.id} value={eq.id}>
                           {eq.plate} - {eq.model || 'Implemento'}
                         </option>

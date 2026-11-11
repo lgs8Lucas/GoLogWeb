@@ -5,8 +5,8 @@ import { transportService } from '../services/transportService';
 import { deliveryService } from '../services/deliveryService';
 import { workScheduleService } from '../services/workScheduleService';
 import { optimizationProfileService } from '../services/optimizationProfileService';
-import { companyService } from '../services/companyService';
 import { useToast } from './ToastContext';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 const driverLabel = (d) => d?.name || d?.user?.name || (d?.id ? `Motorista #${d.id.substring(0, 8)}` : 'Sem motorista');
 
@@ -81,11 +81,11 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
 
     const loadData = async () => {
       try {
-        const [pendingShipments, waitingShipments, schedulesData, companiesData] = await Promise.all([
+        const [pendingShipments, waitingShipments, schedulesData, profileList] = await Promise.all([
           deliveryService.getByStatus('PENDENTE').catch(() => []),
           deliveryService.getByStatus('AGUARDANDO_INICIO').catch(() => []),
           workScheduleService.getAll().catch(() => []),
-          companyService.getAllCompanies().catch(() => [])
+          optimizationProfileService.getAll().catch(() => [])
         ]);
 
         const combinedMap = new Map();
@@ -94,25 +94,19 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
         const activeShipments = Array.from(combinedMap.values());
         setShipments(activeShipments);
 
-        const activeSchedules = (schedulesData || []).filter(s => s.status === 'ATIVO' || s.status === 'EM_OPERACAO');
+        // Escalas ativas de hoje em diante (escalas passadas não geram janelas válidas no otimizador)
+        const today = new Date().toISOString().slice(0, 10);
+        const activeSchedules = (schedulesData || [])
+          .filter(s => s.status === 'ATIVO' || s.status === 'EM_OPERACAO')
+          .filter(s => !s.scheduleDate || s.scheduleDate >= today)
+          .sort((a, b) => (a.scheduleDate || '').localeCompare(b.scheduleDate || ''));
         setWorkSchedules(activeSchedules);
 
-        // Identifica a empresa para carregar os perfis de cálculo
-        let targetCompanyId = null;
-        if (activeSchedules.length > 0 && activeSchedules[0]?.equipamentGroup?.equipament1?.company?.id) {
-          targetCompanyId = activeSchedules[0].equipamentGroup.equipament1.company.id;
-        } else if (companiesData && companiesData.length > 0) {
-          const transportComp = companiesData.find(c => !c.isCliente) || companiesData[0];
-          targetCompanyId = transportComp?.id;
-        }
-
-        if (targetCompanyId) {
-          const profileList = await optimizationProfileService.getAllByCompany(targetCompanyId);
-          setProfiles(profileList || []);
-          const defaultProf = profileList?.find(p => p.isDefault);
-          if (defaultProf) {
-            setSelectedProfileId(defaultProf.id);
-          }
+        // Perfis de custo do tenant ativo (antes eram buscados pela empresa do 1º veículo, que podia ser um cliente)
+        setProfiles(profileList || []);
+        const defaultProf = (profileList || []).find(p => p.isDefault);
+        if (defaultProf) {
+          setSelectedProfileId(defaultProf.id);
         }
       } catch (err) {
         console.error('Erro ao carregar dados para otimização de rotas:', err);
@@ -168,15 +162,24 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
         timeWindowLeadMinutes: timeWindowLeadMinutes !== '' ? parseInt(timeWindowLeadMinutes, 10) : null
       };
 
-      await transportService.optimizeRoutes(payload);
-      showToast('Rotas otimizadas com sucesso via gRPC!', 'success');
+      const result = await transportService.optimizeRoutes(payload);
+      const skipped = result?.skipped || [];
+      if (!result || result.routesCount === 0) {
+        const motivo = skipped[0]?.reasons?.join(', ');
+        showToast(`Nenhuma rota gerada.${motivo ? ' Motivo: ' + motivo + '.' : ''} Revise horários das escalas e agendamentos.`, 'error');
+        return;
+      }
+      const km = ((result.totalDistanceMeters || 0) / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+      showToast(`${result.routesCount} rota(s) gerada(s) com ${result.plannedShipments} parada(s) — ${km} km planejados.`, 'success');
+      if (skipped.length > 0) {
+        const lista = skipped.slice(0, 3).map(s => `#${(s.shipmentIds?.[s.shipmentIds.length - 1] || '').substring(0, 8)} (${(s.reasons || []).join(', ')})`).join('; ');
+        showToast(`${skipped.length} remessa(s) não puderam ser roteirizadas: ${lista}${skipped.length > 3 ? '…' : ''}`, 'warning');
+      }
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error('Erro ao otimizar rotas:', error);
-      const data = error.response?.data;
-      const mensagem = (typeof data === 'string' && data.trim()) || data?.message || data?.detail || 'Erro ao otimizar rotas no motor gRPC.';
-      showToast(mensagem, 'error');
+      showToast(extractErrorMessage(error, 'Erro ao otimizar rotas.'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -188,7 +191,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
         <div className="modal-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <FastForward size={22} color="var(--primary-color, #2563eb)" />
-            Otimizar e Planejar Rotas (Motor gRPC)
+            Otimizar e Planejar Rotas
           </h2>
           <button className="modal-close-btn" onClick={onClose} aria-label="Fechar">
             <X size={20} />
@@ -408,7 +411,7 @@ const OptimizeRouteModal = ({ isOpen, onClose, onSuccess }) => {
             onClick={handleSubmit}
             disabled={loading || submitting || selectedShipmentIds.length === 0 || selectedScheduleIds.length === 0}
           >
-            {submitting ? 'Otimizando Rotas via gRPC...' : 'Otimizar Rotas (gRPC)'}
+            {submitting ? 'Otimizando rotas…' : 'Otimizar Rotas'}
           </button>
         </div>
       </div>

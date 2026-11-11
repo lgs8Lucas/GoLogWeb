@@ -82,7 +82,11 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
         setTypeTransports(transData || []);
         setCompanies(compsData || []);
         setAddresses(addrsData || []);
-        setCollections((shipmentsData || []).filter(s => s.typeOperation === 'COLETA'));
+        // Só coletas ainda planejáveis podem receber novas entregas (e a própria coleta em edição nunca)
+        setCollections((shipmentsData || []).filter(s =>
+          s.typeOperation === 'COLETA'
+          && (s.status === 'PENDENTE' || s.status === 'AGUARDANDO_INICIO' || s.id === initialData?.operationOrigem?.id)
+          && s.id !== initialData?.id));
 
         // Auto-detect logged-in user if userId is not already set
         if (!initialForm.userId && userList.length > 0) {
@@ -109,13 +113,15 @@ const DeliveryModal = ({ isOpen, onClose, onSave, initialData = null }) => {
 
     if (name === 'customerDeliveryId' && value) {
       const selectedComp = companies.find(c => c.id === value);
-      if (selectedComp?.address?.id) {
-        next.destinationAddressId = selectedComp.address.id;
+      const addrId = selectedComp?.addressId || selectedComp?.address?.id;
+      if (addrId && addresses.some(a => a.id === addrId)) {
+        next.destinationAddressId = addrId;
       }
     } else if (name === 'customerCollectsId' && value) {
       const selectedComp = companies.find(c => c.id === value);
-      if (selectedComp?.address?.id) {
-        next.originAdrressId = selectedComp.address.id;
+      const addrId = selectedComp?.addressId || selectedComp?.address?.id;
+      if (addrId && addresses.some(a => a.id === addrId)) {
+        next.originAdrressId = addrId;
       }
     }
 

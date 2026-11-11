@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import './Toast.css';
-import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
@@ -19,7 +19,11 @@ export const ToastProvider = ({ children }) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const showToast = useCallback((message, type = 'info', duration = 3000) => {
+  // Erros e avisos ficam mais tempo na tela: costumam trazer a explicação da API para o operador
+  const showToast = useCallback((message, type = 'info', duration) => {
+    if (duration === undefined) {
+      duration = type === 'error' || type === 'warning' ? 7000 : 3500;
+    }
     const id = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     setToasts((prev) => [...prev, { id, message, type }]);
 
@@ -40,6 +44,7 @@ export const ToastProvider = ({ children }) => {
               {toast.type === 'success' && <CheckCircle size={20} />}
               {toast.type === 'error' && <AlertCircle size={20} />}
               {toast.type === 'info' && <Info size={20} />}
+              {toast.type === 'warning' && <AlertTriangle size={20} />}
             </div>
             <div className="toast-message">{toast.message}</div>
             <button onClick={() => removeToast(toast.id)} className="toast-close">

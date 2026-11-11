@@ -1,3 +1,4 @@
+import { geocodeAddress } from '../utils/geocode';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
@@ -66,9 +67,10 @@ const TenantsPage = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      // O resumo global é exclusivo do GoLog Master (a API responde 403 para os demais)
       const [tenantsData, summaryData] = await Promise.all([
         tenantService.getAllTenants(),
-        tenantService.getSummary()
+        authService.isMaster() ? tenantService.getSummary().catch(() => null) : Promise.resolve(null)
       ]);
       setTenants(tenantsData || []);
       setSummary(summaryData);
@@ -126,8 +128,20 @@ const TenantsPage = () => {
 
     try {
       setSubmitting(true);
+      const coords = { latitude: formData.latitude, longitude: formData.longitude };
+      // A sede é o ponto de partida dos veículos sem telemetria: sem coordenadas reais a API usaria o centro de SP
+      if (!coords.latitude || !coords.longitude) {
+        const geo = await geocodeAddress(formData);
+        if (!geo) {
+          addToast('Não foi possível localizar o endereço da sede. Revise rua, cidade, UF e CEP.', 'error');
+          return;
+        }
+        coords.latitude = geo.latitude;
+        coords.longitude = geo.longitude;
+      }
       const payload = {
         ...formData,
+        ...coords,
         cnpjCpf: formData.cnpjCpf.replace(/\D/g, ''),
         adminCpf: formData.adminCpf.replace(/\D/g, ''),
         parentCompanyId: formData.parentCompanyId || null
@@ -171,14 +185,16 @@ const TenantsPage = () => {
         title="Gestão de Instâncias & Multi-Tenants"
         description="Painel exclusivo do GoLog Master para controle gerencial, provisionamento de novas empresas e filiais."
       >
-        <button className="btn-primary-action" onClick={() => setIsModalOpen(true)}>
-          <Plus size={18} />
-          <span>Provisionar Novo Tenant</span>
-        </button>
+        {authService.isMaster() && (
+          <button className="btn-primary-action" onClick={() => setIsModalOpen(true)}>
+            <Plus size={18} />
+            <span>Provisionar Novo Tenant</span>
+          </button>
+        )}
       </PageHeader>
 
       {/* Cards de Métricas do Master */}
-      <div className="tenant-summary-grid">
+      <div className="tenant-summary-grid" style={authService.isMaster() ? undefined : { display: 'none' }}>
         <div className="summary-card">
           <div className="card-icon tenant-color">
             <Building2 size={24} />

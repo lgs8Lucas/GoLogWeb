@@ -8,11 +8,11 @@ import { equipamentService } from '../services/equipamentService';
 import { tractorService } from '../services/tractorService';
 import { trailerService } from '../services/trailerService';
 import { companyService } from '../services/companyService';
-import { authService } from '../services/authService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { translateStatus, translateVehicleType, translateFuel } from '../utils/enumTranslations';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { loadTenantOptions, defaultTenantId, tenantLabel } from '../utils/tenantOptions';
 
 const FleetPage = () => {
   const [searchParams] = useSearchParams();
@@ -22,6 +22,7 @@ const FleetPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [companies, setCompanies] = useState([]);
+  const [tenants, setTenants] = useState([]);
   const { showToast } = useToast();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState(null);
@@ -49,10 +50,12 @@ const FleetPage = () => {
   const fetchFleet = async () => {
     setLoading(true);
     try {
-      const [data, comps] = await Promise.all([
+      const [data, comps, tenantList] = await Promise.all([
         equipamentService.getAll(),
-        companyService.getAllCompanies()
+        companyService.getAllCompanies(),
+        loadTenantOptions()
       ]);
+      setTenants(tenantList);
       const safeData = Array.isArray(data) ? data : [];
       const safeComps = Array.isArray(comps) ? comps : [];
       setCompanies(safeComps);
@@ -102,7 +105,11 @@ const FleetPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    // Placa e RENAVAM são validados pela API (AAA-1234 / AAA1A23 e 11 dígitos)
+    const normalized = name === 'plate' ? value.toUpperCase().replace(/\s/g, '')
+      : name === 'renavam' ? value.replace(/\D/g, '').slice(0, 11)
+      : value;
+    setFormData({ ...formData, [name]: normalized });
   };
 
   const handleSaveVehicle = async (e) => {
@@ -168,7 +175,7 @@ const FleetPage = () => {
       typeFuel: row.raw.typeFuel || 'DIESEL',
       costPerKilometer: row.raw.costPerKilometer?.toString() || '',
       maximumVolume: row.raw.maximumVolume?.toString() || '100',
-      companyId: row.raw.company?.id || row.raw.companyId || (companies.length > 0 ? companies[0].id : '')
+      companyId: row.raw.company?.id || row.raw.companyId || defaultTenantId(tenants)
     });
     setIsModalOpen(true);
   };
@@ -209,9 +216,9 @@ const FleetPage = () => {
       numberAxles: '2',
       tipo: 'carreta',
       typeFuel: 'DIESEL',
-      kmPerLiter: '2.5',
+      costPerKilometer: '',
       maximumVolume: '100',
-      companyId: companies.length > 0 ? companies[0].id : ''
+      companyId: defaultTenantId(tenants)
     });
   };
 
@@ -268,10 +275,7 @@ const FleetPage = () => {
   ];
 
   const handleOpenNewVehicle = () => {
-    const selectedTenant = authService.getSelectedTenant();
-    const defaultCompId = (selectedTenant && selectedTenant !== 'all')
-      ? selectedTenant
-      : (companies.length > 0 ? companies[0].id : '');
+    const defaultCompId = defaultTenantId(tenants);
     setEditingId(null);
     setFormData({
       plate: '',
@@ -282,7 +286,7 @@ const FleetPage = () => {
       numberAxles: '2',
       tipo: 'carreta',
       typeFuel: 'DIESEL',
-      kmPerLiter: '2.5',
+      costPerKilometer: '',
       maximumVolume: '100',
       companyId: defaultCompId
     });
@@ -368,10 +372,10 @@ const FleetPage = () => {
                       className="form-select" 
                       required 
                     >
-                      <option value="">Selecione a empresa...</option>
-                      {companies.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.legalName}
+                      <option value="">Selecione a transportadora...</option>
+                      {tenants.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {tenantLabel(t)}
                         </option>
                       ))}
                     </select>
@@ -436,6 +440,8 @@ const FleetPage = () => {
                       onChange={handleInputChange} 
                       className="form-select"
                       required
+                      disabled={!!editingId}
+                      title={editingId ? 'O tipo do veículo não pode ser alterado após o cadastro' : undefined}
                     >
                       <option value="carreta">Carreta (Trailer)</option>
                       <option value="truck">Caminhão - Truck (Tractor)</option>

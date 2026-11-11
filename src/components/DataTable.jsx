@@ -84,14 +84,22 @@ const DataTable = ({
   const sortedData = React.useMemo(() => {
     return [...filteredData].sort((a, b) => {
       if (!sortConfig.key) return 0;
-      const valA = a[sortConfig.key] ? String(a[sortConfig.key]).toLowerCase() : '';
-      const valB = b[sortConfig.key] ? String(b[sortConfig.key]).toLowerCase() : '';
+      // Colunas com accessor ordenam pelo valor calculado (ex.: campos aninhados ou com nomes alternativos)
+      const col = columns.find(c => c.key === sortConfig.key);
+      const read = (row) => (col?.accessor ? col.accessor(row) : row[sortConfig.key]);
+      const rawA = read(a);
+      const rawB = read(b);
+      if (typeof rawA === 'number' && typeof rawB === 'number') {
+        return sortConfig.direction === 'ascending' ? rawA - rawB : rawB - rawA;
+      }
+      const valA = rawA !== undefined && rawA !== null ? String(rawA).toLowerCase() : '';
+      const valB = rawB !== undefined && rawB !== null ? String(rawB).toLowerCase() : '';
       
       if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
       if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
       return 0;
     });
-  }, [filteredData, sortConfig]);
+  }, [filteredData, sortConfig, columns]);
 
   const totalPages = Math.ceil(sortedData.length / itemsPerPage) || 1;
   const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
