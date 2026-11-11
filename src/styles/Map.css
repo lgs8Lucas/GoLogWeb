@@ -1,0 +1,68 @@
+/* Mapa operacional (Leaflet) — marcadores, popups e legenda no padrão visual do GoLog */
+.gl-map { overflow: hidden; border-radius: inherit; isolation: isolate; }
+.gl-map__canvas { position: absolute; inset: 0; background: #eef2f5; }
+.gl-map .leaflet-container { font-family: inherit; background: #eef2f5; }
+/* Base neutra: dessatura o OSM para que rotas e paradas sejam o destaque */
+.gl-map .leaflet-tile-pane { filter: saturate(0.25) brightness(1.06) contrast(0.92); }
+.gl-map .leaflet-control-attribution { font-size: 10px; background: rgba(255, 255, 255, 0.75); border-radius: 6px 0 0 0; }
+.gl-map .leaflet-control-zoom { border: none; box-shadow: var(--shadow-md); border-radius: 10px; overflow: hidden; }
+.gl-map .leaflet-control-zoom a { width: 32px; height: 32px; line-height: 32px; color: var(--primary-color); border-color: var(--border-light); }
+
+.gl-marker { background: none; border: none; }
+
+.gl-stop {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 800; color: #fff;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px var(--route, #2ab29b), 0 4px 10px rgba(15, 23, 42, 0.25);
+  transition: transform 0.15s ease;
+}
+.gl-stop:hover { transform: scale(1.15); }
+.gl-stop--delivery { background: #10b981; }
+.gl-stop--collect { background: #0ea5e9; border-radius: 8px; }
+.gl-stop--done { background: #94a3b8; box-shadow: 0 0 0 2px #cbd5e1, 0 2px 6px rgba(15, 23, 42, 0.15); }
+
+.gl-start {
+  width: 26px; height: 26px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: var(--primary-color, #1f304c); color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px var(--route, #2ab29b), 0 4px 10px rgba(15, 23, 42, 0.3);
+}
+
+.gl-popup-wrap .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: var(--shadow-lg); padding: 0; }
+.gl-popup-wrap .leaflet-popup-content { margin: 0; }
+.gl-popup { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; min-width: 180px; }
+.gl-popup strong { font-size: 13px; color: var(--text-main); }
+.gl-popup small { font-size: 11px; color: var(--text-muted); }
+.gl-popup__kind { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.gl-popup__kind--delivery { color: #059669; }
+.gl-popup__kind--collect { color: #0284c7; }
+.gl-popup__route { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border-light); }
+.gl-tooltip { border-radius: 8px; font-weight: 600; font-size: 12px; box-shadow: var(--shadow-md); border: none; }
+
+.gl-map__legend {
+  position: absolute; left: 12px; bottom: 12px; z-index: 500;
+  display: flex; gap: 12px; flex-wrap: wrap;
+  padding: 6px 10px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-md);
+  font-size: 11px; font-weight: 600; color: var(--text-body);
+}
+.gl-map__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.gl-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.15); }
+.gl-dot--start { background: var(--primary-color, #1f304c); border-radius: 3px; }
+.gl-dot--collect { background: #0ea5e9; border-radius: 3px; }
+.gl-dot--delivery { background: #10b981; }
+.gl-dot--done { background: #94a3b8; }
+
+.gl-map__empty {
+  position: absolute; inset: 0; z-index: 400; pointer-events: none;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .gl-map__legend { left: 8px; right: 8px; bottom: 8px; gap: 8px; }
+}

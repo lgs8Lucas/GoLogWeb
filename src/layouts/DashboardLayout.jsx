@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-import '../styles/Dashboard.css';
+import '../components/ui/ui.css';
 
 const DashboardLayout = () => {
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem('golog_sidebar_collapsed') === 'true';
@@ -42,7 +43,8 @@ const DashboardLayout = () => {
           onToggleCollapse={toggleCollapse}
         />
         <main className={`dashboard-main ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-          <div className="dashboard-content">
+          {/* key por rota: reinicia a animação de entrada a cada navegação */}
+          <div className="dashboard-content page-transition" key={location.pathname}>
             <Outlet />
           </div>
         </main>

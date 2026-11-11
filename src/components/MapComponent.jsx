@@ -1,309 +1,179 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import '../styles/Map.css';
 
-// Chave da API do Google Maps via env (ou fallback padrão)
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+/**
+ * Mapa operacional do GoLog (Leaflet + base OpenStreetMap em tom neutro).
+ *
+ * Substitui o Google Maps JS, que exigia chave de API e exibia "For development purposes only".
+ * A interface de props é a mesma da versão anterior, então as telas não precisam mudar:
+ *
+ *   polylines: [{ id, coords: [[lat, lng], ...], color, label,
+ *                 stops: [{ coord: [lat, lng], type: 'COLETA'|'ENTREGA', label, status, sequence }] }]
+ *
+ * Paradas são numeradas pela sequência da rota, coloridas por tipo (coleta/entrega) e esmaecidas quando
+ * concluídas. Passar o mouse sobre uma rota a destaca.
+ */
+const DEFAULT_CENTER = [-22.3659, -47.3809]; // Araras/SP
+const ROUTE_PALETTE = ['#2ab29b', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#ec4899', '#84cc16', '#f97316', '#14b8a6'];
 
-// Carregador assíncrono singleton da SDK do Google Maps
-let googleMapsPromise = null;
-const loadGoogleMapsScript = (apiKey) => {
-  if (window.google && window.google.maps) {
-    return Promise.resolve(window.google.maps);
-  }
-  if (!googleMapsPromise) {
-    googleMapsPromise = new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      const keyParam = apiKey ? `&key=${apiKey}` : '';
-      script.src = `https://maps.googleapis.com/maps/api/js?libraries=geometry,places${keyParam}`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        if (window.google && window.google.maps) {
-          resolve(window.google.maps);
-        } else {
-          reject(new Error('Google Maps SDK não pôde ser carregada.'));
-        }
-      };
-      script.onerror = (err) => {
-        reject(err);
-      };
-      document.head.appendChild(script);
-    });
-  }
-  return googleMapsPromise;
+// Leaflet desenha em SVG por atributo: "var(--x, #hex)" não é resolvido, então usa o fallback hexadecimal
+const resolveColor = (color, index) => {
+  if (!color) return ROUTE_PALETTE[index % ROUTE_PALETTE.length];
+  const m = /var\([^,]+,\s*([^)]+)\)/.exec(color);
+  if (m) return m[1].trim();
+  if (color.startsWith('var(')) return ROUTE_PALETTE[index % ROUTE_PALETTE.length];
+  return color;
 };
 
-// Gerador de ícones SVG customizados para o Google Maps
-const getSvgMarkerIcon = (googleMaps, type, bgColor) => {
-  let pathD = 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z';
-  
-  if (type === 'START' || type === 'END') {
-    pathD = 'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z';
-  } else if (type === 'COLETA') {
-    pathD = 'M4 10v7h3v-7H4zm6 0v7h3v-7h-3zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm1-15h17l-3-4H5L3 7z';
-  } else if (type === 'ENTREGA') {
-    pathD = 'M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z';
-  }
-
-  return {
-    path: pathD,
-    fillColor: bgColor,
-    fillOpacity: 1,
-    strokeWeight: 1.5,
-    strokeColor: '#FFFFFF',
-    scale: 1.4,
-    anchor: new googleMaps.Point(12, 22),
-    labelOrigin: new googleMaps.Point(12, 9)
-  };
+const toLatLng = (c) => {
+  if (!c) return null;
+  const lat = Array.isArray(c) ? c[0] : c.lat;
+  const lng = Array.isArray(c) ? c[1] : c.lng;
+  const nLat = Number(lat);
+  const nLng = Number(lng);
+  return Number.isFinite(nLat) && Number.isFinite(nLng) ? [nLat, nLng] : null;
 };
 
-// Estilo moderno e limpo para o Google Maps compatível com o tema TMS
-const tmsMapStyle = [
-  {
-    featureType: 'administrative',
-    elementType: 'geometry',
-    stylers: [{ visibility: 'off' }]
-  },
-  {
-    featureType: 'poi',
-    stylers: [{ visibility: 'simplified' }]
-  },
-  {
-    featureType: 'poi.business',
-    stylers: [{ visibility: 'off' }]
-  },
-  {
-    featureType: 'road',
-    elementType: 'labels.icon',
-    stylers: [{ visibility: 'off' }]
-  },
-  {
-    featureType: 'transit',
-    stylers: [{ visibility: 'off' }]
-  },
-  {
-    featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#c4e0e5' }]
-  }
-];
+const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+const stopIcon = (stop, idx, routeColor) => {
+  const isCollect = stop.type === 'COLETA';
+  const done = stop.status === 'FINALIZADO' || stop.status === 'CONCLUIDO';
+  const seq = stop.sequence ?? idx + 1;
+  const cls = `gl-stop ${isCollect ? 'gl-stop--collect' : 'gl-stop--delivery'} ${done ? 'gl-stop--done' : ''}`;
+  return L.divIcon({
+    className: 'gl-marker',
+    html: `<div class="${cls}" style="--route:${routeColor}"><span>${done ? '✓' : seq}</span></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14]
+  });
+};
+
+const startIcon = (routeColor) => L.divIcon({
+  className: 'gl-marker',
+  html: `<div class="gl-start" style="--route:${routeColor}"><svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M14.4 6 14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg></div>`,
+  iconSize: [26, 26],
+  iconAnchor: [13, 13]
+});
 
 const MapComponent = ({
-  center = [-22.3659, -47.3809], // [lat, lng] padrão Araras/SP
+  center = DEFAULT_CENTER,
   zoom = 13,
-  polylines = [], // Array de { id, coords: [[lat, lng], ...], color, label, distance, stops: [...] }
+  polylines = [],
   className = 'map-container',
-  interactive = true
+  interactive = true,
+  showLegend = true
 }) => {
+  const containerRef = useRef(null);
   const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const overlaysRef = useRef([]); // Polylines, Markers, InfoWindows
-  const [mapsLoaded, setMapsLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(null);
+  const layerRef = useRef(null);
 
-  // Inicializa o Google Maps SDK
+  // Cria o mapa uma única vez
   useEffect(() => {
-    let isMounted = true;
-    loadGoogleMapsScript(GOOGLE_MAPS_API_KEY)
-      .then(() => {
-        if (isMounted) setMapsLoaded(true);
-      })
-      .catch((err) => {
-        console.error('Falha ao carregar Google Maps:', err);
-        if (isMounted) setLoadError(err);
-      });
+    if (!containerRef.current || mapRef.current) return undefined;
+    const map = L.map(containerRef.current, {
+      center: toLatLng(center) || DEFAULT_CENTER,
+      zoom,
+      zoomControl: false,
+      attributionControl: true,
+      scrollWheelZoom: interactive,
+      dragging: interactive,
+      doubleClickZoom: interactive
+    });
+    // Tiles do OpenStreetMap (sem chave, funcionam em qualquer domínio); o tom neutro vem de filtro CSS em Map.css
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    if (interactive) L.control.zoom({ position: 'bottomright' }).addTo(map);
+    layerRef.current = L.featureGroup().addTo(map);
+    mapRef.current = map;
+
+    // O container costuma mudar de tamanho (cards, modais, painel recolhível)
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(containerRef.current);
     return () => {
-      isMounted = false;
+      observer.disconnect();
+      map.remove();
+      mapRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Cria a instância do mapa no container DOM
+  // Redesenha rotas e paradas
   useEffect(() => {
-    if (!mapsLoaded || !mapRef.current || !window.google?.maps) return;
+    const map = mapRef.current;
+    const group = layerRef.current;
+    if (!map || !group) return;
+    group.clearLayers();
 
-    if (!mapInstanceRef.current) {
-      const lat = Array.isArray(center) ? center[0] : -22.3659;
-      const lng = Array.isArray(center) ? center[1] : -47.3809;
+    const bounds = [];
+    polylines.forEach((poly, index) => {
+      const color = resolveColor(poly.color, index);
+      const path = (poly.coords || []).map(toLatLng).filter(Boolean);
 
-      mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
-        center: { lat, lng },
-        zoom,
-        disableDefaultUI: !interactive,
-        zoomControl: interactive,
-        mapTypeControl: interactive,
-        scaleControl: interactive,
-        streetViewControl: false,
-        rotateControl: false,
-        fullscreenControl: interactive,
-        styles: tmsMapStyle
-      });
-    }
-  }, [mapsLoaded, zoom, interactive, center]);
-
-  // Atualiza polylines, marcadores e fitBounds sempre que mudarem
-  useEffect(() => {
-    if (!mapsLoaded || !mapInstanceRef.current || !window.google?.maps) return;
-
-    const googleMaps = window.google.maps;
-    const map = mapInstanceRef.current;
-
-    // Limpa overlays anteriores
-    overlaysRef.current.forEach((overlay) => {
-      if (overlay.setMap) overlay.setMap(null);
-      if (overlay.close) overlay.close();
-    });
-    overlaysRef.current = [];
-
-    const bounds = new googleMaps.LatLngBounds();
-    let hasCoords = false;
-
-    polylines.forEach((poly) => {
-      if (!poly.coords || poly.coords.length === 0) return;
-
-      const path = poly.coords.map((c) => {
-        const lat = Array.isArray(c) ? c[0] : c.lat;
-        const lng = Array.isArray(c) ? c[1] : c.lng;
-        const latLng = new googleMaps.LatLng(lat, lng);
-        bounds.extend(latLng);
-        hasCoords = true;
-        return latLng;
-      });
-
-      // Desenha a linha da rota
-      const polylineOverlay = new googleMaps.Polyline({
-        path,
-        geodesic: true,
-        strokeColor: poly.color || '#2ab29b',
-        strokeOpacity: 0.8,
-        strokeWeight: 5,
-        map
-      });
-      overlaysRef.current.push(polylineOverlay);
-
-      // InfoWindow compartilhada
-      const infoWindow = new googleMaps.InfoWindow();
-
-      // Ponto Inicial (Bandeira Verde)
-      if (path.length > 0) {
-        const startMarker = new googleMaps.Marker({
-          position: path[0],
-          map,
-          title: `Início: ${poly.label || ''}`,
-          icon: getSvgMarkerIcon(googleMaps, 'START', '#10b981')
-        });
-        if (interactive) {
-          startMarker.addListener('click', () => {
-            infoWindow.setContent(`
-              <div style="padding: 6px; font-family: sans-serif;">
-                <strong style="color: #10b981;">Início da Rota</strong>
-                <p style="margin: 4px 0 0; font-size: 12px;">${poly.label || 'Partida'}</p>
-              </div>
-            `);
-            infoWindow.open(map, startMarker);
-          });
-        }
-        overlaysRef.current.push(startMarker);
-      }
-
-      // Ponto Final (Bandeira Vermelha)
       if (path.length > 1) {
-        const endMarker = new googleMaps.Marker({
-          position: path[path.length - 1],
-          map,
-          title: `Destino: ${poly.label || ''}`,
-          icon: getSvgMarkerIcon(googleMaps, 'END', '#ef4444')
-        });
+        // Contorno branco + linha colorida: legível sobre qualquer base
+        const casing = L.polyline(path, { color: '#ffffff', weight: 8, opacity: 0.9, interactive: false });
+        const line = L.polyline(path, { color, weight: 4.5, opacity: 0.9, lineJoin: 'round' });
         if (interactive) {
-          endMarker.addListener('click', () => {
-            infoWindow.setContent(`
-              <div style="padding: 6px; font-family: sans-serif;">
-                <strong style="color: #ef4444;">Destino Final</strong>
-                <p style="margin: 4px 0 0; font-size: 12px;">${poly.label || 'Chegada'}</p>
-              </div>
-            `);
-            infoWindow.open(map, endMarker);
-          });
+          line.on('mouseover', () => { line.setStyle({ weight: 7, opacity: 1 }); line.bringToFront(); });
+          line.on('mouseout', () => line.setStyle({ weight: 4.5, opacity: 0.9 }));
+          if (poly.label) line.bindTooltip(escapeHtml(poly.label), { sticky: true, className: 'gl-tooltip' });
         }
-        overlaysRef.current.push(endMarker);
+        group.addLayer(casing);
+        group.addLayer(line);
+        bounds.push(...path);
+        group.addLayer(L.marker(path[0], { icon: startIcon(color), keyboard: false, title: 'Partida' }));
       }
 
-      // Paradas Intermediárias (Entregas e Coletas)
-      if (poly.stops && Array.isArray(poly.stops)) {
-        poly.stops.forEach((stop, idx) => {
-          let lat;
-          let lng;
-          let isCollection = false;
-          let isDelivery = false;
-          let label = `Parada ${idx + 1}`;
-
-          if (Array.isArray(stop)) {
-            lat = stop[0];
-            lng = stop[1];
-          } else if (stop && stop.coord) {
-            lat = Array.isArray(stop.coord) ? stop.coord[0] : stop.coord.lat;
-            lng = Array.isArray(stop.coord) ? stop.coord[1] : stop.coord.lng;
-            isCollection = stop.type === 'COLETA';
-            isDelivery = stop.type === 'ENTREGA';
-            if (stop.label) label = `${isCollection ? 'Coleta: ' : isDelivery ? 'Entrega: ' : ''}${stop.label}`;
-          } else {
-            return;
-          }
-
-          if (lat == null || lng == null) return;
-
-          const stopLatLng = new googleMaps.LatLng(lat, lng);
-          bounds.extend(stopLatLng);
-          hasCoords = true;
-
-          const markerColor = isCollection ? '#0ea5e9' : isDelivery ? '#10b981' : '#f59e0b';
-          const markerType = isCollection ? 'COLETA' : isDelivery ? 'ENTREGA' : 'STOP';
-
-          const stopMarker = new googleMaps.Marker({
-            position: stopLatLng,
-            map,
-            title: label,
-            icon: getSvgMarkerIcon(googleMaps, markerType, markerColor)
-          });
-
-          if (interactive) {
-            stopMarker.addListener('click', () => {
-              infoWindow.setContent(`
-                <div style="padding: 6px; font-family: sans-serif;">
-                  <span style="font-size: 11px; font-weight: 700; color: ${markerColor}; text-transform: uppercase;">
-                    ${isCollection ? 'Coleta' : isDelivery ? 'Entrega' : 'Parada'}
-                  </span>
-                  <h4 style="margin: 2px 0 4px; font-size: 13px; color: #1e293b;">${label}</h4>
-                </div>
-              `);
-              infoWindow.open(map, stopMarker);
-            });
-          }
-          overlaysRef.current.push(stopMarker);
-        });
-      }
+      (poly.stops || []).forEach((raw, idx) => {
+        const stop = Array.isArray(raw) ? { coord: raw } : raw;
+        const pos = toLatLng(stop?.coord);
+        if (!pos) return;
+        bounds.push(pos);
+        const marker = L.marker(pos, { icon: stopIcon(stop, idx, color), riseOnHover: true });
+        if (interactive) {
+          const kind = stop.type === 'COLETA' ? 'Coleta' : stop.type === 'ENTREGA' ? 'Entrega' : 'Parada';
+          marker.bindPopup(
+            `<div class="gl-popup"><span class="gl-popup__kind gl-popup__kind--${stop.type === 'COLETA' ? 'collect' : 'delivery'}">${kind} · parada ${stop.sequence ?? idx + 1}</span>`
+            + `<strong>${escapeHtml(stop.label || 'Sem identificação')}</strong>`
+            + (stop.status ? `<small>${escapeHtml(stop.statusLabel || stop.status)}</small>` : '')
+            + (poly.label ? `<small class="gl-popup__route">${escapeHtml(poly.label)}</small>` : '')
+            + '</div>',
+            { closeButton: false, className: 'gl-popup-wrap' }
+          );
+        }
+        group.addLayer(marker);
+      });
     });
 
-    // Ajusta o zoom e foco do mapa para enquadrar todas as coordenadas
-    if (hasCoords) {
-      map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
-    } else if (center) {
-      const lat = Array.isArray(center) ? center[0] : -22.3659;
-      const lng = Array.isArray(center) ? center[1] : -47.3809;
-      map.setCenter({ lat, lng });
-      map.setZoom(zoom);
+    if (bounds.length > 0) {
+      map.fitBounds(L.latLngBounds(bounds), { padding: [36, 36], maxZoom: 15 });
+    } else {
+      map.setView(toLatLng(center) || DEFAULT_CENTER, zoom);
     }
-  }, [mapsLoaded, polylines, center, zoom, interactive]);
+  }, [polylines, center, zoom, interactive]);
 
-  if (loadError) {
-    return (
-      <div className={className} style={{ height: '100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', color: '#64748b' }}>
-        <p>Não foi possível carregar o Google Maps. Verifique a conexão com a internet.</p>
-      </div>
-    );
-  }
+  const hasRoutes = polylines.some(p => (p.coords && p.coords.length > 1) || (p.stops && p.stops.length > 0));
 
   return (
-    <div className={className} style={{ height: '100%', width: '100%', position: 'relative' }}>
-      <div ref={mapRef} style={{ height: '100%', width: '100%', borderRadius: 'inherit' }} />
+    <div className={`${className} gl-map`} style={{ height: '100%', width: '100%', position: 'relative' }}>
+      <div ref={containerRef} className="gl-map__canvas" />
+      {showLegend && hasRoutes && (
+        <div className="gl-map__legend" aria-hidden="true">
+          <span><i className="gl-dot gl-dot--start" /> Partida</span>
+          <span><i className="gl-dot gl-dot--collect" /> Coleta</span>
+          <span><i className="gl-dot gl-dot--delivery" /> Entrega</span>
+          <span><i className="gl-dot gl-dot--done" /> Concluída</span>
+        </div>
+      )}
+      {!hasRoutes && (
+        <div className="gl-map__empty">Nenhuma rota planejada para exibir</div>
+      )}
     </div>
   );
 };

@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
+import Tabs from '../components/ui/Tabs';
+import Hint from '../components/ui/Hint';
 import ConfirmModal from '../components/ConfirmModal';
 import { useToast } from '../components/ToastContext';
 import { optimizationProfileService } from '../services/optimizationProfileService';
@@ -85,6 +87,14 @@ const PRESET_TEMPLATES = [
     }
   }
 ];
+
+const CREATE_LABEL = {
+  profiles: 'Novo perfil de custo',
+  demands: 'Nova métrica de demanda',
+  transports: 'Novo tipo de transporte',
+  shipments: 'Novo tipo de carga',
+  morphology: 'Nova incompatibilidade'
+};
 
 const OptimizationRulesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -188,7 +198,8 @@ const OptimizationRulesPage = () => {
     if (selectedCompanyId) {
       loadTabData();
     }
-  }, [selectedCompanyId, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId]);
 
   const loadCompanies = async () => {
     try {
@@ -203,33 +214,28 @@ const OptimizationRulesPage = () => {
     }
   };
 
+  // Carrega todas as abas juntas: as contagens nas abas precisam refletir os dados reais
   const loadTabData = async () => {
     if (!selectedCompanyId) return;
     setLoading(true);
     try {
-      if (activeTab === 'profiles') {
-        const data = await optimizationProfileService.getAllByCompany(selectedCompanyId);
-        setProfiles(data || []);
-      } else if (activeTab === 'demands') {
-        const data = await demandTypeService.getAvailableForCompany(selectedCompanyId);
-        setDemandTypes(data || []);
-      } else if (activeTab === 'transports') {
-        const data = await typeTransportService.getAll();
-        setTransportTypes(data || []);
-      } else if (activeTab === 'shipments') {
-        const data = await shipmentTypeService.getAll();
-        setShipmentTypesList(data || []);
-      } else if (activeTab === 'morphology') {
-        const [rulesData, typesData] = await Promise.all([
-          visitTypeService.getRulesByCompany(selectedCompanyId),
-          visitTypeService.getAvailableForCompany(selectedCompanyId)
-        ]);
-        setRules(rulesData || []);
-        setVisitTypes(typesData || []);
-      }
+      const [profilesData, demandsData, transportsData, shipmentsData, rulesData, typesData] = await Promise.all([
+        optimizationProfileService.getAllByCompany(selectedCompanyId),
+        demandTypeService.getAvailableForCompany(selectedCompanyId),
+        typeTransportService.getAll(),
+        shipmentTypeService.getAll(),
+        visitTypeService.getRulesByCompany(selectedCompanyId),
+        visitTypeService.getAvailableForCompany(selectedCompanyId)
+      ]);
+      setProfiles(profilesData || []);
+      setDemandTypes(demandsData || []);
+      setTransportTypes(transportsData || []);
+      setShipmentTypesList(shipmentsData || []);
+      setRules(rulesData || []);
+      setVisitTypes(typesData || []);
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
-      showToast('Erro ao buscar dados da aba selecionada.', 'error');
+      showToast(extractErrorMessage(err, 'Erro ao carregar as configurações.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -413,142 +419,98 @@ const OptimizationRulesPage = () => {
     }
   };
 
+  const openCreateForActiveTab = () => {
+    if (activeTab === 'profiles') {
+      setProfileForm(initialProfileForm);
+      setEditingProfileId(null);
+      setIsProfileModalOpen(true);
+    } else if (activeTab === 'demands') {
+      setDemandForm(initialDemandForm);
+      setEditingDemandId(null);
+      setIsDemandModalOpen(true);
+    } else if (activeTab === 'transports') {
+      setTransportForm(initialTransportForm);
+      setEditingTransportId(null);
+      setIsTransportModalOpen(true);
+    } else if (activeTab === 'shipments') {
+      setShipmentTypeForm(initialShipmentTypeForm);
+      setEditingShipmentTypeId(null);
+      setIsShipmentTypeModalOpen(true);
+    } else {
+      setRuleForm(initialRuleForm);
+      setIsRuleModalOpen(true);
+    }
+  };
+
   return (
-    <div className="fade-in opt-rules-page">
+    <div className="opt-rules-page">
       <PageHeader
-        title="Regras, Custos & Morfologia de Rota"
-        description="Central unificada de parâmetros do motor de cálculo, capacidades multi-dimensionais, tipos de carga e restrições de compatibilidade."
+        title="Regras & Custos da Operação"
+        description="Parâmetros que o otimizador usa para decidir rotas: custos, capacidades, tipos de carga e restrições."
         icon={Sliders}
-      />
-
-      <div className="opt-company-bar">
-        <div className="opt-company-select">
-          <Building2 size={20} color="var(--primary-color)" />
-          <label style={{ fontWeight: 700, color: 'var(--primary-color)' }}>Empresa / Operação:</label>
-          <select
-            value={selectedCompanyId}
-            onChange={(e) => setSelectedCompanyId(e.target.value)}
-          >
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {tenantLabel(c)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {activeTab === 'morphology' && (
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => {
-                setVisitTypeForm(initialVisitTypeForm);
-                setIsVisitTypeModalOpen(true);
-              }}
-            >
-              <Plus size={16} />
-              Novo Rótulo / Tipo de Visita
-            </button>
-          )}
+        onBack={true}
+      >
+        {activeTab === 'morphology' && (
           <button
-            className="btn btn-primary"
+            type="button"
+            className="btn btn-outline"
             onClick={() => {
-              if (activeTab === 'profiles') {
-                setProfileForm(initialProfileForm);
-                setEditingProfileId(null);
-                setIsProfileModalOpen(true);
-              } else if (activeTab === 'demands') {
-                setDemandForm(initialDemandForm);
-                setEditingDemandId(null);
-                setIsDemandModalOpen(true);
-              } else if (activeTab === 'transports') {
-                setTransportForm(initialTransportForm);
-                setEditingTransportId(null);
-                setIsTransportModalOpen(true);
-              } else if (activeTab === 'shipments') {
-                setShipmentTypeForm(initialShipmentTypeForm);
-                setEditingShipmentTypeId(null);
-                setIsShipmentTypeModalOpen(true);
-              } else {
-                setRuleForm(initialRuleForm);
-                setIsRuleModalOpen(true);
-              }
+              setVisitTypeForm(initialVisitTypeForm);
+              setIsVisitTypeModalOpen(true);
             }}
           >
-            <Plus size={18} />
-            {activeTab === 'profiles' && 'Novo Perfil de Cálculo'}
-            {activeTab === 'demands' && 'Nova Métrica de Demanda'}
-            {activeTab === 'transports' && 'Novo Tipo de Transporte'}
-            {activeTab === 'shipments' && 'Novo Tipo de Carga'}
-            {activeTab === 'morphology' && 'Nova Regra de Incompatibilidade'}
+            <Plus size={16} />
+            Novo rótulo de visita
           </button>
-        </div>
-      </div>
+        )}
+        <button className="btn btn-primary" onClick={openCreateForActiveTab}>
+          <Plus size={18} />
+          {CREATE_LABEL[activeTab]}
+        </button>
+      </PageHeader>
 
-      <div className="opt-tabs">
-        <button
-          className={`opt-tab-btn ${activeTab === 'profiles' ? 'active' : ''}`}
-          onClick={() => setActiveTab('profiles')}
-        >
-          <Sliders size={18} />
-          Perfis de Cálculo & Custos ({profiles.length})
-        </button>
-        <button
-          className={`opt-tab-btn ${activeTab === 'demands' ? 'active' : ''}`}
-          onClick={() => setActiveTab('demands')}
-        >
-          <Layers size={18} />
-          Demandas & Capacidades ({demandTypes.length})
-        </button>
-        <button
-          className={`opt-tab-btn ${activeTab === 'transports' ? 'active' : ''}`}
-          onClick={() => setActiveTab('transports')}
-        >
-          <Tags size={18} />
-          Tipos de Transporte ({transportTypes.length})
-        </button>
-        <button
-          className={`opt-tab-btn ${activeTab === 'shipments' ? 'active' : ''}`}
-          onClick={() => setActiveTab('shipments')}
-        >
-          <PackageCheck size={18} />
-          Tipos de Carga ({shipmentTypesList.length})
-        </button>
-        <button
-          className={`opt-tab-btn ${activeTab === 'morphology' ? 'active' : ''}`}
-          onClick={() => setActiveTab('morphology')}
-        >
-          <ShieldAlert size={18} />
-          Incompatibilidades & Morfologia ({rules.length})
-        </button>
+      <div className="opt-toolbar">
+        <Tabs
+          ariaLabel="Seções de configuração"
+          value={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { id: 'profiles', label: 'Perfis de custo', icon: Sliders, count: profiles.length },
+            { id: 'demands', label: 'Demandas & capacidades', icon: Layers, count: demandTypes.length },
+            { id: 'transports', label: 'Tipos de transporte', icon: Tags, count: transportTypes.length },
+            { id: 'shipments', label: 'Tipos de carga', icon: PackageCheck, count: shipmentTypesList.length },
+            { id: 'morphology', label: 'Incompatibilidades', icon: ShieldAlert, count: rules.length }
+          ]}
+        />
+        {companies.length > 1 && (
+          <label className="opt-company-picker">
+            <Building2 size={16} />
+            <span>Configurando</span>
+            <select value={selectedCompanyId} onChange={(e) => setSelectedCompanyId(e.target.value)}>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{tenantLabel(c)}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {/* Conteúdo Aba 1: Perfis */}
       {activeTab === 'profiles' && (
         <div>
-          <div className="opt-guide-container">
-            <div className="opt-guide-card">
-              <div className="opt-guide-icon">🛣️</div>
-              <div className="opt-guide-body">
-                <h4>Multiplicadores de Distância & Tempo</h4>
-                <p>Aumentar o custo por KM força o roteirizador a buscar trajetos mais curtos. Aumentar o por hora prioriza rodovias expressas.</p>
-              </div>
-            </div>
-            <div className="opt-guide-card">
-              <div className="opt-guide-icon">🚛</div>
-              <div className="opt-guide-body">
-                <h4>Custo Fixo por Veículo</h4>
-                <p>Configurar um custo fixo (ex: R$ 100/veículo) faz o motor consolidar as remessas em menos caminhões para evitar rodagem vazia.</p>
-              </div>
-            </div>
-            <div className="opt-guide-card">
-              <div className="opt-guide-icon">⏱️</div>
-              <div className="opt-guide-body">
-                <h4>Tempo de Atendimento e Tolerância</h4>
-                <p>Define a média gasta na descarga do cliente e a antecedência permitida na janela de horário sem gerar atraso penalizado.</p>
-              </div>
-            </div>
+          <div className="opt-hints">
+            <Hint id="rules-profile-multipliers" title="Multiplicadores de distância e tempo">
+              Multiplicam o custo/km do veículo e o custo/hora do motorista na função que o otimizador minimiza.
+              Aumentar o de <b>km</b> favorece trajetos mais curtos; aumentar o de <b>hora</b> favorece trajetos mais rápidos.
+            </Hint>
+            <Hint id="rules-profile-fixed" title="Custo fixo por veículo">
+              Cobrado uma vez por veículo utilizado. Um valor alto faz o motor concentrar as remessas em menos veículos;
+              zero deixa usar quantos forem mais baratos no total.
+            </Hint>
+            <Hint id="rules-profile-time" title="Tempo de atendimento, tolerância e penalidade">
+              O <b>tempo de parada</b> é somado em cada visita. A <b>tolerância</b> abre a janela de atendimento antes do
+              horário agendado. A <b>penalidade</b> é o custo de deixar uma remessa sem rota: alta = tenta atender todas.
+            </Hint>
           </div>
 
           <div className="card">
@@ -630,6 +592,12 @@ const OptimizationRulesPage = () => {
 
       {/* Conteúdo Aba 2: Demandas */}
       {activeTab === 'demands' && (
+        <>
+        <Hint id="rules-demands" title="Como as demandas entram no cálculo">
+          Cada métrica vira uma dimensão de carga: a soma das demandas das remessas de uma viagem não pode passar da
+          capacidade do veículo. <b>weight</b> (kg) e <b>volume</b> (m³) são preenchidos automaticamente com o peso/volume
+          da remessa e a capacidade do veículo ou das carretas; crie outras (ex.: paletes) só se for controlá-las.
+        </Hint>
         <div className="card">
           <DataTable
             loading={loading}
@@ -691,10 +659,16 @@ const OptimizationRulesPage = () => {
             }}
           />
         </div>
+        </>
       )}
 
       {/* Conteúdo Aba 3: Tipos de Transporte */}
       {activeTab === 'transports' && (
+        <>
+        <Hint id="rules-transports" title="Tipos de transporte viram rótulos de visita">
+          O nome do tipo da remessa é convertido em rótulo (ex.: “Refrigerada” → <b>REFRIGERADA</b>) e usado pelas regras da aba
+          <b> Incompatibilidades</b>. Registros marcados como padrão do sistema são compartilhados entre todas as empresas.
+        </Hint>
         <div className="card">
           <DataTable
             loading={loading}
@@ -733,10 +707,16 @@ const OptimizationRulesPage = () => {
             }}
           />
         </div>
+        </>
       )}
 
       {/* Conteúdo Aba 4: Tipos de Carga */}
       {activeTab === 'shipments' && (
+        <>
+        <Hint id="rules-shipments" title="Tipos de carga classificam as remessas">
+          Servem para filtros, relatórios e integrações (o ERP pode enviar o nome do tipo na importação). Eles não restringem
+          veículos — para isso use tipos de transporte e incompatibilidades.
+        </Hint>
         <div className="card">
           <DataTable
             loading={loading}
@@ -775,11 +755,17 @@ const OptimizationRulesPage = () => {
             }}
           />
         </div>
+        </>
       )}
 
       {/* Conteúdo Aba 5: Morfologia & Rótulos */}
       {activeTab === 'morphology' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <Hint id="rules-morphology" title="Como funciona uma incompatibilidade">
+            Uma regra “não no mesmo veículo” entre dois rótulos impede que remessas com esses rótulos sejam colocadas na
+            mesma viagem (ex.: <b>PERIGOSA</b> × <b>REFRIGERADA</b>). O código do rótulo precisa coincidir com o nome do tipo de
+            transporte em maiúsculas, com espaços trocados por “_”.
+          </Hint>
           {/* Seção 1: Rótulos / Tipos de Visita Cadastrados */}
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>

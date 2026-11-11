@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Truck, Plus, Save, X, Building2 } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
+import Hint from '../components/ui/Hint';
 import { equipamentService } from '../services/equipamentService';
 import { tractorService } from '../services/tractorService';
 import { trailerService } from '../services/trailerService';
@@ -53,6 +54,7 @@ const FleetPage = () => {
     costPerKilometer: '',
     maximumVolume: '100',
     cargoVolume: '',
+    kmPerLiter: '',
     companyId: ''
   });
 
@@ -160,6 +162,7 @@ const FleetPage = () => {
           typeFuel: formData.typeFuel,
           vehicleType: formData.tipo,
           cargoVolume: formData.cargoVolume !== '' && formData.cargoVolume != null ? parseFloat(formData.cargoVolume) : null,
+          kmPerLiter: formData.kmPerLiter !== '' && formData.kmPerLiter != null && formData.typeFuel !== 'ELETRICO' ? parseFloat(formData.kmPerLiter) : null,
           costPerKilometer: parseFloat(formData.costPerKilometer || 0)
         };
         if (editingId) {
@@ -189,6 +192,7 @@ const FleetPage = () => {
       numberAxles: row.raw.numberAxles?.toString() || '2',
       tipo: row.isTrailer ? 'carreta' : (row.raw.vehicleType || 'CAVALO_MECANICO'),
       cargoVolume: row.raw.cargoVolume?.toString() || '',
+      kmPerLiter: row.raw.kmPerLiter?.toString() || '',
       typeFuel: row.raw.typeFuel || 'DIESEL',
       costPerKilometer: row.raw.costPerKilometer?.toString() || '',
       maximumVolume: row.raw.maximumVolume?.toString() || '100',
@@ -236,6 +240,7 @@ const FleetPage = () => {
       costPerKilometer: '',
       maximumVolume: '100',
     cargoVolume: '',
+    kmPerLiter: '',
       companyId: defaultTenantId(tenants)
     });
   };
@@ -307,6 +312,7 @@ const FleetPage = () => {
       costPerKilometer: '',
       maximumVolume: '100',
     cargoVolume: '',
+    kmPerLiter: '',
       companyId: defaultCompId
     });
     setIsModalOpen(true);
@@ -324,6 +330,12 @@ const FleetPage = () => {
           <Plus size={18} /> Novo Veículo
         </button>
       </PageHeader>
+
+      <Hint id="fleet-flow" title="Categorias, capacidade e emissões" compact>
+          Informe <b>capacidade (kg)</b>, <b>volume útil (m³)</b> e <b>consumo (km/L)</b>: os dois primeiros limitam a carga no
+          otimizador e o consumo é a base do cálculo de CO₂ do painel. Veículos rígidos ficam prontos para escala; cavalos
+          mecânicos precisam de carreta em Conjuntos.
+      </Hint>
 
       <div className="card">
         <DataTable
@@ -501,6 +513,28 @@ const FleetPage = () => {
                           <option value="GNV">GNV</option>
                           <option value="ELETRICO">Elétrico</option>
                         </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Consumo médio (km/L)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          name="kmPerLiter"
+                          value={formData.kmPerLiter}
+                          onChange={handleInputChange}
+                          className="form-input"
+                          placeholder={formData.typeFuel === 'ELETRICO' ? 'Não se aplica' : 'Ex.: 3,2'}
+                          disabled={formData.typeFuel === 'ELETRICO'}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Hint title="Por que informar o consumo?" compact>
+                          A emissão de CO₂ das viagens é calculada como <b>km × fator do combustível ÷ km/L</b>
+                          (diesel 2,68 kg CO₂/L; gasolina 2,31 kg CO₂/L — IPCC 2006). Sem o consumo, as viagens deste
+                          veículo ficam fora dos indicadores de emissão — o sistema não presume valores. Para
+                          {' '}<b>flex</b> e <b>GNV</b> o fator depende da mistura: registre o consumo e acompanhe a cobertura no painel.
+                        </Hint>
                       </div>
                       {formData.tipo !== 'CAVALO_MECANICO' && (
                         <div className="form-group">

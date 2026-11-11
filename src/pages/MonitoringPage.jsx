@@ -1,3 +1,4 @@
+import { translateStatus } from '../utils/enumTranslations';
 import React, { useState, useEffect } from 'react';
 import { Search, ChevronRight, Truck, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +7,9 @@ import MonitoringModal from '../components/MonitoringModal';
 import MapComponent from '../components/MapComponent';
 import { deliveryService } from '../services/deliveryService';
 import { decodePolyline } from '../utils/polyline';
+
+const TRIP_PALETTE = ['#2ab29b', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#ec4899', '#84cc16'];
+const hashCode = (str = '') => [...str].reduce((h, ch) => ((h << 5) - h + ch.charCodeAt(0)) | 0, 0);
 
 const MonitoringPage = () => {
   const navigate = useNavigate();
@@ -91,19 +95,23 @@ const MonitoringPage = () => {
   );
 
   // Map trips to polylines for the map view
-  const mapPolylines = trips.map((t, idx) => {
-    // Generate distinct colors for each transport route
-    const colors = ['#2563eb', '#16a34a', '#dc2626', '#ca8a04', '#9333ea', '#0891b2'];
-    const color = colors[idx % colors.length];
-
-    return {
-      id: t.id,
-      coords: t.routePlannedCoords,
-      color: color,
-      label: `Transporte #${t.code} (${t.plate}) - ${t.driver}`,
-      distance: t.shipments.reduce((sum, s) => sum + (s.routeStop?.calculatedDistance || 0), 0)
-    };
-  });
+  // Rotas da busca atual; cores ficam a cargo da paleta fixa do mapa (cor segue a viagem, não o índice do filtro)
+  const mapPolylines = filteredTrips.map((t) => ({
+    id: t.id,
+    coords: t.routePlannedCoords,
+    color: TRIP_PALETTE[Math.abs(hashCode(t.id)) % TRIP_PALETTE.length],
+    label: `Viagem #${t.code} · ${t.plate} · ${t.driver}`,
+    stops: t.shipments
+      .filter(s => s.address?.latitude && s.address?.longitude)
+      .map(s => ({
+        coord: [parseFloat(s.address.latitude), parseFloat(s.address.longitude)],
+        type: s.typeOperation,
+        label: s.customer?.legalName,
+        status: s.status,
+        statusLabel: translateStatus(s.status),
+        sequence: s.routeStop?.sequenceOrder
+      }))
+  }));
 
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL'); // 'ALL', 'IN_TRANSIT'
@@ -144,9 +152,9 @@ const MonitoringPage = () => {
         <div className="monitoring-header">
           <div className="header-badge-live">
             <span className="live-dot"></span>
-            <span>TELEMETRIA GLOBAL</span>
+            <span>MONITORAMENTO</span>
           </div>
-          <h2>{trips.length} Veículos em Monitoramento</h2>
+          <h2>{trips.length} {trips.length === 1 ? 'viagem' : 'viagens'} em operação</h2>
         </div>
       </div>
 

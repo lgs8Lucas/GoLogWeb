@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { CalendarClock, Plus, X, Clock, ShieldCheck, Settings, Sliders, Coffee, User, Layers, Truck, Box } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
+import Hint from '../components/ui/Hint';
 import { workScheduleService } from '../services/workScheduleService';
 import { workShiftTemplateService } from '../services/workShiftTemplateService';
 import { driverService } from '../services/driverService';
@@ -452,6 +453,12 @@ const WorkSchedulePage = () => {
           </button>
         </div>
       </PageHeader>
+
+      <Hint id="schedule-flow" title="O que é uma escala" compact>
+          Uma escala diz qual motorista opera qual conjunto, em que data e turno — é ela que vira “veículo disponível” na
+          roteirização. As pausas seguem a Lei 13.103 (direção contínua máxima e intervalo de refeição); use um
+          <b> modelo de turno</b> para preencher tudo de uma vez. O mesmo motorista ou conjunto não pode ter turnos sobrepostos.
+      </Hint>
 
       <div className="profiles-content">
         <DataTable

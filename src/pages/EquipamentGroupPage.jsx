@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Layers, Plus, Save, X, Truck, Box, Building2 } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
+import Hint from '../components/ui/Hint';
 import { equipamentGroupService } from '../services/equipamentGroupService';
 import { equipamentService } from '../services/equipamentService';
 import { useToast } from '../components/ToastContext';
@@ -256,6 +257,12 @@ const EquipamentGroupPage = () => {
           <Plus size={18} /> Novo Conjunto
         </button>
       </PageHeader>
+
+      <Hint id="group-flow" title="Quando cadastrar um conjunto" compact>
+          Veículos rígidos (moto, carro, utilitário, van, VUC, toco, truck, bitruck) já ganham um conjunto automático ao serem
+          cadastrados na Frota. Use esta tela para <b>cavalos mecânicos</b>: combine o cavalo com 1 ou 2 carretas — a capacidade
+          de peso e volume do conjunto passa a ser a das carretas.
+      </Hint>
 
       <div className="card">
         <DataTable 

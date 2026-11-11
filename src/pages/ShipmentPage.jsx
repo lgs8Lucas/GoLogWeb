@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Package, FileUp, Plus } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
+import Hint from '../components/ui/Hint';
 import ImportInvoicesModal from '../components/ImportInvoicesModal';
 import DeliveryModal from '../components/DeliveryModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -182,6 +183,12 @@ const ShipmentPage = () => {
           </button>
         </div>
       </PageHeader>
+
+      <Hint id="shipment-flow" title="Coletas, entregas e janelas de horário" compact>
+          Uma <b>entrega</b> pode apontar para a <b>coleta</b> de origem: o otimizador garante que a coleta aconteça antes, no
+          mesmo veículo, e o peso da coleta passa a ser a soma das entregas vinculadas. O horário agendado é o limite de
+          chegada; a tolerância do perfil de custo define quanto antes o atendimento pode começar.
+      </Hint>
 
       <DeliveryModal
         isOpen={isDeliveryModalOpen}

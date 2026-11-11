@@ -289,3 +289,14 @@
   line-height: 1.35;
 }
 
+
+/* ---- Padrão GoLog: barra de abas + seletor de empresa, dicas em grade ---- */
+.opt-rules-page { display: flex; flex-direction: column; gap: 20px; }
+.opt-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.opt-company-picker {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px;
+  border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-surface);
+  font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
+}
+.opt-company-picker select { border: none; background: transparent; font: inherit; font-weight: 700; color: var(--primary-color); cursor: pointer; outline: none; }
+.opt-hints { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom: 20px; }

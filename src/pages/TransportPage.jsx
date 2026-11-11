@@ -1,3 +1,4 @@
+import { tripCo2Kg } from '../utils/emissions';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
@@ -6,6 +7,7 @@ import { translateStatus, translateOperation } from '../utils/enumTranslations';
 import '../styles/Transport.css';
 import TransportModal from '../components/TransportModal';
 import PageHeader from '../components/PageHeader';
+import Hint from '../components/ui/Hint';
 import { transportService } from '../services/transportService';
 import { deliveryService } from '../services/deliveryService';
 import { occurrenceService } from '../services/occurrenceService';
@@ -493,6 +495,12 @@ const TransportPage = () => {
         </div>
       </PageHeader>
 
+      <Hint id="transport-flow" title="Como planejar as rotas do dia" compact>
+          Tenha <b>remessas pendentes</b> (Remessas) e <b>escalas ativas</b> para a data (Escalas de Trabalho), depois clique em
+          <b> Otimizar Rotas</b>. O otimizador respeita horário agendado, jornada e pausas do motorista, capacidade do veículo e
+          incompatibilidades; remessas que não couberem são listadas com o motivo e continuam pendentes.
+      </Hint>
+
       {/* Navigation Tabs */}
       <div className="transport-nav-tabs">
         <button 
@@ -661,7 +669,12 @@ const TransportPage = () => {
                           </div>
                           <div className="tms-metric-pill">
                             <Leaf size={16} color="#059669" />
-                            <span>CO₂ Estimado: <strong>{(((item.rawTransport?.calculedDistance || 0) / 1000) * 0.85).toFixed(1)} kg</strong></span>
+                            {(() => {
+                              const kg = tripCo2Kg(item.rawTransport?.calculedDistance, item.rawTransport?.equipamentGroup?.equipament1);
+                              return kg === null
+                                ? <span title="Informe o consumo (km/L) do veículo em Frota para calcular">CO₂ planejado: <strong>sem consumo cadastrado</strong></span>
+                                : <span title="km planejado × fator do combustível ÷ consumo do veículo">CO₂ planejado: <strong>{kg.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg</strong></span>;
+                            })()}
                           </div>
                         </div>
 
