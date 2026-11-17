@@ -18,6 +18,7 @@ import {
   Info
 } from 'lucide-react';
 import '../styles/MonitoringModal.css';
+import { isStopDone } from '../utils/tripStatus';
 import MapComponent from './MapComponent';
 
 // Formata distância (metros -> km)
@@ -46,7 +47,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   if (!isOpen || !vehicle) return null;
 
   const totalShipments = vehicle.shipments?.length || 0;
-  const completedShipments = vehicle.shipments?.filter(s => s.status === 'FINALIZADO' || s.status === 'DELIVERED').length || 0;
+  const completedShipments = vehicle.shipments?.filter(isStopDone).length || 0;
   const occurrencesCount = vehicle.occurrences?.length || 0;
 
   // Polyline da rota
@@ -69,16 +70,10 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
     }
   ];
 
-  const getStepStatus = (s, index) => {
-    if (s.status === 'FINALIZADO' || s.status === 'DELIVERED') {
-      return 'completed';
-    } else if (s.status === 'INICIADO') {
-      return 'active';
-    } else {
-      if (index === 0) return 'completed';
-      if (index === 1) return 'active';
-      return 'pending';
-    }
+  const getStepStatus = (s) => {
+    if (isStopDone(s)) return 'completed';
+    if (s.status === 'INICIADO') return 'active';
+    return 'pending';
   };
 
   const getOccClass = (type) => {
@@ -216,7 +211,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                   {vehicle.shipments && vehicle.shipments.length > 0 ? (
                     vehicle.shipments.map((s, index) => {
                       const isColeta = s.typeOperation === 'COLETA';
-                      const stepStatus = getStepStatus(s, index);
+                      const stepStatus = getStepStatus(s);
                       const isDone = stepStatus === 'completed';
                       const isActive = stepStatus === 'active';
                       const sched = s.shedulind || s.schedulind;

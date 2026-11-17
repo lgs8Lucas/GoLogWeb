@@ -7,6 +7,7 @@ import MonitoringModal from '../components/MonitoringModal';
 import MapComponent from '../components/MapComponent';
 import { deliveryService } from '../services/deliveryService';
 import { decodePolyline } from '../utils/polyline';
+import { isTripFinished } from '../utils/tripStatus';
 
 const TRIP_PALETTE = ['#2ab29b', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#ec4899', '#84cc16'];
 const hashCode = (str = '') => [...str].reduce((h, ch) => ((h << 5) - h + ch.charCodeAt(0)) | 0, 0);
@@ -53,7 +54,10 @@ const MonitoringPage = () => {
           transportsMap[tid].shipments.push(s);
         });
 
-        const groupedTrips = Object.values(transportsMap).map(t => {
+        // Monitoramento mostra só viagens em operação: as que têm todas as paradas finalizadas saem do painel
+        const groupedTrips = Object.values(transportsMap)
+          .filter(t => !isTripFinished(t.shipments, t))
+          .map(t => {
           t.shipments.sort((a, b) => {
             const seqA = a.routeStop?.sequenceOrder ?? 999;
             const seqB = b.routeStop?.sequenceOrder ?? 999;

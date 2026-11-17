@@ -21,6 +21,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import OptimizeRouteModal from '../components/OptimizeRouteModal';
 import SmartFilterBar from '../components/SmartFilterBar';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { getTripStatus, isStopDone } from '../utils/tripStatus';
 
 const TransportPage = () => {
   const [transports, setTransports] = useState([]);
@@ -103,15 +104,8 @@ const TransportPage = () => {
             const sched = s.shedulind || s.schedulind;
 
             let status = 'pending';
-            if (s.status === 'FINALIZADO') {
-              status = 'completed';
-            } else if (s.status === 'INICIADO') {
-              status = 'active';
-            } else {
-              if (index === 0) status = 'completed';
-              else if (index === 1) status = 'active';
-              else status = 'pending';
-            }
+            if (isStopDone(s)) status = 'completed';
+            else if (s.status === 'INICIADO') status = 'active';
 
             return {
               id: s.id,
@@ -152,6 +146,8 @@ const TransportPage = () => {
         if (t.equipamentGroup?.equipament3?.plate) equipmentsList.push(t.equipamentGroup.equipament3.plate);
         const equipments = equipmentsList.length > 0 ? equipmentsList.join(', ') : '-';
 
+        const tripStatus = getTripStatus(tShipments, t);
+
         return {
           id: `#${t.codeTransport || (t.id ? t.id.substring(0, 8) : 'N/A')}`,
           rawId: t.id,
@@ -160,7 +156,8 @@ const TransportPage = () => {
           currentDest: destination,
           equipments: equipments,
           driver: t.driver?.user?.name || 'Sem motorista',
-          status: t.timeStopped > 0 ? 'Atrasado' : 'Em viagem',
+          status: tripStatus.label,
+          statusTone: tripStatus.tone,
           shipmentQuantity: t.shipmentQuantity || tShipments.length,
           steps: steps,
           rawTransport: t,
@@ -567,7 +564,7 @@ const TransportPage = () => {
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span className={`status-chip ${item.status === 'Atrasado' ? 'danger' : 'active'}`}>
+                        <span className={`status-chip ${item.statusTone}`}>
                           {item.status}
                         </span>
                         <button className="btn-icon" style={{ backgroundColor: 'var(--bg-hover)' }}>
