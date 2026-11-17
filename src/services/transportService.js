@@ -23,6 +23,12 @@ export const transportService = {
     return response.data;
   },
 
+  /** Indicadores realizados sobre a rota da telemetria (t·km, combustível, CO₂, custo efetivo, agendas). */
+  getIndicators: async (id) => {
+    const response = await apiClient.get(`/transport/${id}/indicators`);
+    return response.data;
+  },
+
   update: async (id, data) => {
     const response = await apiClient.put(`/transport/${id}`, data);
     return response.data;
