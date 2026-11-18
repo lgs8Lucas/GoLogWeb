@@ -9,6 +9,7 @@ import { equipamentService } from '../services/equipamentService';
 import { tractorService } from '../services/tractorService';
 import { trailerService } from '../services/trailerService';
 import { companyService } from '../services/companyService';
+import { typeTransportService } from '../services/typeTransportService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { translateStatus, translateVehicleType, translateFuel } from '../utils/enumTranslations';
@@ -38,6 +39,7 @@ const FleetPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [tenants, setTenants] = useState([]);
+  const [availableTypes, setAvailableTypes] = useState([]);
   const { showToast } = useToast();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState(null);
@@ -55,7 +57,8 @@ const FleetPage = () => {
     maximumVolume: '100',
     cargoVolume: '',
     kmPerLiter: '',
-    companyId: ''
+    companyId: '',
+    typeTransportIds: []
   });
 
   const STATUS_LABELS = {
@@ -67,12 +70,14 @@ const FleetPage = () => {
   const fetchFleet = async () => {
     setLoading(true);
     try {
-      const [data, comps, tenantList] = await Promise.all([
+      const [data, comps, tenantList, types] = await Promise.all([
         equipamentService.getAll(),
         companyService.getAllCompanies(),
-        loadTenantOptions()
+        loadTenantOptions(),
+        typeTransportService.getAll()
       ]);
       setTenants(tenantList);
+      setAvailableTypes(Array.isArray(types) ? types : []);
       const safeData = Array.isArray(data) ? data : [];
       const safeComps = Array.isArray(comps) ? comps : [];
       setCompanies(safeComps);
@@ -163,7 +168,8 @@ const FleetPage = () => {
           vehicleType: formData.tipo,
           cargoVolume: formData.cargoVolume !== '' && formData.cargoVolume != null ? parseFloat(formData.cargoVolume) : null,
           kmPerLiter: formData.kmPerLiter !== '' && formData.kmPerLiter != null && formData.typeFuel !== 'ELETRICO' ? parseFloat(formData.kmPerLiter) : null,
-          costPerKilometer: parseFloat(formData.costPerKilometer || 0)
+          costPerKilometer: parseFloat(formData.costPerKilometer || 0),
+          typeTransportIds: formData.typeTransportIds || []
         };
         if (editingId) {
           await tractorService.update(editingId, tractorPayload);
@@ -196,7 +202,8 @@ const FleetPage = () => {
       typeFuel: row.raw.typeFuel || 'DIESEL',
       costPerKilometer: row.raw.costPerKilometer?.toString() || '',
       maximumVolume: row.raw.maximumVolume?.toString() || '100',
-      companyId: row.raw.company?.id || row.raw.companyId || defaultTenantId(tenants)
+      companyId: row.raw.company?.id || row.raw.companyId || defaultTenantId(tenants),
+      typeTransportIds: row.raw.typeTransportIds || []
     });
     setIsModalOpen(true);
   };
@@ -239,9 +246,10 @@ const FleetPage = () => {
       typeFuel: 'DIESEL',
       costPerKilometer: '',
       maximumVolume: '100',
-    cargoVolume: '',
-    kmPerLiter: '',
-      companyId: defaultTenantId(tenants)
+      cargoVolume: '',
+      kmPerLiter: '',
+      companyId: defaultTenantId(tenants),
+      typeTransportIds: []
     });
   };
 
@@ -273,6 +281,53 @@ const FleetPage = () => {
     { label: 'Capacidade', key: 'capacidade' },
     { label: 'Custo/Km', key: 'custoKm' },
     { label: 'Tipo', key: 'tipo' },
+    { 
+      label: 'Tipos Atendidos', 
+      key: 'tiposAtendidos',
+      render: (row) => {
+        const names = row.raw?.typeTransportNames || [];
+        if (names.length === 0) {
+          return <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Geral</span>;
+        }
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+            {names.map(name => (
+              <span 
+                key={name} 
+                className="badge" 
+                style={{ 
+                  backgroundColor: '#e0f2fe', 
+                  color: '#0369a1', 
+                  border: '1px solid #bae6fd',
+                  padding: '0.15rem 0.45rem', 
+                  borderRadius: '4px', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 600 
+                }}
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+        );
+      }
+    },
+    {
+      label: 'Conjunto',
+      key: 'conjunto',
+      render: (row) => row.raw?.equipamentGroupId ? (
+        <Link
+          to={`/conjuntos?edit=${row.raw.equipamentGroupId}`}
+          className="entity-link"
+          title="Ver conjunto deste equipamento"
+          style={{ fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 600 }}
+        >
+          #{row.raw.equipamentGroupId.substring(0, 8)}
+        </Link>
+      ) : (
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>-</span>
+      )
+    },
     { 
       label: 'Empresa Vinculada', 
       key: 'empresa',
@@ -311,9 +366,10 @@ const FleetPage = () => {
       typeFuel: 'DIESEL',
       costPerKilometer: '',
       maximumVolume: '100',
-    cargoVolume: '',
-    kmPerLiter: '',
-      companyId: defaultCompId
+      cargoVolume: '',
+      kmPerLiter: '',
+      companyId: defaultCompId,
+      typeTransportIds: []
     });
     setIsModalOpen(true);
   };
@@ -564,6 +620,60 @@ const FleetPage = () => {
                           placeholder="0.00"
                           required
                         />
+                      </div>
+
+                      <div className="form-group col-span-2" style={{ marginTop: '0.5rem', background: 'var(--bg-secondary, #f8fafc)', padding: '0.9rem', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}>
+                        <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          Tipos de Transporte Atendidos (Compatibilidade Carga × Veículo)
+                        </label>
+                        <small style={{ color: '#64748b', display: 'block', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                          Em veículos rígidos (moto, van, VUC, toco, truck, bitruck), os tipos de transporte selecionados são configurados automaticamente no seu conjunto de veículo único criado pela API. O otimizador só escalará remessas com restrição de equipamento para veículos preparados para o tipo exigido.
+                        </small>
+
+                        {availableTypes.length === 0 ? (
+                          <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Nenhum tipo de transporte cadastrado.</span>
+                        ) : (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem', maxHeight: '140px', overflowY: 'auto', padding: '0.25rem' }}>
+                            {availableTypes.map(type => {
+                              const isChecked = (formData.typeTransportIds || []).includes(type.id);
+                              return (
+                                <label 
+                                  key={type.id} 
+                                  style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.45rem', 
+                                    fontSize: '0.85rem', 
+                                    cursor: 'pointer',
+                                    background: isChecked ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
+                                    padding: '0.35rem 0.5rem',
+                                    borderRadius: '4px',
+                                    border: isChecked ? '1px solid rgba(79, 70, 229, 0.3)' : '1px solid transparent'
+                                  }}
+                                >
+                                  <input 
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      const current = formData.typeTransportIds || [];
+                                      const next = e.target.checked 
+                                        ? [...current, type.id] 
+                                        : current.filter(id => id !== type.id);
+                                      setFormData({ ...formData, typeTransportIds: next });
+                                    }}
+                                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                  />
+                                  <span style={{ fontWeight: isChecked ? 600 : 400 }}>
+                                    {type.name}
+                                    {type.requiresCompatibleVehicle && (
+                                      <span style={{ fontSize: '0.7rem', color: '#b45309', marginLeft: '0.25rem' }}>*exige</span>
+                                    )}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </>
                   )}

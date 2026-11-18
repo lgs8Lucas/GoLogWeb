@@ -32,7 +32,7 @@ const MENU = [
   ] },
   { title: 'Planejamento', items: [
     { to: '/entregas', label: 'Remessas', icon: Package },
-    { to: '/escalas', label: 'Escalas de Trabalho', icon: CalendarClock, roles: BACKOFFICE },
+    { to: '/escalas', label: 'Escalas de Trabalho', icon: CalendarClock, roles: ['ADMIN', 'OPERATOR', 'DRIVER'] },
     { to: '/transporte', label: 'Roteirização & Viagens', icon: Route }
   ] },
   { title: 'Execução', items: [

@@ -9,6 +9,7 @@ import { workScheduleService } from '../services/workScheduleService';
 import { workShiftTemplateService } from '../services/workShiftTemplateService';
 import { driverService } from '../services/driverService';
 import { equipamentGroupService } from '../services/equipamentGroupService';
+import { authService } from '../services/authService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { translateStatus } from '../utils/enumTranslations';
@@ -49,6 +50,8 @@ const toTimeInputValue = (value) => {
 const WorkSchedulePage = () => {
   const [searchParams] = useSearchParams();
   const editParamId = searchParams.get('edit');
+  const userRole = authService.getUserRole();
+  const isDriver = userRole === 'DRIVER';
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -437,22 +440,31 @@ const WorkSchedulePage = () => {
         icon={CalendarClock}
         onBack={true}
       >
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setIsTemplateModalOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <Clock size={16} />
-            Novo Modelo de Turno
-          </button>
-          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-            <Plus size={18} />
-            Nova Escala
-          </button>
-        </div>
+        {!isDriver && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setIsTemplateModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Clock size={16} />
+              Novo Modelo de Turno
+            </button>
+            <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+              <Plus size={18} />
+              Nova Escala
+            </button>
+          </div>
+        )}
       </PageHeader>
+
+      {isDriver && (
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '0.85rem 1rem', borderRadius: '6px', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ShieldCheck size={18} color="#16a34a" />
+          <span><b>Acesso do Motorista:</b> Você está visualizando apenas as suas escalas de trabalho programadas (modo somente leitura).</span>
+        </div>
+      )}
 
       <Hint id="schedule-flow" title="O que é uma escala" compact>
           Uma escala diz qual motorista opera qual conjunto, em que data e turno — é ela que vira “veículo disponível” na
@@ -465,10 +477,10 @@ const WorkSchedulePage = () => {
           columns={columns}
           data={schedules}
           loading={loading}
-          onEdit={handleEditClick}
-          onDelete={handleDelete}
+          onEdit={isDriver ? undefined : handleEditClick}
+          onDelete={isDriver ? undefined : handleDelete}
           filterConfigs={scheduleFilterConfigs}
-          emptyMessage="Nenhuma escala de trabalho cadastrada."
+          emptyMessage={isDriver ? "Nenhuma escala de trabalho atribuída a você no momento." : "Nenhuma escala de trabalho cadastrada."}
         />
       </div>
 
