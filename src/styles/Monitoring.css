@@ -334,3 +334,19 @@
   color: var(--text-muted);
   padding: 2rem 0;
 }
+
+.badge-signal {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: var(--status-active-bg);
+  color: var(--status-active-text);
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.monitoring-updated-at {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}

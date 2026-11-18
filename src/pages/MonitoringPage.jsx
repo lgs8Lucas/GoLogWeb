@@ -1,5 +1,5 @@
 import { translateStatus } from '../utils/enumTranslations';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, ChevronRight, Truck, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Monitoring.css';
@@ -11,16 +11,33 @@ import { isTripFinished } from '../utils/tripStatus';
 
 const TRIP_PALETTE = ['#2ab29b', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#ec4899', '#84cc16'];
 const hashCode = (str = '') => [...str].reduce((h, ch) => ((h << 5) - h + ch.charCodeAt(0)) | 0, 0);
+const REFRESH_MS = 30000;
+
+const signalAge = (at) => {
+  const min = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 60000));
+  if (min < 1) return 'agora';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  return h < 24 ? `há ${h}h` : `há ${Math.floor(h / 24)}d`;
+};
+
+/** Última posição recebida por telemetria (gravada pelo backend na viagem). */
+const lastPosition = (t) => {
+  const lat = Number(t.lastTelemetryLat);
+  const lng = Number(t.lastTelemetryLon);
+  if (t.lastTelemetryLat == null || t.lastTelemetryLon == null || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { coord: [lat, lng], at: t.lastTelemetryAt };
+};
 
 const MonitoringPage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [updatedAt, setUpdatedAt] = useState(null);
 
-  useEffect(() => {
-    const fetchRealData = async () => {
+  const fetchRealData = useCallback(async () => {
       try {
         const shipments = await deliveryService.getAllPersonalized();
         const safeShipments = Array.isArray(shipments) ? shipments : (shipments?.content || []);
@@ -48,6 +65,9 @@ const MonitoringPage = () => {
               costKmCalculed: s.transport.costKmCalculed,
               costHourCalculed: s.transport.costHourCalculed,
               travelDuration: s.transport.travelDuration,
+              lastTelemetryLat: s.transport.lastTelemetryLat,
+              lastTelemetryLon: s.transport.lastTelemetryLon,
+              lastTelemetryAt: s.transport.lastTelemetryAt,
               shipments: []
             };
           }
@@ -67,6 +87,7 @@ const MonitoringPage = () => {
           // Decode planned and completed coordinates
           t.routePlannedCoords = decodePolyline(t.routePlanned);
           t.routeCompletedCoords = decodePolyline(t.routeCompleted);
+          t.position = lastPosition(t);
 
           // Decode individual stops coordinates if available
           t.shipments = t.shipments.map(s => {
@@ -82,15 +103,27 @@ const MonitoringPage = () => {
         });
 
         setTrips(groupedTrips);
+        setUpdatedAt(new Date());
       } catch (error) {
         console.error('Erro ao carregar dados de monitoramento:', error);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchRealData();
   }, []);
+
+  // Carga inicial + atualização periódica (pausa com a aba em segundo plano)
+  useEffect(() => {
+    fetchRealData();
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchRealData();
+    }, REFRESH_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchRealData(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); };
+  }, [fetchRealData]);
+
+  // O modal acompanha os dados atualizados da viagem selecionada
+  const selectedVehicle = useMemo(() => trips.find(t => t.id === selectedId) || null, [trips, selectedId]);
 
   const filteredTrips = trips.filter(t => 
     (t.plate || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -100,11 +133,15 @@ const MonitoringPage = () => {
 
   // Map trips to polylines for the map view
   // Rotas da busca atual; cores ficam a cargo da paleta fixa do mapa (cor segue a viagem, não o índice do filtro)
-  const mapPolylines = filteredTrips.map((t) => ({
+  const mapPolylines = filteredTrips.flatMap((t) => {
+    const color = TRIP_PALETTE[Math.abs(hashCode(t.id)) % TRIP_PALETTE.length];
+    const label = `Viagem #${t.code} · ${t.plate} · ${t.driver}`;
+    const planned = {
     id: t.id,
     coords: t.routePlannedCoords,
-    color: TRIP_PALETTE[Math.abs(hashCode(t.id)) % TRIP_PALETTE.length],
-    label: `Viagem #${t.code} · ${t.plate} · ${t.driver}`,
+    color,
+    label,
+    vehicle: t.position ? { ...t.position, label } : null,
     stops: t.shipments
       .filter(s => s.address?.latitude && s.address?.longitude)
       .map(s => ({
@@ -115,7 +152,10 @@ const MonitoringPage = () => {
         statusLabel: translateStatus(s.status),
         sequence: s.routeStop?.sequenceOrder
       }))
-  }));
+    };
+    if (t.routeCompletedCoords?.length < 2) return [planned];
+    return [planned, { id: `${t.id}-realizado`, variant: 'realized', coords: t.routeCompletedCoords, color, label: `Realizado · ${label}`, stops: [] }];
+  });
 
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL'); // 'ALL', 'IN_TRANSIT'
@@ -159,6 +199,11 @@ const MonitoringPage = () => {
             <span>MONITORAMENTO</span>
           </div>
           <h2>{trips.length} {trips.length === 1 ? 'viagem' : 'viagens'} em operação</h2>
+          {updatedAt && (
+            <span className="monitoring-updated-at">
+              Atualizado às {updatedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · a cada 30 s
+            </span>
+          )}
         </div>
       </div>
 
@@ -196,7 +241,7 @@ const MonitoringPage = () => {
             <div 
               key={trip.id} 
               className="vehicle-list-item"
-              onClick={() => setSelectedVehicle(trip)}
+              onClick={() => setSelectedId(trip.id)}
             >
               <div className="vehicle-item-left">
                 <div className="vehicle-icon-box">
@@ -209,6 +254,11 @@ const MonitoringPage = () => {
                     <span className="badge-stops-count">{trip.shipments.length} paradas</span>
                     {trip.calculedDistance > 0 && (
                       <span className="badge-distance-km">{((trip.calculedDistance || 0) / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km</span>
+                    )}
+                    {trip.position?.at && (
+                      <span className="badge-signal" title={`Última posição: ${new Date(trip.position.at).toLocaleString('pt-BR')}`}>
+                        sinal {signalAge(trip.position.at)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -225,7 +275,7 @@ const MonitoringPage = () => {
       {/* Modal Details */}
       <MonitoringModal 
         isOpen={!!selectedVehicle} 
-        onClose={() => setSelectedVehicle(null)} 
+        onClose={() => setSelectedId(null)} 
         vehicle={selectedVehicle}
       />
     </div>

@@ -66,3 +66,37 @@
 @media (max-width: 640px) {
   .gl-map__legend { left: 8px; right: 8px; bottom: 8px; gap: 8px; }
 }
+
+/* Última posição do veículo (telemetria) */
+.gl-vehicle {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--route, #1f304c);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+}
+.gl-vehicle::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--route, #1f304c);
+  animation: gl-vehicle-pulse 2s ease-out infinite;
+}
+.gl-vehicle--stale { filter: grayscale(1); opacity: 0.75; }
+.gl-vehicle--stale::after { animation: none; display: none; }
+@keyframes gl-vehicle-pulse {
+  from { transform: scale(1); opacity: 0.8; }
+  to { transform: scale(1.9); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-vehicle::after { animation: none; display: none; }
+}
+.gl-dot--realized { background: transparent; border: 2px dashed #6366f1; box-shadow: none; }
+.gl-dot--vehicle { background: #1f304c; }

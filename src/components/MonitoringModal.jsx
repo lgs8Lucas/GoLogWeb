@@ -68,6 +68,8 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   // Resultado guardado com o id da viagem: trocar de viagem volta a "carregando" sem setState no effect
   const [loaded, setLoaded] = useState({ id: null, data: null, error: false });
   const tripId = isOpen ? vehicle?.id : null;
+  const lastAt = vehicle?.lastTelemetryAt || null;
+  // Mantém o último resultado da mesma viagem enquanto recarrega após novo ponto de telemetria
   const indicators = loaded.id === tripId ? loaded.data : null;
   const indicatorsError = loaded.id === tripId && loaded.error;
 
@@ -78,7 +80,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
       .then(data => { if (!cancelled) setLoaded({ id: tripId, data, error: false }); })
       .catch(() => { if (!cancelled) setLoaded({ id: tripId, data: null, error: true }); });
     return () => { cancelled = true; };
-  }, [tripId]);
+  }, [tripId, lastAt]);
 
   // Planejado + realizado (telemetria). Memoizado para o mapa não redesenhar a cada render.
   const polylines = useMemo(() => {
@@ -88,6 +90,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
       coords: vehicle.routePlannedCoords || [],
       color: 'var(--secondary-color, #2ab29b)',
       label: `Viagem #${vehicle.code}`,
+      vehicle: vehicle.position ? { ...vehicle.position, label: `${vehicle.plate} · ${vehicle.driver}` } : null,
       stops: vehicle.shipments?.map(s => {
         if (s.address && s.address.latitude && s.address.longitude) {
           return {
@@ -100,7 +103,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
       }).filter(Boolean) || []
     }];
     if (vehicle.routeCompletedCoords?.length > 1) {
-      lines.push({ id: `${vehicle.id}-realizado`, coords: vehicle.routeCompletedCoords, color: '#6366f1', label: `Realizado #${vehicle.code}`, stops: [] });
+      lines.push({ id: `${vehicle.id}-realizado`, variant: 'realized', coords: vehicle.routeCompletedCoords, color: '#6366f1', label: `Realizado #${vehicle.code}`, stops: [] });
     }
     return lines;
   }, [vehicle]);
@@ -187,6 +190,15 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                   <div className="monitoring-legend-dot" style={{ backgroundColor: 'var(--status-active-text)' }} />
                   <span>Entregas / Coletas</span>
                 </div>
+                {vehicle.position && (
+                  <div className="monitoring-legend-item">
+                    <div className="monitoring-legend-dot" style={{ backgroundColor: 'var(--primary-color, #1f304c)' }} />
+                    <span>
+                      Última posição
+                      {vehicle.position.at && ` · ${new Date(vehicle.position.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
