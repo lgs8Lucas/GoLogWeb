@@ -19,6 +19,8 @@ import {
   Factory,
   CalendarCheck
 } from 'lucide-react';
+import OccurrenceCard from './OccurrenceCard';
+import { sortOccurrences } from '../utils/occurrence';
 import '../styles/MonitoringModal.css';
 import { isStopDone } from '../utils/tripStatus';
 import MapComponent from './MapComponent';
@@ -119,24 +121,13 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   const totalShipments = vehicle.shipments?.length || 0;
   const completedShipments = vehicle.shipments?.filter(isStopDone).length || 0;
   const occurrencesCount = vehicle.occurrences?.length || 0;
+  const sortedOccurrences = sortOccurrences(vehicle.occurrences || []);
+  const shipmentById = Object.fromEntries((vehicle.shipments || []).map(s => [s.id, s]));
 
   const getStepStatus = (s) => {
     if (isStopDone(s)) return 'completed';
     if (s.status === 'INICIADO') return 'active';
     return 'pending';
-  };
-
-  const getOccClass = (type) => {
-    switch (type) {
-      case 'ROUBO':
-      case 'AVARIA':
-        return 'occ-danger';
-      case 'ATRASO':
-      case 'DESVIO':
-        return 'occ-warning';
-      default:
-        return 'occ-info';
-    }
   };
 
   return createPortal(
@@ -505,22 +496,17 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
               {/* ABA 3: Ocorrências */}
               {activeTab === 'ocorrencias' && (
                 <div className="route-occurrences">
-                  {vehicle.occurrences && vehicle.occurrences.length > 0 ? (
-                    vehicle.occurrences.map((occ, index) => (
-                      <div key={occ.id || index} className={`route-occ-card ${getOccClass(occ.type)}`}>
-                        <div className="occ-card-header">
-                          <span className="occ-card-type" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <AlertTriangle size={14} />
-                            {occ.type}
-                          </span>
-                          <span className="occ-card-user" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <User size={12} />
-                            {occ.sender?.name || 'Sistema'}
-                          </span>
-                        </div>
-                        <p style={{ margin: '0.25rem 0 0', lineHeight: 1.4 }}>{occ.description}</p>
-                      </div>
-                    ))
+                  {sortedOccurrences.length > 0 ? (
+                    <div className="occ-list">
+                      {sortedOccurrences.map((occ, index) => (
+                        <OccurrenceCard
+                          key={occ.id || index}
+                          occurrence={occ}
+                          shipment={shipmentById[occ.shipmentId || occ.shipment?.id]}
+                          senderName={occ.senderId && occ.senderId === vehicle.driverUserId ? vehicle.driver : undefined}
+                        />
+                      ))}
+                    </div>
                   ) : (
                     <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                       <CheckCircle2 size={32} style={{ opacity: 0.3, margin: '0 auto 0.5rem', color: 'var(--status-active-text)' }} />

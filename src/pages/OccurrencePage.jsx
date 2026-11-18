@@ -149,7 +149,7 @@ const OccurrencePage = () => {
         return row.transport?.id ? row.transport.id.substring(0, 8) : (row.transportId ? row.transportId.substring(0, 8) : '-');
       }
     },
-    { label: 'Relator / Emissor', key: 'senderName', render: (row) => row.sender?.name || 'Sistema' }
+    { label: 'Relator / Emissor', key: 'senderName', render: (row) => row.senderName || row.sender?.name || 'Sistema' }
   ];
 
   const occurrenceFilterConfigs = [
@@ -157,7 +157,7 @@ const OccurrencePage = () => {
     { 
       key: 'senderName', 
       label: 'Relator',
-      accessor: (row) => row.sender?.name || 'Sistema'
+      accessor: (row) => row.senderName || row.sender?.name || 'Sistema'
     }
   ];
 

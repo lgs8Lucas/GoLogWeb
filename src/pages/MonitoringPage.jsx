@@ -6,6 +6,7 @@ import '../styles/Monitoring.css';
 import MonitoringModal from '../components/MonitoringModal';
 import MapComponent from '../components/MapComponent';
 import { deliveryService } from '../services/deliveryService';
+import { occurrenceService } from '../services/occurrenceService';
 import { decodePolyline } from '../utils/polyline';
 import { isTripFinished } from '../utils/tripStatus';
 
@@ -39,8 +40,12 @@ const MonitoringPage = () => {
 
   const fetchRealData = useCallback(async () => {
       try {
-        const shipments = await deliveryService.getAllPersonalized();
+        const [shipments, occurrences] = await Promise.all([
+          deliveryService.getAllPersonalized(),
+          occurrenceService.getAll()
+        ]);
         const safeShipments = Array.isArray(shipments) ? shipments : (shipments?.content || []);
+        const safeOccurrences = Array.isArray(occurrences) ? occurrences : (occurrences?.content || []);
         // Group shipments by transport
         const transportsMap = {};
 
@@ -54,6 +59,7 @@ const MonitoringPage = () => {
               plate: s.transport.equipamentGroup?.equipament1?.plate || 'Cavalo',
               plate2: s.transport.equipamentGroup?.equipament2?.plate || '-',
               driver: s.transport.driver?.user?.name || 'Sem motorista',
+              driverUserId: s.transport.driver?.user?.id,
               routePlanned: s.transport.routePlanned,
               routeCompleted: s.transport.routeCompleted,
               calculedDistance: s.transport.calculedDistance || 0,
@@ -88,6 +94,7 @@ const MonitoringPage = () => {
           t.routePlannedCoords = decodePolyline(t.routePlanned);
           t.routeCompletedCoords = decodePolyline(t.routeCompleted);
           t.position = lastPosition(t);
+          t.occurrences = safeOccurrences.filter(occ => (occ.transportId || occ.transport?.id) === t.id);
 
           // Decode individual stops coordinates if available
           t.shipments = t.shipments.map(s => {

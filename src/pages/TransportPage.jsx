@@ -13,6 +13,8 @@ import { deliveryService } from '../services/deliveryService';
 import { occurrenceService } from '../services/occurrenceService';
 import { decodePolyline } from '../utils/polyline';
 import MonitoringModal from '../components/MonitoringModal';
+import OccurrenceCard from '../components/OccurrenceCard';
+import { sortOccurrences } from '../utils/occurrence';
 import { useToast } from '../components/ToastContext';
 import DataTable from '../components/DataTable';
 import DeliveryModal from '../components/DeliveryModal';
@@ -48,6 +50,7 @@ const TransportPage = () => {
   const [isOccModalOpen, setIsOccModalOpen] = useState(false);
   const [selectedOccs, setSelectedOccs] = useState([]);
   const [selectedOccsTransportId, setSelectedOccsTransportId] = useState('');
+  const [selectedOccsItem, setSelectedOccsItem] = useState(null);
 
   const { showToast } = useToast();
 
@@ -252,6 +255,7 @@ const TransportPage = () => {
       id: rawT?.id,
       code: rawT?.codeTransport || (rawT?.id ? rawT.id.substring(0, 8) : 'N/A'),
       driver: rawT?.driver?.user?.name || 'Sem motorista',
+      driverUserId: rawT?.driver?.user?.id,
       plate: item.equipments,
       routePlannedCoords: coords,
       shipments: shipmentsList,
@@ -270,6 +274,7 @@ const TransportPage = () => {
 
   const handleOpenOccurrences = (item) => {
     setSelectedOccs(item.occurrences || []);
+    setSelectedOccsItem(item);
     setSelectedOccsTransportId(item.id);
     setIsOccModalOpen(true);
   };
@@ -769,7 +774,7 @@ const TransportPage = () => {
 
       {isOccModalOpen && createPortal(
         <div className="modal-overlay fade-in">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
+          <div className="modal-content" style={{ maxWidth: '640px' }}>
             <div className="modal-header">
               <h2>Ocorrências do Transporte {selectedOccsTransportId}</h2>
               <button className="modal-close-btn" onClick={() => setIsOccModalOpen(false)}>
@@ -778,15 +783,16 @@ const TransportPage = () => {
             </div>
             <div className="modal-body" style={{ gap: '0.85rem' }}>
               {selectedOccs.length > 0 ? (
-                selectedOccs.map((occ, idx) => (
-                  <div key={occ.id || idx} className="route-occ-card occ-danger">
-                    <div className="occ-card-header">
-                      <span>{occ.type}</span>
-                      <span>Criador: {occ.sender?.name || 'Sistema'}</span>
-                    </div>
-                    <p style={{ margin: 0 }}>{occ.description}</p>
-                  </div>
-                ))
+                <div className="occ-list">
+                  {sortOccurrences(selectedOccs).map((occ, idx) => (
+                    <OccurrenceCard
+                      key={occ.id || idx}
+                      occurrence={occ}
+                      shipment={(selectedOccsItem?.rawShipments || []).find(s => s.id === (occ.shipmentId || occ.shipment?.id))}
+                      senderName={occ.senderId && occ.senderId === selectedOccsItem?.rawTransport?.driver?.user?.id ? selectedOccsItem?.driver : undefined}
+                    />
+                  ))}
+                </div>
               ) : (
                 <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Nenhuma ocorrência registrada para este transporte.</p>
               )}
