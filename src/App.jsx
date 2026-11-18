@@ -43,8 +43,11 @@ function App() {
               <Route path="conjuntos" element={<EquipamentGroupPage />} />
               <Route path="tipos-carga" element={<Navigate to="/regras-otimizacao?tab=shipments" replace />} />
               <Route path="ocorrencias" element={<OccurrencePage />} />
-              <Route path="escalas" element={<WorkSchedulePage />} />
               <Route path="regras-otimizacao" element={<OptimizationRulesPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERATOR', 'DRIVER']} />}>
+              <Route path="escalas" element={<WorkSchedulePage />} />
             </Route>
 
             <Route path="frota" element={<FleetPage />} />
