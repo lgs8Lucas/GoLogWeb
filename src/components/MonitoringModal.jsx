@@ -24,6 +24,7 @@ import MapComponent from './MapComponent';
 import InfoTip from './ui/InfoTip';
 import { transportService } from '../services/transportService';
 import { plannedTonKm } from '../utils/tripPlan';
+import { decodePolyline } from '../utils/polyline';
 
 const fmtNum = (v, d = 1) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 
@@ -131,6 +132,13 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
     return () => { cancelled = true; };
   }, [tripId, lastAt]);
 
+  // Rota realizada montada pelo backend com os pontos de telemetria do transport_id da viagem;
+  // enquanto carrega, usa a gravada na viagem
+  const completedCoords = useMemo(
+    () => (indicators?.routeCompleted ? decodePolyline(indicators.routeCompleted) : (vehicle?.routeCompletedCoords || [])),
+    [indicators, vehicle]
+  );
+
   // Planejado + realizado (telemetria). Memoizado para o mapa não redesenhar a cada render.
   const polylines = useMemo(() => {
     if (!vehicle) return [];
@@ -155,11 +163,11 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
         return null;
       }).filter(Boolean) || []
     }];
-    if (vehicle.routeCompletedCoords?.length > 1) {
-      lines.push({ id: `${vehicle.id}-realizado`, variant: 'realized', coords: vehicle.routeCompletedCoords, color: '#6366f1', label: `Realizado #${vehicle.code}`, stops: [] });
+    if (completedCoords.length > 1) {
+      lines.push({ id: `${vehicle.id}-realizado`, variant: 'realized', coords: completedCoords, color: '#6366f1', label: `Realizado #${vehicle.code}`, stops: [] });
     }
     return lines;
-  }, [vehicle]);
+  }, [vehicle, completedCoords]);
 
   if (!isOpen || !vehicle) return null;
 
@@ -253,7 +261,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                   <div className="monitoring-legend-dot" style={{ backgroundColor: 'var(--secondary-color, #2ab29b)' }} />
                   <span>Trajeto Planejado</span>
                 </div>
-                {vehicle.routeCompletedCoords?.length > 1 && (
+                {completedCoords.length > 1 && (
                   <div className="monitoring-legend-item">
                     <div className="monitoring-legend-dot" style={{ backgroundColor: '#6366f1' }} />
                     <span>Trajeto Realizado (telemetria){hasRoute && ` · ${fmtKm(ind.distanceTraveledKm)}`}</span>
