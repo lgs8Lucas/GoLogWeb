@@ -9,15 +9,11 @@ import {
   User,
   Clock,
   Route,
-  Leaf,
   DollarSign,
   Calendar,
   CheckCircle2,
   Navigation,
-  Info,
-  Fuel,
-  Factory,
-  CalendarCheck
+  Info
 } from 'lucide-react';
 import OccurrenceCard from './OccurrenceCard';
 import { sortOccurrences } from '../utils/occurrence';
@@ -27,15 +23,9 @@ import { translateStatus } from '../utils/enumTranslations';
 import MapComponent from './MapComponent';
 import InfoTip from './ui/InfoTip';
 import { transportService } from '../services/transportService';
+import { plannedTonKm } from '../utils/tripPlan';
 
 const fmtNum = (v, d = 1) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
-
-/** Valor realizado: carregando → "…"; com rota e sem fator cadastrado (null) → "sem fator". */
-const realized = (ind, value, render) => {
-  if (!ind) return '…';
-  if (value === null || value === undefined) return 'sem fator';
-  return render(value);
-};
 
 /** Mesma regra do backend: chegada até o horário agendado da remessa. */
 const agendaStatus = (s) => {
@@ -44,12 +34,6 @@ const agendaStatus = (s) => {
   const arrived = s.routeStop?.arrivedAt || s.routeStop?.departedAt;
   if (arrived) return new Date(arrived) <= new Date(sched) ? 'met' : 'late';
   return new Date() > new Date(sched) ? 'late' : null;
-};
-
-// Formata distância (metros -> km)
-const formatDistance = (meters) => {
-  if (meters == null) return '0.0 km';
-  return `${(meters / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
 };
 
 // Formata tempo (segundos -> h m)
@@ -64,6 +48,68 @@ const formatDuration = (seconds) => {
 const formatCurrency = (value) => {
   if (value == null) return 'R$ 0,00';
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
+const fmtKm = (km) => `${fmtNum(km || 0)} km`;
+const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—');
+
+/** Variação do efetivo sobre o calculado: vermelho acima do plano, verde abaixo. */
+const DeltaBadge = ({ value, planned }) => {
+  if (value == null || !(planned > 0)) return null;
+  const pct = Math.round(((value - planned) / planned) * 100);
+  const cls = pct > 0 ? 'over' : 'under';
+  return <span className={`monitoring-delta monitoring-delta--${cls}`}>{pct > 0 ? '+' : ''}{pct.toLocaleString('pt-BR')}%</span>;
+};
+
+/** Cards de indicadores no mesmo padrão para o plano e para o realizado. */
+const IndicatorCards = ({ data, loading = false, planned = null }) => {
+  const show = (value, render) => {
+    if (loading) return '…';
+    if (value === null || value === undefined) return data.factorsReady ? 'sem fator' : '…';
+    return render(value);
+  };
+  const b = data.breakdown;
+  return (
+    <>
+      <div className="monitoring-kv-card">
+        <span className="monitoring-kv-label">Distância</span>
+        <span className="monitoring-kv-value">{loading ? '…' : fmtKm(data.km)}</span>
+      </div>
+      <div className="monitoring-kv-card">
+        <span className="monitoring-kv-label">Tempo Total</span>
+        <span className="monitoring-kv-value">{loading ? '…' : formatDuration(data.seconds)}</span>
+        {data.transitSeconds > 0 && <span className="monitoring-kv-hint">{formatDuration(data.transitSeconds)} em trânsito</span>}
+      </div>
+      <div className="monitoring-kv-card">
+        <span className="monitoring-kv-label">Tonelada·km</span>
+        <span className="monitoring-kv-value">{loading ? '…' : data.tonKm == null ? 'sem trechos no plano' : `${fmtNum(data.tonKm)} t·km`}</span>
+      </div>
+      <div className="monitoring-kv-card">
+        <span className="monitoring-kv-label">Combustível</span>
+        <span className="monitoring-kv-value">{show(data.fuelLiters, v => `${fmtNum(v)} L`)}</span>
+      </div>
+      <div className="monitoring-kv-card">
+        <span className="monitoring-kv-label">CO₂</span>
+        <span className="monitoring-kv-value">{show(data.co2Kg, v => `${fmtNum(v)} kg`)}</span>
+      </div>
+      <div className="monitoring-kv-card">
+        <span className="monitoring-kv-label">Custo por Km</span>
+        <span className="monitoring-kv-value">{show(data.costPerKm, formatCurrency)}</span>
+      </div>
+      <div className="monitoring-kv-card" style={{ gridColumn: '1 / -1' }}>
+        <span className="monitoring-kv-label">Custo Total</span>
+        <span className="monitoring-kv-value" style={{ fontSize: '1.1rem', color: 'var(--secondary-color)' }}>
+          {show(data.cost, formatCurrency)}
+        </span>
+        {!loading && b && (
+          <span className="monitoring-kv-hint">
+            Km {formatCurrency(b.kmCost)} · Horas {formatCurrency(b.hourCost)} · Fixo {formatCurrency(b.fixedCost)}
+            {planned?.cost > 0 && data.cost != null && ` · ${fmtNum((data.cost / planned.cost) * 100, 0)}% do previsto`}
+          </span>
+        )}
+      </div>
+    </>
+  );
 };
 
 const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
@@ -121,7 +167,38 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
   const ind = indicatorsError ? { hasTelemetryRoute: false, distanceTraveledKm: 0, elapsedHours: 0, tonKm: 0, fuelLiters: 0, co2Kg: 0, effectiveCost: 0, schedule: null, cost: null, factors: {} } : indicators;
   const hasRoute = !!ind?.hasTelemetryRoute;
   const sched = ind?.schedule;
-  const agendaText = sched ? (sched.scheduled > 0 ? `${sched.metOnTime} de ${sched.scheduled}` : 'sem agenda') : '…';
+
+  // Mesmo conjunto de indicadores para o plano e para o realizado (faixa de comparação e aba Resumo)
+  const factors = ind?.factors || {};
+  const planKm = (vehicle.calculedDistance || 0) / 1000;
+  const planCost = vehicle.totalCostCalculed || 0;
+  const plan = {
+    km: planKm,
+    seconds: vehicle.totalTimeCalculed || 0,
+    transitSeconds: vehicle.travelDuration || 0,
+    tonKm: plannedTonKm(vehicle.shipments),
+    fuelLiters: factors.kmPerLiter > 0 ? planKm / factors.kmPerLiter : null,
+    co2Kg: factors.kgCo2PerKm != null ? planKm * factors.kgCo2PerKm : null,
+    cost: planCost,
+    costPerKm: planKm > 0 ? planCost / planKm : null,
+    breakdown: {
+      kmCost: vehicle.costKmCalculed || 0,
+      hourCost: vehicle.costHourCalculed || 0,
+      fixedCost: Math.max(0, planCost - (vehicle.costKmCalculed || 0) - (vehicle.costHourCalculed || 0))
+    },
+    factorsReady: !!ind
+  };
+  const eff = {
+    km: hasRoute ? ind.distanceTraveledKm : 0,
+    seconds: hasRoute ? Math.round(ind.elapsedHours * 3600) : 0,
+    tonKm: hasRoute ? ind.tonKm : 0,
+    fuelLiters: hasRoute ? ind.fuelLiters : 0,
+    co2Kg: hasRoute ? ind.co2Kg : 0,
+    cost: hasRoute ? ind.effectiveCost : 0,
+    costPerKm: hasRoute ? ind.effectiveCostPerKm : 0,
+    breakdown: hasRoute ? ind.cost : null,
+    factorsReady: true
+  };
 
   const totalShipments = vehicle.shipments?.length || 0;
   const completedShipments = vehicle.shipments?.filter(isStopDone).length || 0;
@@ -179,7 +256,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                 {vehicle.routeCompletedCoords?.length > 1 && (
                   <div className="monitoring-legend-item">
                     <div className="monitoring-legend-dot" style={{ backgroundColor: '#6366f1' }} />
-                    <span>Trajeto Realizado (telemetria)</span>
+                    <span>Trajeto Realizado (telemetria){hasRoute && ` · ${fmtKm(ind.distanceTraveledKm)}`}</span>
                   </div>
                 )}
                 <div className="monitoring-legend-item">
@@ -201,73 +278,29 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
 
           {/* LADO DIREITO: Painel de Informações e Roteiro */}
           <div className="monitoring-modal-right">
-            {/* Faixa Superior de Métricas */}
-            <div className="monitoring-metrics-strip">
-              <div className="monitoring-strip-card">
-                <div className="monitoring-strip-icon" style={{ backgroundColor: 'rgba(31, 48, 76, 0.08)', color: 'var(--primary-color)' }}>
-                  <Route size={18} />
-                </div>
-                <div className="monitoring-strip-info">
-                  <span className="monitoring-strip-label">Distância</span>
-                  <span className="monitoring-strip-val">{formatDistance(vehicle.calculedDistance)}</span>
-                </div>
-              </div>
+            {/* Calculado (plano do otimizador) × Efetivo (rota da telemetria) */}
+            <div className="monitoring-compare">
+              <span />
+              <span className="monitoring-compare-head"><Route size={13} /> Distância</span>
+              <span className="monitoring-compare-head"><Clock size={13} /> Tempo</span>
+              <span className="monitoring-compare-head"><DollarSign size={13} /> Custo</span>
 
-              <div className="monitoring-strip-card">
-                <div className="monitoring-strip-icon" style={{ backgroundColor: 'var(--status-warning-bg)', color: 'var(--status-warning-text)' }}>
-                  <Clock size={18} />
-                </div>
-                <div className="monitoring-strip-info">
-                  <span className="monitoring-strip-label">Tempo Previsto</span>
-                  <span className="monitoring-strip-val">{formatDuration(vehicle.totalTimeCalculed)}</span>
-                </div>
-              </div>
+              <span className="monitoring-compare-tag">Calculado</span>
+              <span className="monitoring-compare-val">{fmtKm(plan.km)}</span>
+              <span className="monitoring-compare-val">{formatDuration(plan.seconds)}</span>
+              <span className="monitoring-compare-val">{formatCurrency(plan.cost)}</span>
 
-              <div className="monitoring-strip-card">
-                <div className="monitoring-strip-icon" style={{ backgroundColor: 'var(--status-active-bg)', color: 'var(--status-active-text)' }}>
-                  <DollarSign size={18} />
-                </div>
-                <div className="monitoring-strip-info">
-                  <span className="monitoring-strip-label">Custo Estimado</span>
-                  <span className="monitoring-strip-val">{formatCurrency(vehicle.totalCostCalculed)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Indicadores realizados sobre a rota da telemetria (zerados sem rota) */}
-            <div className="monitoring-realized-strip">
-              <div className="monitoring-realized-head">
-                <span>Realizado pela telemetria</span>
-                {ind && !hasRoute && <span className="monitoring-realized-empty">sem rota recebida · indicadores zerados</span>}
-                {hasRoute && <span className="monitoring-realized-empty">{fmtNum(ind.distanceTraveledKm)} km percorridos</span>}
-              </div>
-              <div className="monitoring-realized-grid">
-                <div className="monitoring-realized-item" title="Σ toneladas a bordo × km de cada trecho recebido">
-                  <Factory size={15} />
-                  <span className="monitoring-strip-label">t·km</span>
-                  <span className="monitoring-strip-val">{realized(ind, ind?.tonKm, v => fmtNum(v))}</span>
-                </div>
-                <div className="monitoring-realized-item" title="km percorridos ÷ consumo médio do veículo (km/L)">
-                  <Fuel size={15} />
-                  <span className="monitoring-strip-label">Combustível</span>
-                  <span className="monitoring-strip-val">{realized(ind, ind?.fuelLiters, v => `${fmtNum(v)} L`)}</span>
-                </div>
-                <div className="monitoring-realized-item" title="km percorridos × kg CO₂/km do veículo">
-                  <Leaf size={15} />
-                  <span className="monitoring-strip-label">CO₂</span>
-                  <span className="monitoring-strip-val">{realized(ind, ind?.co2Kg, v => `${fmtNum(v)} kg`)}</span>
-                </div>
-                <div className="monitoring-realized-item" title="km × custo/km + horas em rota × custo/hora + custo fixo do plano">
-                  <DollarSign size={15} />
-                  <span className="monitoring-strip-label">Custo efetivo</span>
-                  <span className="monitoring-strip-val">{realized(ind, ind?.effectiveCost, formatCurrency)}</span>
-                </div>
-                <div className="monitoring-realized-item" title="Paradas com chegada até o horário agendado">
-                  <CalendarCheck size={15} />
-                  <span className="monitoring-strip-label">Agendas atendidas</span>
-                  <span className="monitoring-strip-val">{agendaText}</span>
-                </div>
-              </div>
+              <span className="monitoring-compare-tag monitoring-compare-tag--effective">Efetivo</span>
+              {[
+                [eff.km, plan.km, fmtKm],
+                [eff.seconds, plan.seconds, formatDuration],
+                [eff.cost, plan.cost, formatCurrency]
+              ].map(([value, planned, render], i) => (
+                <span key={i} className="monitoring-compare-val">
+                  {!ind ? '…' : !hasRoute || value == null ? '—' : render(value)}
+                  <DeltaBadge value={hasRoute ? value : null} planned={planned} />
+                </span>
+              ))}
             </div>
 
             {/* Abas Internas */}
@@ -394,35 +427,19 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                     <span className="monitoring-kv-value">{vehicle.plate}</span>
                   </div>
 
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Distância Calculada</span>
-                    <span className="monitoring-kv-value">{formatDistance(vehicle.calculedDistance)}</span>
-                  </div>
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Duração Prevista em Trânsito</span>
-                    <span className="monitoring-kv-value">{formatDuration(vehicle.travelDuration)}</span>
-                  </div>
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Custo de Quilometragem Previsto</span>
-                    <span className="monitoring-kv-value">{formatCurrency(vehicle.costKmCalculed)}</span>
-                  </div>
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Custo de Horas Previsto</span>
-                    <span className="monitoring-kv-value">{formatCurrency(vehicle.costHourCalculed)}</span>
-                  </div>
-
-                  <div className="monitoring-kv-card" style={{ gridColumn: '1 / -1' }}>
-                    <span className="monitoring-kv-label">Custo Total Previsto da Operação</span>
-                    <span className="monitoring-kv-value" style={{ fontSize: '1.1rem', color: 'var(--secondary-color)' }}>
-                      {formatCurrency(vehicle.totalCostCalculed)}
-                    </span>
-                  </div>
-
                   <div className="monitoring-overview-section">
-                    <span>Realizado pela rota da telemetria</span>
+                    <span>Indicadores calculados</span>
+                    <span className="monitoring-overview-section-sub">plano do otimizador</span>
+                    <InfoTip title="Como é calculado" align="left">
+                      Valores do plano gerado pelo otimizador de rotas. O t·km soma, trecho a trecho, as toneladas a bordo
+                      × km do trecho planejado. Combustível e CO₂ aplicam aos km planejados os fatores do cadastro da frota.
+                    </InfoTip>
+                  </div>
+                  <IndicatorCards data={plan} />
+
+                  <div className="monitoring-overview-section monitoring-overview-section--effective">
+                    <span>Indicadores efetivos</span>
+                    <span className="monitoring-overview-section-sub">rota realizada pela telemetria</span>
                     <InfoTip title="Como é calculado" align="left">
                       A distância e o t·km são acumulados pelo backend a cada ponto de telemetria recebido durante a viagem
                       (ruído de GPS e saltos impossíveis são descartados). Combustível, CO₂ e custo aplicam os fatores do
@@ -430,43 +447,18 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                     </InfoTip>
                   </div>
 
-                  {ind && !hasRoute && (
-                    <div className="monitoring-overview-note">
-                      Nenhuma rota de telemetria recebida para esta viagem — indicadores realizados zerados.
-                    </div>
-                  )}
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Distância Percorrida</span>
-                    <span className="monitoring-kv-value">{ind ? `${fmtNum(ind.distanceTraveledKm)} km` : '…'}</span>
+                  <div className="monitoring-kv-card" style={{ gridColumn: '1 / -1' }}>
+                    <span className="monitoring-kv-label">Rota Realizada</span>
+                    <span className="monitoring-kv-value">
+                      {!ind ? '…' : hasRoute ? `${fmtKm(ind.distanceTraveledKm)} percorridos` : 'Nenhuma rota de telemetria recebida'}
+                    </span>
+                    <span className="monitoring-kv-hint">
+                      {hasRoute
+                        ? `Rastreada de ${fmtDateTime(ind.trackingStartedAt)} até ${fmtDateTime(ind.lastTelemetryAt)}`
+                        : ind ? 'Indicadores efetivos zerados até chegar o primeiro ponto da viagem.' : ''}
+                    </span>
                   </div>
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Tempo em Rota</span>
-                    <span className="monitoring-kv-value">{ind ? formatDuration(Math.round(ind.elapsedHours * 3600)) : '…'}</span>
-                  </div>
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Tonelada·km Realizada</span>
-                    <span className="monitoring-kv-value">{realized(ind, ind?.tonKm, v => `${fmtNum(v)} t·km`)}</span>
-                  </div>
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Consumo de Combustível</span>
-                    <span className="monitoring-kv-value">{realized(ind, ind?.fuelLiters, v => `${fmtNum(v)} L`)}</span>
-                    {hasRoute && ind.factors?.kmPerLiter > 0 && <span className="monitoring-kv-hint">{fmtNum(ind.factors.kmPerLiter)} km/L cadastrado</span>}
-                  </div>
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">CO₂ Calculado</span>
-                    <span className="monitoring-kv-value">{realized(ind, ind?.co2Kg, v => `${fmtNum(v)} kg`)}</span>
-                    {hasRoute && ind.factors?.kgCo2PerKm != null && <span className="monitoring-kv-hint">{fmtNum(ind.factors.kgCo2PerKm, 3)} kg CO₂/km</span>}
-                  </div>
-
-                  <div className="monitoring-kv-card">
-                    <span className="monitoring-kv-label">Custo Efetivo por Km</span>
-                    <span className="monitoring-kv-value">{hasRoute ? realized(ind, ind.effectiveCostPerKm, formatCurrency) : formatCurrency(0)}</span>
-                  </div>
+                  <IndicatorCards data={eff} loading={!ind} planned={plan} />
 
                   <div className="monitoring-kv-card" style={{ gridColumn: '1 / -1' }}>
                     <span className="monitoring-kv-label">Paradas com Agenda Atendida</span>
@@ -480,19 +472,6 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                     </span>
                     {sched?.scheduled > 0 && (
                       <span className="monitoring-kv-hint">{sched.late} fora da agenda · {sched.pending} ainda no prazo</span>
-                    )}
-                  </div>
-
-                  <div className="monitoring-kv-card" style={{ gridColumn: '1 / -1' }}>
-                    <span className="monitoring-kv-label">Custo Efetivo da Operação</span>
-                    <span className="monitoring-kv-value" style={{ fontSize: '1.1rem', color: 'var(--secondary-color)' }}>
-                      {realized(ind, ind?.effectiveCost, formatCurrency)}
-                    </span>
-                    {hasRoute && ind.cost && (
-                      <span className="monitoring-kv-hint">
-                        Km {formatCurrency(ind.cost.kmCost)} · Horas {formatCurrency(ind.cost.hourCost)} · Fixo {formatCurrency(ind.cost.fixedCost)}
-                        {vehicle.totalCostCalculed > 0 && ind.effectiveCost != null && ` · ${fmtNum((ind.effectiveCost / vehicle.totalCostCalculed) * 100, 0)}% do previsto`}
-                      </span>
                     )}
                   </div>
                 </div>

@@ -428,3 +428,87 @@
   font-size: 0.7rem;
   color: var(--text-muted);
 }
+
+/* Calculado × Efetivo */
+.monitoring-compare {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  align-items: center;
+  column-gap: 1rem;
+  row-gap: 0.45rem;
+  padding: 0.9rem 1.5rem;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.monitoring-compare-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.monitoring-compare-tag {
+  justify-self: start;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.monitoring-compare-tag--effective {
+  background-color: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+}
+
+.monitoring-compare-val {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+  min-width: 0;
+}
+
+.monitoring-delta {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+}
+
+.monitoring-delta--over {
+  background-color: var(--status-danger-bg, rgba(239, 68, 68, 0.12));
+  color: var(--status-danger-text, #dc2626);
+}
+
+.monitoring-delta--under {
+  background-color: var(--status-active-bg);
+  color: var(--status-active-text);
+}
+
+/* Seções da aba Resumo: barra lateral escura (calculado) e índigo (efetivo) */
+.monitoring-overview-section {
+  border-left: 3px solid var(--primary-color, #1f304c);
+  padding-left: 0.5rem;
+}
+
+.monitoring-overview-section--effective {
+  border-left-color: #6366f1;
+}
+
+.monitoring-overview-section-sub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
