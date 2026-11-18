@@ -149,7 +149,8 @@ const OptimizationRulesPage = () => {
   const initialTransportForm = {
     name: '',
     description: '',
-    care: ''
+    care: '',
+    requiresCompatibleVehicle: false
   };
   const [transportForm, setTransportForm] = useState(initialTransportForm);
 
@@ -689,6 +690,17 @@ const OptimizationRulesPage = () => {
                 label: 'Cuidados / Requisitos',
                 key: 'care',
                 render: (row) => row.care || '-'
+              },
+              {
+                label: 'Exige Compatibilidade',
+                key: 'requiresCompatibleVehicle',
+                render: (row) => row.requiresCompatibleVehicle ? (
+                  <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 600 }}>
+                    Exige compatível
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Não restrito</span>
+                )
               }
             ]}
             onEdit={(row) => {
@@ -696,7 +708,8 @@ const OptimizationRulesPage = () => {
               setTransportForm({
                 name: row.name || '',
                 description: row.description || '',
-                care: row.care || ''
+                care: row.care || '',
+                requiresCompatibleVehicle: Boolean(row.requiresCompatibleVehicle)
               });
               setIsTransportModalOpen(true);
             }}
@@ -1216,6 +1229,21 @@ const OptimizationRulesPage = () => {
                     value={transportForm.care}
                     onChange={(e) => setTransportForm({ ...transportForm, care: e.target.value })}
                   />
+                </div>
+                <div className="form-group" style={{ background: 'var(--bg-secondary, #f8fafc)', padding: '0.85rem', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontWeight: 600, margin: 0 }}>
+                    <input 
+                      type="checkbox" 
+                      name="requiresCompatibleVehicle" 
+                      checked={Boolean(transportForm.requiresCompatibleVehicle)} 
+                      onChange={(e) => setTransportForm({ ...transportForm, requiresCompatibleVehicle: e.target.checked })} 
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <span>Exige veículo compatível</span>
+                  </label>
+                  <small style={{ color: '#64748b', marginTop: '0.35rem', display: 'block', lineHeight: 1.4 }}>
+                    Marque para cargas com restrição física (ex.: <b>Refrigerada</b>, <b>Climatizada</b>). O otimizador só escalará remessas deste tipo para veículos ou conjuntos equipados para atendê-lo.
+                  </small>
                 </div>
               </div>
               <div className="modal-footer">
