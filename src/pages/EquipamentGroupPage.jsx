@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader';
 import Hint from '../components/ui/Hint';
 import { equipamentGroupService } from '../services/equipamentGroupService';
 import { equipamentService } from '../services/equipamentService';
+import { typeTransportService } from '../services/typeTransportService';
 import { useToast } from '../components/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { extractErrorMessage } from '../utils/errorUtils';
@@ -28,10 +29,12 @@ const EquipamentGroupPage = () => {
     equipament1Id: '',
     equipament2Id: '',
     equipament3Id: '',
-    companyId: ''
+    companyId: '',
+    typeTransportIds: []
   };
   const [formData, setFormData] = useState(initialFormState);
   const [equipments, setEquipments] = useState([]);
+  const [availableTypes, setAvailableTypes] = useState([]);
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -57,10 +60,12 @@ const EquipamentGroupPage = () => {
     fetchGroups();
     const loadData = async () => {
       try {
-        const [equipsData] = await Promise.all([
-          equipamentService.getAll()
+        const [equipsData, typesData] = await Promise.all([
+          equipamentService.getAll(),
+          typeTransportService.getAll()
         ]);
         setEquipments(equipsData || []);
+        setAvailableTypes(typesData || []);
       } catch (err) {
         console.error("Erro ao carregar dados auxiliares:", err);
       }
@@ -106,7 +111,8 @@ const EquipamentGroupPage = () => {
         observation: formData.observation,
         equipament1Id: formData.equipament1Id,
         equipament2Id: formData.equipament2Id || null,
-        equipament3Id: formData.equipament3Id || null
+        equipament3Id: formData.equipament3Id || null,
+        typeTransportIds: formData.typeTransportIds || []
       };
       if (editingId) {
         await equipamentGroupService.update(editingId, payload);
@@ -125,12 +131,16 @@ const EquipamentGroupPage = () => {
 
   const handleEditClick = (row) => {
     setEditingId(row.id);
+    const existingTypeIds = row.typeTransports
+      ? Array.from(row.typeTransports).map(t => t.id)
+      : [];
     setFormData({
       observation: row.observation || '',
       equipament1Id: row.equipament1?.id || '',
       equipament2Id: row.equipament2?.id || '',
       equipament3Id: row.equipament3?.id || '',
-      companyId: row.company?.id || ''
+      companyId: row.company?.id || '',
+      typeTransportIds: existingTypeIds
     });
     setIsModalOpen(true);
   };
@@ -219,6 +229,37 @@ const EquipamentGroupPage = () => {
                 <span><strong>Carreta 2:</strong> {row.equipament3.plate}</span>
               </Link>
             )}
+          </div>
+        );
+      }
+    },
+    { 
+      label: 'Tipos Atendidos', 
+      key: 'typeTransports',
+      render: (row) => {
+        const types = row.typeTransports ? Array.from(row.typeTransports) : [];
+        if (types.length === 0) {
+          return <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Geral (sem restrição física)</span>;
+        }
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+            {types.map(t => (
+              <span 
+                key={t.id || t.name} 
+                className="badge" 
+                style={{ 
+                  backgroundColor: '#e0f2fe', 
+                  color: '#0369a1', 
+                  border: '1px solid #bae6fd',
+                  padding: '0.15rem 0.45rem', 
+                  borderRadius: '4px', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 600 
+                }}
+              >
+                {t.name}
+              </span>
+            ))}
           </div>
         );
       }
@@ -365,6 +406,60 @@ const EquipamentGroupPage = () => {
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div className="form-group col-span-2" style={{ marginTop: '0.5rem', background: 'var(--bg-secondary, #f8fafc)', padding: '0.9rem', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}>
+                    <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      Tipos de Transporte Atendidos (Compatibilidade Carga × Equipamento)
+                    </label>
+                    <small style={{ color: '#64748b', display: 'block', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                      Marque para quais tipos especiais este conjunto está preparado (ex.: baú refrigerado, climatizado). O otimizador de rotas só oferecerá cargas com restrição a conjuntos que atenderem o tipo exigido.
+                    </small>
+
+                    {availableTypes.length === 0 ? (
+                      <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Nenhum tipo de transporte cadastrado.</span>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem', maxHeight: '150px', overflowY: 'auto', padding: '0.25rem' }}>
+                        {availableTypes.map(type => {
+                          const isChecked = (formData.typeTransportIds || []).includes(type.id);
+                          return (
+                            <label 
+                              key={type.id} 
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.45rem', 
+                                fontSize: '0.85rem', 
+                                cursor: 'pointer',
+                                background: isChecked ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
+                                padding: '0.35rem 0.5rem',
+                                borderRadius: '4px',
+                                border: isChecked ? '1px solid rgba(79, 70, 229, 0.3)' : '1px solid transparent'
+                              }}
+                            >
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const current = formData.typeTransportIds || [];
+                                  const next = e.target.checked 
+                                    ? [...current, type.id] 
+                                    : current.filter(id => id !== type.id);
+                                  setFormData({ ...formData, typeTransportIds: next });
+                                }}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                              />
+                              <span style={{ fontWeight: isChecked ? 600 : 400 }}>
+                                {type.name}
+                                {type.requiresCompatibleVehicle && (
+                                  <span style={{ fontSize: '0.7rem', color: '#b45309', marginLeft: '0.25rem' }}>*exige</span>
+                                )}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

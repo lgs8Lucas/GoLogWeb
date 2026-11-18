@@ -19,7 +19,8 @@ const TypeTransportPage = () => {
   const initialFormState = {
     name: '',
     description: '',
-    care: ''
+    care: '',
+    requiresCompatibleVehicle: false
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -41,8 +42,10 @@ const TypeTransportPage = () => {
   }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'name') {
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setFormData({ ...formData, [name]: checked });
+    } else if (name === 'name') {
       setFormData({ ...formData, [name]: value.toUpperCase().replace(/[^A-Z ]/g, '') });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -52,11 +55,17 @@ const TypeTransportPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        care: formData.care,
+        requiresCompatibleVehicle: Boolean(formData.requiresCompatibleVehicle)
+      };
       if (editingId) {
-        await typeTransportService.update(editingId, formData);
+        await typeTransportService.update(editingId, payload);
         showToast('Tipo de transporte atualizado com sucesso!', 'success');
       } else {
-        await typeTransportService.create(formData);
+        await typeTransportService.create(payload);
         showToast('Tipo de transporte salvo com sucesso!', 'success');
       }
       handleCloseModal();
@@ -72,7 +81,8 @@ const TypeTransportPage = () => {
     setFormData({
       name: row.name || '',
       description: row.description || '',
-      care: row.care || ''
+      care: row.care || '',
+      requiresCompatibleVehicle: Boolean(row.requiresCompatibleVehicle)
     });
     setIsModalOpen(true);
   };
@@ -106,7 +116,33 @@ const TypeTransportPage = () => {
   const columns = [
     { label: 'Nome da Categoria', key: 'name' },
     { label: 'Descrição Operacional', key: 'description' },
-    { label: 'Cuidados Especiais / Regras', key: 'care' }
+    { label: 'Cuidados Especiais / Regras', key: 'care' },
+    {
+      label: 'Exige Compatibilidade',
+      key: 'requiresCompatibleVehicle',
+      render: (row) => row.requiresCompatibleVehicle ? (
+        <span
+          className="badge"
+          style={{
+            backgroundColor: '#fef3c7',
+            color: '#92400e',
+            border: '1px solid #fde68a',
+            padding: '0.2rem 0.55rem',
+            borderRadius: '4px',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem'
+          }}
+          title="O otimizador só escala esta remessa em veículos equipados para este tipo"
+        >
+          Exige veículo compatível
+        </span>
+      ) : (
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Não restrito</span>
+      )
+    }
   ];
 
   return (
@@ -188,6 +224,22 @@ const TypeTransportPage = () => {
                       placeholder="Manter em temperatura entre 2°C e 8°C."
                       required 
                     />
+                  </div>
+
+                  <div className="form-group" style={{ background: 'var(--bg-secondary, #f8fafc)', padding: '0.85rem', borderRadius: '6px', border: '1px solid var(--border-color, #e2e8f0)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontWeight: 600, margin: 0 }}>
+                      <input 
+                        type="checkbox" 
+                        name="requiresCompatibleVehicle" 
+                        checked={Boolean(formData.requiresCompatibleVehicle)} 
+                        onChange={handleInputChange} 
+                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      />
+                      <span>Exige veículo compatível</span>
+                    </label>
+                    <small style={{ color: '#64748b', marginTop: '0.35rem', display: 'block', lineHeight: 1.4 }}>
+                      Marque para cargas com exigência física específica (ex.: <b>Refrigerada</b>, <b>Climatizada</b>). O otimizador só oferecerá remessas deste tipo a veículos ou conjuntos que declararem que estão equipados para atendê-lo.
+                    </small>
                   </div>
 
                 </div>
