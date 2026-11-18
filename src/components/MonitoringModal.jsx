@@ -23,6 +23,7 @@ import OccurrenceCard from './OccurrenceCard';
 import { sortOccurrences } from '../utils/occurrence';
 import '../styles/MonitoringModal.css';
 import { isStopDone } from '../utils/tripStatus';
+import { translateStatus } from '../utils/enumTranslations';
 import MapComponent from './MapComponent';
 import InfoTip from './ui/InfoTip';
 import { transportService } from '../services/transportService';
@@ -93,12 +94,16 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
       color: 'var(--secondary-color, #2ab29b)',
       label: `Viagem #${vehicle.code}`,
       vehicle: vehicle.position ? { ...vehicle.position, label: `${vehicle.plate} · ${vehicle.driver}` } : null,
-      stops: vehicle.shipments?.map(s => {
-        if (s.address && s.address.latitude && s.address.longitude) {
+      stops: vehicle.shipments?.map((s, idx) => {
+        const addr = s.address || s.customer?.address;
+        if (addr && addr.latitude && addr.longitude) {
           return {
-            coord: [parseFloat(s.address.latitude), parseFloat(s.address.longitude)],
+            coord: [parseFloat(addr.latitude), parseFloat(addr.longitude)],
             type: s.typeOperation,
-            label: s.customer?.legalName || 'Cliente'
+            label: s.customer?.legalName || 'Cliente',
+            sequence: s.routeStop?.sequenceOrder ?? (idx + 1),
+            status: s.status,
+            statusLabel: translateStatus(s.status)
           };
         }
         return null;

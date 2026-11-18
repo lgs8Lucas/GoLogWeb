@@ -29,7 +29,8 @@ const buildRoutes = (rows) => {
   const byTransport = new Map();
   rows.forEach((r) => {
     const t = r.transport;
-    if (!t || !r.address) return;
+    const addr = r.address || r.customer?.address;
+    if (!t || !addr || !addr.latitude || !addr.longitude) return;
     if (!byTransport.has(t.id)) {
       const plate = t.equipamentGroup?.equipament1?.plate;
       const driver = t.driver?.user?.name;
@@ -41,7 +42,7 @@ const buildRoutes = (rows) => {
       });
     }
     byTransport.get(t.id).stops.push({
-      coord: [parseFloat(r.address.latitude), parseFloat(r.address.longitude)],
+      coord: [parseFloat(addr.latitude), parseFloat(addr.longitude)],
       type: r.typeOperation,
       label: r.customer?.legalName,
       status: r.status,

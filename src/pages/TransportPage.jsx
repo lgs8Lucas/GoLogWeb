@@ -250,6 +250,11 @@ const TransportPage = () => {
     const rawT = item.rawTransport;
     const shipmentsList = item.rawShipments || [];
     const coords = rawT?.routePlanned ? decodePolyline(rawT.routePlanned) : [];
+    const completedCoords = rawT?.routeCompleted ? decodePolyline(rawT.routeCompleted) : [];
+
+    const lat = Number(rawT?.lastTelemetryLat);
+    const lon = Number(rawT?.lastTelemetryLon);
+    const hasPos = rawT?.lastTelemetryLat != null && rawT?.lastTelemetryLon != null && Number.isFinite(lat) && Number.isFinite(lon);
 
     const vehicleData = {
       id: rawT?.id,
@@ -258,6 +263,9 @@ const TransportPage = () => {
       driverUserId: rawT?.driver?.user?.id,
       plate: item.equipments,
       routePlannedCoords: coords,
+      routeCompletedCoords: completedCoords,
+      position: hasPos ? { coord: [lat, lon], at: rawT?.lastTelemetryAt } : null,
+      lastTelemetryAt: rawT?.lastTelemetryAt,
       shipments: shipmentsList,
       occurrences: item.occurrences || [],
       calculedDistance: rawT?.calculedDistance,

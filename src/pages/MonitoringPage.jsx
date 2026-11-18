@@ -6,6 +6,7 @@ import '../styles/Monitoring.css';
 import MonitoringModal from '../components/MonitoringModal';
 import MapComponent from '../components/MapComponent';
 import { deliveryService } from '../services/deliveryService';
+import { transportService } from '../services/transportService';
 import { occurrenceService } from '../services/occurrenceService';
 import { decodePolyline } from '../utils/polyline';
 import { isTripFinished } from '../utils/tripStatus';
@@ -40,14 +41,44 @@ const MonitoringPage = () => {
 
   const fetchRealData = useCallback(async () => {
       try {
-        const [shipments, occurrences] = await Promise.all([
+        const [shipments, occurrences, transports] = await Promise.all([
           deliveryService.getAllPersonalized(),
-          occurrenceService.getAll()
+          occurrenceService.getAll(),
+          transportService.getAll().catch(() => [])
         ]);
         const safeShipments = Array.isArray(shipments) ? shipments : (shipments?.content || []);
         const safeOccurrences = Array.isArray(occurrences) ? occurrences : (occurrences?.content || []);
+        const safeTransports = Array.isArray(transports) ? transports : (transports?.content || []);
         // Group shipments by transport
         const transportsMap = {};
+
+        // Inicia o mapa com todos os transportes conhecidos
+        safeTransports.forEach(t => {
+          if (!t || !t.id) return;
+          transportsMap[t.id] = {
+            id: t.id,
+            code: t.codeTransport || t.id.substring(0, 8),
+            plate: t.equipamentGroup?.equipament1?.plate || 'Cavalo',
+            plate2: t.equipamentGroup?.equipament2?.plate || '-',
+            driver: t.driver?.user?.name || 'Sem motorista',
+            driverUserId: t.driver?.user?.id,
+            routePlanned: t.routePlanned,
+            routeCompleted: t.routeCompleted,
+            calculedDistance: t.calculedDistance || 0,
+            distanceTraveled: t.distanceTraveled || 0,
+            totalTimeCalculed: t.totalTimeCalculed || 0,
+            totalTime: t.totalTime || 0,
+            totalCostCalculed: t.totalCostCalculed || 0,
+            totalCost: t.totalCost || 0,
+            costKmCalculed: t.costKmCalculed,
+            costHourCalculed: t.costHourCalculed,
+            travelDuration: t.travelDuration,
+            lastTelemetryLat: t.lastTelemetryLat,
+            lastTelemetryLon: t.lastTelemetryLon,
+            lastTelemetryAt: t.lastTelemetryAt,
+            shipments: []
+          };
+        });
 
         safeShipments.forEach(s => {
           if (!s.transport) return;
@@ -150,15 +181,19 @@ const MonitoringPage = () => {
     label,
     vehicle: t.position ? { ...t.position, label } : null,
     stops: t.shipments
-      .filter(s => s.address?.latitude && s.address?.longitude)
-      .map(s => ({
-        coord: [parseFloat(s.address.latitude), parseFloat(s.address.longitude)],
-        type: s.typeOperation,
-        label: s.customer?.legalName,
-        status: s.status,
-        statusLabel: translateStatus(s.status),
-        sequence: s.routeStop?.sequenceOrder
-      }))
+      .map(s => {
+        const addr = s.address || s.customer?.address;
+        if (!addr || !addr.latitude || !addr.longitude) return null;
+        return {
+          coord: [parseFloat(addr.latitude), parseFloat(addr.longitude)],
+          type: s.typeOperation,
+          label: s.customer?.legalName || 'Cliente',
+          status: s.status,
+          statusLabel: translateStatus(s.status),
+          sequence: s.routeStop?.sequenceOrder
+        };
+      })
+      .filter(Boolean)
     };
     if (t.routeCompletedCoords?.length < 2) return [planned];
     return [planned, { id: `${t.id}-realizado`, variant: 'realized', coords: t.routeCompletedCoords, color, label: `Realizado · ${label}`, stops: [] }];
