@@ -4,6 +4,8 @@ import { AlertTriangle, Plus, Save, X } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import PageHeader from '../components/PageHeader';
 import { occurrenceService } from '../services/occurrenceService';
+import OccurrenceAttachment from '../components/OccurrenceAttachment';
+import { formatOccurrenceDate } from '../utils/occurrence';
 import { transportService } from '../services/transportService';
 import { deliveryService } from '../services/deliveryService';
 import { userService } from '../services/userService';
@@ -34,6 +36,8 @@ const OccurrencePage = () => {
       const data = await occurrenceService.getAll();
       const uniqueData = data.map((item, index) => ({
         ...item,
+        // Em objeto para a busca de texto da tabela não varrer o SVG da assinatura
+        attachment: { value: item.attachment },
         originalId: item.id,
         id: item.id ? `${item.id}-${index}` : `occ-${index}`
       }));
@@ -148,6 +152,17 @@ const OccurrencePage = () => {
         }
         return row.transport?.id ? row.transport.id.substring(0, 8) : (row.transportId ? row.transportId.substring(0, 8) : '-');
       }
+    },
+    {
+      label: 'Data / Hora',
+      key: 'dateTime',
+      render: (row) => formatOccurrenceDate(row) || '-'
+    },
+    {
+      label: 'Anexo',
+      key: 'attachment',
+      sortable: false,
+      render: (row) => <OccurrenceAttachment value={row.attachment?.value} compact emptyText={<span style={{ color: 'var(--text-muted)' }}>-</span>} />
     },
     { label: 'Relator / Emissor', key: 'senderName', render: (row) => row.senderName || row.sender?.name || 'Sistema' }
   ];
