@@ -28,11 +28,11 @@ import { decodePolyline } from '../utils/polyline';
 
 const fmtNum = (v, d = 1) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 
-/** Mesma regra do backend: chegada até o horário agendado da remessa. */
+/** Mesma regra do backend: chegada por geofence até o horário agendado (antecipada conta como no prazo). */
 const agendaStatus = (s) => {
   const sched = s.shedulind || s.schedulind;
   if (!sched) return null;
-  const arrived = s.routeStop?.arrivedAt || s.routeStop?.departedAt;
+  const arrived = s.routeStop?.arrivedAt;
   if (arrived) return new Date(arrived) <= new Date(sched) ? 'met' : 'late';
   return new Date() > new Date(sched) ? 'late' : null;
 };
