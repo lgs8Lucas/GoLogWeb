@@ -38,6 +38,7 @@ const CompanyPage = () => {
     state: '',
     country: 'Brasil',
     complement: '',
+    geofenceRadiusMeters: '',
     webhookUrl: '',
     webhookSecret: '',
     webhookActive: true
@@ -85,6 +86,7 @@ const CompanyPage = () => {
       complement: addr.complement || '',
       latitude: addr.latitude || '',
       longitude: addr.longitude || '',
+      geofenceRadiusMeters: company.geofenceRadiusMeters ?? '',
       webhookUrl: company.webhookUrl || '',
       webhookSecret: company.webhookSecret || '',
       webhookActive: company.webhookActive ?? true
@@ -233,7 +235,10 @@ const CompanyPage = () => {
         email: formData.email?.trim() || '',
         phoneNumber: formattedPhone,
         isCliente: formData.isCliente,
-        addressId: addressId
+        addressId: addressId,
+        // Vazio = usa o raio padrão do perfil da transportadora (0 limpa um raio definido antes)
+        geofenceRadiusMeters: formData.geofenceRadiusMeters === '' || formData.geofenceRadiusMeters == null
+          ? 0 : parseInt(formData.geofenceRadiusMeters, 10)
       };
 
       if (editingId) {
@@ -585,6 +590,26 @@ const CompanyPage = () => {
                       maxLength="2"
                       required
                     />
+                  </div>
+
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Raio de chegada nas entregas — geofence (metros)</label>
+                    <input
+                      type="number"
+                      name="geofenceRadiusMeters"
+                      value={formData.geofenceRadiusMeters}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      min="100"
+                      max="5000"
+                      step="10"
+                      placeholder="Padrão da transportadora (100 m)"
+                    />
+                    <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                      Distância do local em que a chegada do veículo é registrada pela telemetria, em todas as remessas
+                      deste cliente. Mínimo de 100 m. Deixe vazio para usar o padrão do perfil de otimização. Use um raio maior para locais
+                      grandes (CDs, indústrias, fazendas).
+                    </small>
                   </div>
 
                   {/* Integração ERP & Webhooks */}

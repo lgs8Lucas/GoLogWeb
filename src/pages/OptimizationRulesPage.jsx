@@ -1103,7 +1103,7 @@ const OptimizationRulesPage = () => {
                     <label className="form-label">Raio de chegada na parada — geofence (metros)</label>
                     <input
                       type="number"
-                      min="20"
+                      min="100"
                       max="5000"
                       step="10"
                       className="form-input"
@@ -1111,8 +1111,8 @@ const OptimizationRulesPage = () => {
                       onChange={(e) => setProfileForm({ ...profileForm, geofenceRadiusMeters: e.target.value })}
                     />
                     <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                      Distância do endereço em que a chegada é registrada pela telemetria (padrão 100 m). Vale no perfil
-                      padrão da transportadora; um endereço pode definir raio próprio.
+                      Distância do endereço em que a chegada é registrada pela telemetria (padrão e mínimo de 100 m). Vale no perfil
+                      padrão da transportadora; cada cliente pode definir raio próprio no cadastro de Empresas.
                     </small>
                   </div>
                 </div>
