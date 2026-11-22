@@ -126,7 +126,8 @@ const OptimizationRulesPage = () => {
     timeWindowLeadMinutes: 15,
     vehicleStartWindowLeadHours: 2,
     vehicleEndWindowMarginHours: 2,
-    globalHorizonExtraDays: 2
+    globalHorizonExtraDays: 2,
+    geofenceRadiusMeters: 100
   };
   const [profileForm, setProfileForm] = useState(initialProfileForm);
 
@@ -255,7 +256,8 @@ const OptimizationRulesPage = () => {
         costPerTraveledHour: parseFloat(profileForm.costPerTraveledHour) || 0.0,
         penaltyCostUnserved: parseFloat(profileForm.penaltyCostUnserved) || 100000.0,
         defaultServiceDurationSeconds: parseInt(profileForm.defaultServiceDurationSeconds, 10) || 1800,
-        timeWindowLeadMinutes: parseInt(profileForm.timeWindowLeadMinutes, 10) || 15
+        timeWindowLeadMinutes: parseInt(profileForm.timeWindowLeadMinutes, 10) || 15,
+        geofenceRadiusMeters: parseInt(profileForm.geofenceRadiusMeters, 10) || 100
       };
 
       if (editingProfileId) {
@@ -577,7 +579,8 @@ const OptimizationRulesPage = () => {
                 timeWindowLeadMinutes: row.timeWindowLeadMinutes ?? 15,
                 vehicleStartWindowLeadHours: row.vehicleStartWindowLeadHours ?? 2,
                 vehicleEndWindowMarginHours: row.vehicleEndWindowMarginHours ?? 2,
-                globalHorizonExtraDays: row.globalHorizonExtraDays ?? 2
+                globalHorizonExtraDays: row.globalHorizonExtraDays ?? 2,
+                geofenceRadiusMeters: row.geofenceRadiusMeters ?? 100
               });
               setIsProfileModalOpen(true);
             }}
@@ -1094,6 +1097,23 @@ const OptimizationRulesPage = () => {
                       onChange={(e) => setProfileForm({ ...profileForm, timeWindowLeadMinutes: e.target.value })}
                     />
                     <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Antecedência permitida na chegada do cliente</small>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Raio de chegada na parada — geofence (metros)</label>
+                    <input
+                      type="number"
+                      min="20"
+                      max="5000"
+                      step="10"
+                      className="form-input"
+                      value={profileForm.geofenceRadiusMeters}
+                      onChange={(e) => setProfileForm({ ...profileForm, geofenceRadiusMeters: e.target.value })}
+                    />
+                    <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                      Distância do endereço em que a chegada é registrada pela telemetria (padrão 100 m). Vale no perfil
+                      padrão da transportadora; um endereço pode definir raio próprio.
+                    </small>
                   </div>
                 </div>
               </div>

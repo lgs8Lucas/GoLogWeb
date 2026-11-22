@@ -199,7 +199,7 @@ const DashboardPage = () => {
           info={m.overdue} footer="Horário agendado já passou" onClick={() => navigate('/entregas')} />
         <StatCard label="Entregas no prazo" value={sla?.onTimeRate} unit="%" decimals={1} icon={Timer} tone="success" loading={loading}
           info={m.sla}
-          footer={sla ? `${sla.deliveredOnTime} de ${sla.deliveredWithTimestamp} com chegada registrada (geofence)` : null} />
+          footer={sla ? `${sla.deliveredOnTime} de ${sla.deliveredWithTimestamp} com chegada · ${sla.arrivedByGeofence ?? 0} por geofence, ${sla.arrivedByDeliveryRecord ?? 0} pelo registro de entrega` : null} />
       </div>
 
       {/* ---------------------------------------------------------------- Mapa + viagens */}

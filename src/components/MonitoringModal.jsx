@@ -28,11 +28,20 @@ import { decodePolyline } from '../utils/polyline';
 
 const fmtNum = (v, d = 1) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 
-/** Mesma regra do backend: chegada por geofence até o horário agendado (antecipada conta como no prazo). */
-const agendaStatus = (s) => {
+/** Registro de entrega ("Fim") mais antigo da remessa, usado quando não há chegada por geofence. */
+const deliveryRecordAt = (s, occurrences = []) => occurrences
+  .filter(o => (o.shipmentId || o.shipment?.id) === s.id && (o.type || '').trim().toLowerCase() === 'fim' && (o.dateTime || o.createdAt))
+  .map(o => o.dateTime || o.createdAt)
+  .sort((a, b) => new Date(a) - new Date(b))[0] || null;
+
+/**
+ * Mesma regra do backend (AgendaArrival): chegada por geofence ou, sem ela, o registro de entrega ("Fim");
+ * no prazo se até o horário agendado (antecipada conta como no prazo).
+ */
+const agendaStatus = (s, occurrences) => {
   const sched = s.shedulind || s.schedulind;
   if (!sched) return null;
-  const arrived = s.routeStop?.arrivedAt;
+  const arrived = s.routeStop?.arrivedAt || deliveryRecordAt(s, occurrences);
   if (arrived) return new Date(arrived) <= new Date(sched) ? 'met' : 'late';
   return new Date() > new Date(sched) ? 'late' : null;
 };
@@ -353,7 +362,7 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                       const isDone = stepStatus === 'completed';
                       const isActive = stepStatus === 'active';
                       const sched = s.shedulind || s.schedulind;
-                      const agenda = agendaStatus(s);
+                      const agenda = agendaStatus(s, vehicle.occurrences);
 
                       return (
                         <div key={s.id || index} className={`modal-timeline-item ${stepStatus}`}>
@@ -479,7 +488,10 @@ const MonitoringModal = ({ isOpen, onClose, vehicle }) => {
                       )}
                     </span>
                     {sched?.scheduled > 0 && (
-                      <span className="monitoring-kv-hint">{sched.late} fora da agenda · {sched.pending} ainda no prazo</span>
+                      <span className="monitoring-kv-hint">
+                        {sched.late} fora da agenda · {sched.pending} ainda no prazo
+                        {(sched.byGeofence > 0 || sched.byDeliveryRecord > 0) && ` · chegada: ${sched.byGeofence} por geofence, ${sched.byDeliveryRecord} pelo registro de entrega`}
+                      </span>
                     )}
                   </div>
                 </div>

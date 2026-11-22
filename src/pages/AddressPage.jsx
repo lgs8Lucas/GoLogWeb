@@ -19,7 +19,8 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
     cep: '',
     complement: '',
     latitude: '',
-    longitude: ''
+    longitude: '',
+    geofenceRadiusMeters: ''
   });
   const [loadingCoords, setLoadingCoords] = useState(false);
   const [geoMessage, setGeoMessage] = useState('');
@@ -61,7 +62,8 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
         cep: address.cep || '',
         complement: address.complement || '',
         latitude: address.latitude || '',
-        longitude: address.longitude || ''
+        longitude: address.longitude || '',
+        geofenceRadiusMeters: address.geofenceRadiusMeters ?? ''
       });
     } else {
       setFormData({
@@ -74,7 +76,8 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
         cep: '',
         complement: '',
         latitude: '',
-        longitude: ''
+        longitude: '',
+        geofenceRadiusMeters: ''
       });
     }
   }, [address, isOpen]);
@@ -106,6 +109,8 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
     }
     if (payload.latitude) payload.latitude = String(payload.latitude);
     if (payload.longitude) payload.longitude = String(payload.longitude);
+    // Vazio = usa o raio padrão do perfil da transportadora (0 limpa um raio definido antes)
+    payload.geofenceRadiusMeters = payload.geofenceRadiusMeters === '' ? 0 : parseInt(payload.geofenceRadiusMeters, 10);
 
     onSave(payload);
   };
@@ -170,6 +175,15 @@ const AddressModal = ({ isOpen, onClose, onSave, address }) => {
               <div className="form-group">
                 <label className="form-label">Longitude</label>
                 <input type="text" name="longitude" value={formData.longitude} onChange={handleInputChange} className="form-input" placeholder="-47.3809" />
+              </div>
+
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="form-label">Raio de chegada — geofence (metros)</label>
+                <input type="number" name="geofenceRadiusMeters" value={formData.geofenceRadiusMeters} onChange={handleInputChange}
+                  min="20" max="5000" step="10" className="form-input" placeholder="Padrão da transportadora (100 m)" />
+                <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                  Deixe vazio para usar o raio do perfil de otimização. Use um raio maior em locais grandes (CDs, indústrias, fazendas).
+                </small>
               </div>
 
               <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-start' }}>
